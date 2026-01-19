@@ -1,0 +1,44 @@
+"""{{ module_name }} errors.
+
+All errors are Pydantic frozen models with explicit http_status.
+Uses ErrorWithTemplate for automatic message generation.
+"""
+
+from typing import ClassVar
+from uuid import UUID
+
+from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
+
+
+class {{ name }}Error(BaseError):
+    """Base error for {{ module_name }}."""
+    
+    code: str = "{{ name_snake | upper }}_ERROR"
+
+
+class {{ name }}NotFoundError(ErrorWithTemplate, {{ name }}Error):
+    """Error raised when {{ name_lower }} is not found."""
+    
+    _message_template: ClassVar[str] = "{{ name }} with id {{ '{' }}{{ name_lower }}_id{{ '}' }} not found"
+    code: str = "{{ name_snake | upper }}_NOT_FOUND"
+    http_status: int = 404
+    {{ name_lower }}_id: UUID
+
+
+class {{ name }}AlreadyExistsError(ErrorWithTemplate, {{ name }}Error):
+    """Error raised when {{ name_lower }} already exists."""
+    
+    _message_template: ClassVar[str] = "{{ name }} already exists"
+    code: str = "{{ name_snake | upper }}_ALREADY_EXISTS"
+    http_status: int = 409
+    # Add unique field that caused conflict
+    # field_name: str
+
+
+class {{ name }}ValidationError({{ name }}Error):
+    """Error raised when {{ name_lower }} validation fails."""
+    
+    code: str = "{{ name_snake | upper }}_VALIDATION_ERROR"
+    http_status: int = 422
+    message: str = "{{ name }} validation failed"
+    field: str | None = None

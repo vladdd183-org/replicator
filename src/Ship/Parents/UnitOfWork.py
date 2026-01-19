@@ -1,7 +1,11 @@
 """Base Unit of Work class according to Hyper-Porto architecture.
 
 UnitOfWork manages transactions and domain event publishing.
-Integrates with litestar.events for event dispatching after commit.
+Supports two modes:
+1. Direct emit (fire-and-forget) - events emitted after commit
+2. Transactional Outbox - events saved to outbox table for reliable delivery
+
+Mode is controlled by OUTBOX_ENABLED setting.
 
 Note: For Piccolo ORM, transactions are managed via engine.transaction() context manager.
 """
@@ -16,6 +20,7 @@ if TYPE_CHECKING:
     from piccolo.engine.postgres import PostgresEngine
     from litestar import Litestar
     from src.Ship.Parents.Event import DomainEvent
+    from src.Ship.Infrastructure.Events.Outbox.Repository import OutboxEventRepository
 
 # Type alias for event emitter function
 EventEmitterFunc = Callable[[str, Any], None] | None
@@ -23,16 +28,25 @@ EventEmitterFunc = Callable[[str, Any], None] | None
 
 @dataclass
 class BaseUnitOfWork:
-    """Base Unit of Work class.
+    """Base Unit of Work class with Transactional Outbox support.
     
     UnitOfWork manages transactions and ensures consistency.
     Inheritors only add repositories.
     
-    Integration with litestar.events:
-    Events are published AFTER successful commit via emit() function.
+    Event Delivery Modes:
+    1. Outbox Pattern (OUTBOX_ENABLED=true, default):
+       - Events are saved to outbox_events table within the transaction
+       - Background worker processes and publishes events
+       - Guarantees at-least-once delivery
+       
+    2. Direct Emit (OUTBOX_ENABLED=false):
+       - Events are emitted fire-and-forget after commit
+       - Events may be lost if app crashes after commit
+       - Faster, but less reliable
     
-    For Piccolo ORM:
-    Uses engine.transaction() for transaction management.
+    Aggregate Tracking:
+    Use set_aggregate_info() to tag events with aggregate info.
+    This enables filtering and debugging in the outbox table.
     
     Example:
         @dataclass
@@ -43,6 +57,7 @@ class BaseUnitOfWork:
         async with self.uow:
             user = User(email=data.email, ...)
             await self.uow.users.add(user)
+            self.uow.set_aggregate_info("User", str(user.id))
             self.uow.add_event(UserCreated(user_id=user.id))
             await self.uow.commit()
     """
@@ -53,6 +68,13 @@ class BaseUnitOfWork:
     
     # Litestar app instance for passing to event listeners
     _app: "Litestar | None" = field(default=None, repr=False)
+    
+    # Outbox repository (lazily created if needed)
+    _outbox_repo: "OutboxEventRepository | None" = field(default=None, repr=False)
+    
+    # Aggregate tracking for outbox events
+    _aggregate_type: str | None = field(default=None, init=False, repr=False)
+    _aggregate_id: str | None = field(default=None, init=False, repr=False)
     
     # Internal state
     _events: list["DomainEvent"] = field(default_factory=list, init=False, repr=False)
@@ -69,6 +91,94 @@ class BaseUnitOfWork:
         if engine is None:
             raise RuntimeError("No Piccolo engine configured. Check piccolo_conf.py")
         return engine
+    
+    def _is_outbox_enabled(self) -> bool:
+        """Check if Transactional Outbox pattern is enabled.
+        
+        Reads from settings. Can be overridden in subclasses.
+        
+        Returns:
+            True if outbox is enabled
+        """
+        from src.Ship.Configs import get_settings
+        settings = get_settings()
+        return getattr(settings, "outbox_enabled", False)
+    
+    def _get_outbox_repo(self) -> "OutboxEventRepository":
+        """Get or create outbox repository.
+        
+        Lazily creates repository if not injected.
+        
+        Returns:
+            OutboxEventRepository instance
+        """
+        if self._outbox_repo is None:
+            from src.Ship.Infrastructure.Events.Outbox.Repository import OutboxEventRepository
+            self._outbox_repo = OutboxEventRepository()
+        return self._outbox_repo
+    
+    def set_aggregate_info(
+        self,
+        aggregate_type: str,
+        aggregate_id: str | None = None,
+    ) -> None:
+        """Set aggregate information for outbox event tracking.
+        
+        When outbox is enabled, events will be tagged with this info,
+        enabling filtering and debugging by aggregate.
+        
+        Args:
+            aggregate_type: Type name of the aggregate (e.g., 'User', 'Order')
+            aggregate_id: ID of the aggregate instance
+            
+        Example:
+            async with uow:
+                uow.set_aggregate_info("User", str(user.id))
+                uow.add_event(UserCreated(user_id=user.id))
+                uow.add_event(WelcomeEmailQueued(user_id=user.id))
+                await uow.commit()
+        """
+        self._aggregate_type = aggregate_type
+        self._aggregate_id = str(aggregate_id) if aggregate_id else None
+    
+    async def _save_events_to_outbox(self) -> None:
+        """Save pending events to outbox table.
+        
+        Called during commit when outbox is enabled.
+        Events are saved within the same database transaction.
+        """
+        if not self._events:
+            return
+        
+        repo = self._get_outbox_repo()
+        
+        for event in self._events:
+            await repo.add_from_domain_event(
+                event=event,
+                aggregate_type=self._aggregate_type,
+                aggregate_id=self._aggregate_id,
+            )
+    
+    async def _emit_events_directly(self) -> None:
+        """Emit events directly via Litestar (fire-and-forget).
+        
+        Called after commit when outbox is disabled.
+        Events may be lost if app crashes after commit.
+        """
+        import logfire
+        
+        if self._emit is not None:
+            for event in self._events:
+                # Emit event with app instance and all event data as kwargs
+                self._emit(event.event_name, app=self._app, **event.model_dump(mode="json"))
+        else:
+            # Log events when no emitter is available (CLI, tests, etc.)
+            for event in self._events:
+                logfire.info(
+                    f"📤 Event (no emitter): {event.event_name}",
+                    event_name=event.event_name,
+                    event_data=event.model_dump(mode="json"),
+                )
     
     async def __aenter__(self: Self) -> Self:
         """Enter transaction context.
@@ -87,17 +197,21 @@ class BaseUnitOfWork:
         exc_val: BaseException | None,
         exc_tb: object,
     ) -> None:
-        """Exit transaction context.
+        """Exit transaction context with Transactional Outbox support.
         
         Design contract:
         - DB commit happens only if `commit()` was called and no exception occurred.
         - If `commit()` wasn't called, we rollback even if there was no exception.
-        - Domain events are emitted strictly AFTER successful transaction commit.
+        - Event delivery depends on OUTBOX_ENABLED setting:
+          - Outbox enabled: Events saved to outbox table BEFORE commit (same transaction)
+          - Outbox disabled: Events emitted fire-and-forget AFTER commit
         """
         if self._transaction is None:
             # Nothing to finalize. Ensure clean state.
             self._events.clear()
             self._committed = False
+            self._aggregate_type = None
+            self._aggregate_id = None
             return
 
         transaction = self._transaction
@@ -121,30 +235,26 @@ class BaseUnitOfWork:
                 self._events.clear()
                 return
 
-            # 3) Commit DB transaction first.
+            # 3) If outbox is enabled, save events to outbox table BEFORE commit
+            #    This ensures events are in the same transaction as business data
+            use_outbox = self._is_outbox_enabled()
+            if use_outbox and self._events:
+                await self._save_events_to_outbox()
+
+            # 4) Commit DB transaction
             await transaction.__aexit__(None, None, None)
 
-            # 4) Only after successful commit emit all collected domain events.
-            if self._emit is not None:
-                for event in self._events:
-                    # Emit event with app instance and all event data as kwargs
-                    # app is required for listeners to access ChannelsPlugin
-                    self._emit(event.event_name, app=self._app, **event.model_dump(mode="json"))
-            else:
-                # Log events when no emitter is available (CLI, tests, etc.)
-                import logfire
-
-                for event in self._events:
-                    logfire.info(
-                        f"📤 Event (no emitter): {event.event_name}",
-                        event_name=event.event_name,
-                        event_data=event.model_dump(mode="json"),
-                    )
+            # 5) If outbox is DISABLED, emit events directly (fire-and-forget)
+            #    This is the legacy behavior for backward compatibility
+            if not use_outbox and self._events:
+                await self._emit_events_directly()
 
             self._events.clear()
         finally:
             # Reset state so the same UoW instance can't accidentally be reused.
             self._committed = False
+            self._aggregate_type = None
+            self._aggregate_id = None
     
     def add_event(self, event: "DomainEvent") -> None:
         """Add domain event for publishing after commit.
@@ -175,6 +285,8 @@ class BaseUnitOfWork:
         """
         self._events.clear()
         self._committed = False
+        self._aggregate_type = None
+        self._aggregate_id = None
 
         if self._transaction is not None:
             transaction = self._transaction

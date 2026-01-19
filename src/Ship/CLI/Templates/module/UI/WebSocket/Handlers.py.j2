@@ -1,0 +1,105 @@
+"""{{ module_name }} WebSocket Handlers.
+
+Real-time WebSocket handlers using Litestar channels.
+"""
+
+from uuid import UUID
+
+from litestar import WebSocket
+from litestar.handlers import websocket_listener
+from litestar.channels import ChannelsPlugin
+import logfire
+
+
+@websocket_listener("/ws/{{ name_plural }}")
+async def {{ name_lower }}_websocket_handler(
+    data: dict,
+    socket: WebSocket,
+) -> dict:
+    """Handle {{ name_lower }}-related WebSocket messages.
+    
+    Message types:
+    - subscribe: Subscribe to {{ name_lower }} updates
+    - unsubscribe: Unsubscribe from updates
+    
+    Args:
+        data: Message data (must have 'type' field)
+        socket: WebSocket connection
+        
+    Returns:
+        Response message
+    """
+    msg_type = data.get("type", "unknown")
+    
+    logfire.info(
+        "WebSocket message received",
+        type=msg_type,
+        data=data,
+    )
+    
+    match msg_type:
+        case "subscribe":
+            {{ name_lower }}_id = data.get("{{ name_lower }}_id")
+            if {{ name_lower }}_id:
+                # Subscribe to channel for this {{ name_lower }}
+                channels: ChannelsPlugin = socket.app.plugins.get(ChannelsPlugin)
+                if channels:
+                    await channels.subscribe(socket, f"{{ name_lower }}:{{ '{' }}{{ name_lower }}_id{{ '}' }}")
+                return {"type": "subscribed", "{{ name_lower }}_id": {{ name_lower }}_id}
+            return {"type": "error", "message": "{{ name_lower }}_id required"}
+        
+        case "unsubscribe":
+            {{ name_lower }}_id = data.get("{{ name_lower }}_id")
+            if {{ name_lower }}_id:
+                channels: ChannelsPlugin = socket.app.plugins.get(ChannelsPlugin)
+                if channels:
+                    await channels.unsubscribe(socket, f"{{ name_lower }}:{{ '{' }}{{ name_lower }}_id{{ '}' }}")
+                return {"type": "unsubscribed", "{{ name_lower }}_id": {{ name_lower }}_id}
+            return {"type": "error", "message": "{{ name_lower }}_id required"}
+        
+        case _:
+            return {"type": "error", "message": f"Unknown message type: {msg_type}"}
+
+
+# Helper function for publishing to channels
+def publish_to_{{ name_lower }}_channel(
+    app,
+    {{ name_lower }}_id: str | UUID,
+    event_type: str,
+    data: dict,
+) -> None:
+    """Publish message to {{ name_lower }}-specific channel.
+    
+    Args:
+        app: Litestar application instance
+        {{ name_lower }}_id: {{ name }} ID for channel name
+        event_type: Type of event
+        data: Event data
+    """
+    if app is None:
+        logfire.warning("Cannot publish to channel: app is None")
+        return
+    
+    try:
+        channels: ChannelsPlugin | None = app.plugins.get(ChannelsPlugin)
+        if channels:
+            channels.publish(
+                {"type": event_type, **data},
+                channels=[f"{{ name_lower }}:{{ '{' }}{{ name_lower }}_id{{ '}' }}"],
+            )
+            logfire.info(
+                "Published to {{ name_lower }} channel",
+                {{ name_lower }}_id=str({{ name_lower }}_id),
+                event_type=event_type,
+            )
+    except Exception as e:
+        logfire.error(f"Failed to publish to channel: {e}")
+
+
+class {{ name }}WebSocketHandler:
+    """WebSocket handler class for {{ name_plural }}.
+    
+    Contains the websocket_listener for module registration.
+    """
+    
+    handler = {{ name_lower }}_websocket_handler

@@ -1,0 +1,160 @@
+"""{{ name }} HTTP API Controller.
+
+Uses DishkaRouter - no need for @inject decorator.
+All write endpoints use @result_handler for consistent Result -> Response conversion.
+Read endpoints return DTOs directly (CQRS pattern).
+"""
+
+from uuid import UUID
+
+from dishka.integrations.litestar import FromDishka
+from litestar import Controller, get, post, delete, patch
+from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT, HTTP_200_OK
+from returns.result import Result
+
+from src.Ship.Core.Errors import DomainException
+from src.Ship.Decorators.result_handler import result_handler
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Delete{{ name }}Action import Delete{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Update{{ name }}Action import (
+    Update{{ name }}Action,
+    Update{{ name }}Input,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import (
+    List{{ name_plural_pascal }}Query,
+    List{{ name_plural_pascal }}QueryInput,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Queries.Get{{ name }}Query import (
+    Get{{ name }}Query,
+    Get{{ name }}QueryInput,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Requests import (
+    Create{{ name }}Request,
+    Update{{ name }}Request,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Responses import (
+    {{ name }}Response,
+    {{ name }}ListResponse,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Error, {{ name }}NotFoundError
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class {{ name }}Controller(Controller):
+    """HTTP API controller for {{ name }} operations.
+    
+    Handles all {{ name_lower }}-related HTTP endpoints.
+    Uses Actions for write operations and Queries for read operations (CQRS).
+    Uses result_handler for response formatting.
+    """
+    
+    path = "/{{ name_plural }}"
+    tags = ["{{ name_plural_pascal }}"]
+    
+    @post("/")
+    @result_handler({{ name }}Response, success_status=HTTP_201_CREATED)
+    async def create_{{ name_lower }}(
+        self,
+        data: Create{{ name }}Request,
+        action: FromDishka[Create{{ name }}Action],
+    ) -> Result[{{ name }}, {{ name }}Error]:
+        """Create a new {{ name_lower }}.
+        
+        Args:
+            data: Create{{ name }}Request with {{ name_lower }} data
+            action: Injected Create{{ name }}Action
+            
+        Returns:
+            Created {{ name_lower }} as {{ name }}Response (201) or error
+        """
+        return await action.run(data)
+    
+    @get("/{{ '{' }}{{ name_lower }}_id:uuid{{ '}' }}")
+    async def get_{{ name_lower }}(
+        self,
+        {{ name_lower }}_id: UUID,
+        query: FromDishka[Get{{ name }}Query],
+    ) -> {{ name }}Response:
+        """Get {{ name_lower }} by ID.
+        
+        Args:
+            {{ name_lower }}_id: {{ name }} UUID
+            query: Injected Get{{ name }}Query
+            
+        Returns:
+            {{ name }} as {{ name }}Response (200) or NotFound error (404)
+        """
+        {{ name_lower }} = await query.execute(Get{{ name }}QueryInput({{ name_lower }}_id={{ name_lower }}_id))
+        if {{ name_lower }} is None:
+            raise DomainException({{ name }}NotFoundError({{ name_lower }}_id={{ name_lower }}_id))
+            
+        return {{ name }}Response.from_entity({{ name_lower }})
+    
+    @get("/")
+    async def list_{{ name_plural }}(
+        self,
+        query: FromDishka[List{{ name_plural_pascal }}Query],
+        limit: int = 20,
+        offset: int = 0,
+    ) -> {{ name }}ListResponse:
+        """List {{ name_plural }} with pagination.
+        
+        Uses CQRS Query directly for read operations (no Action wrapper).
+        
+        Args:
+            query: Injected List{{ name_plural_pascal }}Query
+            limit: Maximum number of {{ name_plural }} to return (default: 20)
+            offset: Number of {{ name_plural }} to skip (default: 0)
+            
+        Returns:
+            {{ name }}ListResponse with {{ name_plural }} and pagination info
+        """
+        result = await query.execute(List{{ name_plural_pascal }}QueryInput(
+            limit=limit,
+            offset=offset,
+        ))
+        
+        return {{ name }}ListResponse(
+            {{ name_plural }}=[{{ name }}Response.from_entity(x) for x in result.{{ name_plural }}],
+            total=result.total,
+            limit=result.limit,
+            offset=result.offset,
+        )
+    
+    @patch("/{{ '{' }}{{ name_lower }}_id:uuid{{ '}' }}")
+    @result_handler({{ name }}Response, success_status=HTTP_200_OK)
+    async def update_{{ name_lower }}(
+        self,
+        {{ name_lower }}_id: UUID,
+        data: Update{{ name }}Request,
+        action: FromDishka[Update{{ name }}Action],
+    ) -> Result[{{ name }}, {{ name }}Error]:
+        """Update {{ name_lower }} by ID.
+        
+        Args:
+            {{ name_lower }}_id: {{ name }} UUID to update
+            data: Update{{ name }}Request with fields to update
+            action: Injected Update{{ name }}Action
+            
+        Returns:
+            Updated {{ name_lower }} as {{ name }}Response (200) or error
+        """
+        return await action.run(Update{{ name }}Input({{ name_lower }}_id={{ name_lower }}_id, data=data))
+    
+    @delete("/{{ '{' }}{{ name_lower }}_id:uuid{{ '}' }}", status_code=HTTP_200_OK)
+    @result_handler(None, success_status=HTTP_204_NO_CONTENT)
+    async def delete_{{ name_lower }}(
+        self,
+        {{ name_lower }}_id: UUID,
+        action: FromDishka[Delete{{ name }}Action],
+    ) -> Result[None, {{ name }}Error]:
+        """Delete {{ name_lower }} by ID.
+        
+        Args:
+            {{ name_lower }}_id: {{ name }} UUID to delete
+            action: Injected Delete{{ name }}Action
+            
+        Returns:
+            204 No Content on success, 404 if not found
+        """
+        return await action.run({{ name_lower }}_id)

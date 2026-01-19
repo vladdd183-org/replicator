@@ -12,16 +12,24 @@ class EntitySchema(BaseModel):
     
     Uses Pydantic V2 from_attributes for automatic mapping from ORM objects.
     
+    Available methods:
+        - from_entity(entity): Convert single ORM entity to DTO
+        - from_entities(entities): Convert list of ORM entities to list of DTOs
+    
     Example:
         class UserResponse(EntitySchema):
             id: UUID
             email: str
             name: str
             is_active: bool
-            # from_entity is already available from base class!
+            # from_entity and from_entities are already available!
             
-        # Usage:
+        # Single entity:
         user_response = UserResponse.from_entity(user)
+        
+        # Multiple entities:
+        users = await repository.get_all()
+        user_responses = UserResponse.from_entities(users)
     """
     
     model_config = ConfigDict(
@@ -41,3 +49,21 @@ class EntitySchema(BaseModel):
         """
         return cls.model_validate(entity)
 
+    @classmethod
+    def from_entities(cls: Type[T], entities: list[object]) -> list[T]:
+        """Create list of DTOs from list of Entities.
+        
+        Batch conversion method for converting multiple ORM entities
+        to their corresponding DTOs in a single operation.
+        
+        Args:
+            entities: List of ORM model instances to convert
+            
+        Returns:
+            List of validated DTO instances
+            
+        Example:
+            users = await user_repository.get_all()
+            return UserResponse.from_entities(users)
+        """
+        return [cls.model_validate(entity) for entity in entities]

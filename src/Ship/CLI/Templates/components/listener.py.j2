@@ -1,0 +1,47 @@
+"""{{ component_name }} Event Listener.
+
+Add this listener to your module's Listeners.py file.
+Listeners handle events published via litestar.events.
+"""
+
+import logfire
+
+from litestar import Litestar
+from litestar.events import listener
+
+
+@listener("{{ component_name }}")
+async def on_{{ component_name_snake }}(
+    {{ name_lower }}_id: str,
+    app: Litestar | None = None,
+    occurred_at: str | None = None,
+    **kwargs,
+) -> None:
+    """Handle {{ component_name }} event.
+    
+    Triggered when {{ component_name_snake.replace('_', ' ') }}.
+    
+    Args:
+        {{ name_lower }}_id: UUID of the {{ name_lower }}
+        app: Litestar app instance (for channels)
+        occurred_at: Event timestamp
+        **kwargs: Additional event data
+    """
+    logfire.info(
+        "{{ component_name }} event received",
+        {{ name_lower }}_id={{ name_lower }}_id,
+        occurred_at=occurred_at,
+    )
+    
+    # TODO: Implement event handling logic
+    # Examples:
+    # - Send notification
+    # - Update cache
+    # - Publish to WebSocket channel
+    # - Trigger background task
+    # - Sync with external service
+
+
+# Register this listener in App.py:
+# from src.Containers.{{ section }}.{{ module_name }}.Listeners import on_{{ component_name_snake }}
+# listeners=[..., on_{{ component_name_snake }}]

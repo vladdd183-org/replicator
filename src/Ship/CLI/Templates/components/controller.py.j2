@@ -1,0 +1,62 @@
+"""{{ component_name }}Controller - HTTP API Controller for {{ module_name }}.
+
+This Controller:
+- Handles HTTP requests
+- Delegates to Actions/Queries
+- Does NOT contain business logic
+"""
+
+from uuid import UUID
+
+from dishka.integrations.litestar import FromDishka
+from litestar import Controller, get, post
+from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
+from returns.result import Result
+
+from src.Ship.Decorators.result_handler import result_handler
+# TODO: Import Actions and Queries
+# from src.Containers.{{ section }}.{{ module_name }}.Actions.SomeAction import SomeAction
+# from src.Containers.{{ section }}.{{ module_name }}.Queries.SomeQuery import SomeQuery
+from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Error
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class {{ component_name }}Controller(Controller):
+    """HTTP API controller for {{ component_name }} operations.
+    
+    TODO: Describe what this controller handles.
+    
+    Uses Actions for write operations and Queries for read operations (CQRS).
+    Uses result_handler for response formatting.
+    """
+    
+    path = "/{{ component_name_snake }}"
+    tags = ["{{ component_name }}"]
+    
+    # TODO: Add endpoints
+    # 
+    # Example GET endpoint (Query):
+    # @get("/")
+    # async def list_items(
+    #     self,
+    #     query: FromDishka[SomeQuery],
+    # ) -> SomeResponse:
+    #     """List items."""
+    #     result = await query.execute(input)
+    #     return SomeResponse(...)
+    #
+    # Example POST endpoint (Action):
+    # @post("/")
+    # @result_handler(SomeResponse, success_status=HTTP_201_CREATED)
+    # async def create_item(
+    #     self,
+    #     data: CreateRequest,
+    #     action: FromDishka[CreateAction],
+    # ) -> Result[SomeEntity, SomeError]:
+    #     """Create item."""
+    #     return await action.run(data)
+    
+    @get("/health")
+    async def health_check(self) -> dict:
+        """Health check endpoint."""
+        return {"status": "ok", "controller": "{{ component_name }}"}

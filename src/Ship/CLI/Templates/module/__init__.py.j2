@@ -1,0 +1,57 @@
+"""{{ module_name }} - Porto Container.
+
+{{ name }} domain module following Hyper-Porto architecture.
+"""
+
+# Actions (Use Cases)
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Update{{ name }}Action import Update{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Delete{{ name }}Action import Delete{{ name }}Action
+
+# Queries (CQRS Read)
+from src.Containers.{{ section }}.{{ module_name }}.Queries.Get{{ name }}Query import Get{{ name }}Query
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import List{{ name_plural_pascal }}Query
+
+# Data Layer
+from src.Containers.{{ section }}.{{ module_name }}.Data.Repositories.{{ name }}Repository import {{ name }}Repository
+from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
+
+# Models
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+# Events
+from src.Containers.{{ section }}.{{ module_name }}.Events import (
+    {{ name }}Created,
+    {{ name }}Updated,
+    {{ name }}Deleted,
+)
+
+# Errors
+from src.Containers.{{ section }}.{{ module_name }}.Errors import (
+    {{ name }}Error,
+    {{ name }}NotFoundError,
+    {{ name }}AlreadyExistsError,
+)
+
+__all__ = [
+    # Actions
+    "Create{{ name }}Action",
+    "Update{{ name }}Action",
+    "Delete{{ name }}Action",
+    # Queries
+    "Get{{ name }}Query",
+    "List{{ name_plural_pascal }}Query",
+    # Data
+    "{{ name }}Repository",
+    "{{ name }}UnitOfWork",
+    # Models
+    "{{ name }}",
+    # Events
+    "{{ name }}Created",
+    "{{ name }}Updated",
+    "{{ name }}Deleted",
+    # Errors
+    "{{ name }}Error",
+    "{{ name }}NotFoundError",
+    "{{ name }}AlreadyExistsError",
+]

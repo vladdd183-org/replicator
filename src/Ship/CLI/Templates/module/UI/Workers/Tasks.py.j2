@@ -1,0 +1,77 @@
+"""{{ module_name }} Background Tasks.
+
+TaskIQ tasks for asynchronous processing.
+These tasks run in background workers.
+"""
+
+from uuid import UUID
+
+import logfire
+
+from src.Ship.Infrastructure.Workers.Broker import broker
+
+
+@broker.task
+async def process_{{ name_lower }}_task(
+    {{ name_lower }}_id: str,
+    action: str = "process",
+) -> dict:
+    """Background task for processing {{ name_lower }}.
+    
+    This task runs asynchronously in a worker process.
+    Can be triggered from event listeners or directly.
+    
+    Args:
+        {{ name_lower }}_id: UUID of {{ name_lower }} to process
+        action: Action to perform (default: "process")
+        
+    Returns:
+        Result dictionary with status and details
+        
+    Usage:
+        # Trigger task
+        await process_{{ name_lower }}_task.kiq({{ name_lower }}_id=str(entity.id))
+        
+        # Or with delay
+        await process_{{ name_lower }}_task.kicker().with_delay(seconds=60).kiq(
+            {{ name_lower }}_id=str(entity.id)
+        )
+    """
+    logfire.info(
+        "Processing {{ name_lower }} in background",
+        {{ name_lower }}_id={{ name_lower }}_id,
+        action=action,
+    )
+    
+    try:
+        # TODO: Implement background processing logic
+        # Examples:
+        # - Send notifications
+        # - Generate reports
+        # - Sync with external services
+        # - Process heavy computations
+        
+        # Example: Get {{ name_lower }} from database
+        # from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+        # entity = await {{ name }}.objects().where({{ name }}.id == UUID({{ name_lower }}_id)).first()
+        # if entity:
+        #     # Process entity...
+        #     pass
+        
+        return {
+            "status": "success",
+            "{{ name_lower }}_id": {{ name_lower }}_id,
+            "action": action,
+        }
+        
+    except Exception as e:
+        logfire.error(
+            "Failed to process {{ name_lower }}",
+            {{ name_lower }}_id={{ name_lower }}_id,
+            error=str(e),
+        )
+        return {
+            "status": "error",
+            "{{ name_lower }}_id": {{ name_lower }}_id,
+            "error": str(e),
+        }

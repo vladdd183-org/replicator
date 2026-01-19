@@ -1,0 +1,80 @@
+"""{{ module_name }} dependency injection providers.
+
+Consolidated providers with clear scope separation.
+Dishka automatically resolves dependencies by type hints.
+
+Architecture:
+- {{ name }}ModuleProvider: APP scope - stateless tasks
+- _Base{{ name }}RequestProvider: Base class with common REQUEST scope dependencies  
+- {{ name }}RequestProvider: HTTP context (inherits base + adds UoW with emit)
+- {{ name }}CLIProvider: CLI context (inherits base + adds UoW without emit)
+"""
+
+from dishka import Provider, Scope, provide
+from litestar import Request
+
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Update{{ name }}Action import Update{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Delete{{ name }}Action import Delete{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Queries.Get{{ name }}Query import Get{{ name }}Query
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import List{{ name_plural_pascal }}Query
+from src.Containers.{{ section }}.{{ module_name }}.Data.Repositories.{{ name }}Repository import {{ name }}Repository
+from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
+
+
+class {{ name }}ModuleProvider(Provider):
+    """Core provider for {{ module_name }} - APP scope dependencies.
+    
+    Stateless services that can be reused across requests.
+    """
+    
+    scope = Scope.APP
+    
+    # Tasks - stateless, reusable
+    # Example: hash_password_task = provide(HashPasswordTask)
+
+
+class _Base{{ name }}RequestProvider(Provider):
+    """Base provider with common REQUEST scope dependencies.
+    
+    Contains all dependencies shared between HTTP and CLI contexts.
+    Not exported - use {{ name }}RequestProvider or {{ name }}CLIProvider instead.
+    """
+    
+    scope = Scope.REQUEST
+    
+    # Data Layer
+    {{ name_lower }}_repository = provide({{ name }}Repository)
+    
+    # Queries - CQRS read side
+    get_{{ name_lower }}_query = provide(Get{{ name }}Query)
+    list_{{ name_plural }}_query = provide(List{{ name_plural_pascal }}Query)
+    
+    # Actions - CQRS write side
+    create_{{ name_lower }}_action = provide(Create{{ name }}Action)
+    update_{{ name_lower }}_action = provide(Update{{ name }}Action)
+    delete_{{ name_lower }}_action = provide(Delete{{ name }}Action)
+
+
+class {{ name }}RequestProvider(_Base{{ name }}RequestProvider):
+    """HTTP request-scoped provider for {{ module_name }}.
+    
+    Extends base provider with UnitOfWork that has event emitter.
+    """
+    
+    @provide
+    def provide_{{ name_lower }}_uow(self, request: Request) -> {{ name }}UnitOfWork:
+        """Provide {{ name }}UnitOfWork with event emitter from request."""
+        return {{ name }}UnitOfWork(_emit=request.app.emit, _app=request.app)
+
+
+class {{ name }}CLIProvider(_Base{{ name }}RequestProvider):
+    """CLI-specific provider for {{ module_name }}.
+    
+    Extends base provider with UnitOfWork without event emitter.
+    """
+    
+    @provide
+    def provide_{{ name_lower }}_uow(self) -> {{ name }}UnitOfWork:
+        """Provide {{ name }}UnitOfWork without event emitter for CLI."""
+        return {{ name }}UnitOfWork(_emit=None, _app=None)

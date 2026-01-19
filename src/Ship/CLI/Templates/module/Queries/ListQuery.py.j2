@@ -1,0 +1,89 @@
+"""List{{ name_plural_pascal }}Query - CQRS query for listing {{ name_plural }} with pagination."""
+
+from dataclasses import dataclass
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.Ship.Parents.Query import Query
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class List{{ name_plural_pascal }}QueryInput(BaseModel):
+    """Input parameters for List{{ name_plural_pascal }}Query.
+    
+    Attributes:
+        limit: Maximum number of results (default: 20)
+        offset: Number of results to skip (default: 0)
+        # Add filters as needed
+    """
+    
+    model_config = ConfigDict(frozen=True)
+    
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+    # Add optional filters:
+    # is_active: bool | None = None
+
+
+@dataclass
+class List{{ name_plural_pascal }}QueryResult:
+    """Result of List{{ name_plural_pascal }}Query.
+    
+    Contains paginated results with metadata.
+    """
+    
+    {{ name_plural }}: list[{{ name }}]
+    total: int
+    limit: int
+    offset: int
+
+
+class List{{ name_plural_pascal }}Query(Query[List{{ name_plural_pascal }}QueryInput, List{{ name_plural_pascal }}QueryResult]):
+    """CQRS Query: List {{ name_plural }} with pagination.
+    
+    Read-only operation optimized for data retrieval.
+    Supports pagination and filtering.
+    
+    Example:
+        query = List{{ name_plural_pascal }}Query()
+        result = await query.execute(List{{ name_plural_pascal }}QueryInput(limit=10, offset=0))
+        return {{ name }}ListResponse(
+            {{ name_plural }}=[{{ name }}Response.from_entity(x) for x in result.{{ name_plural }}],
+            total=result.total,
+        )
+    """
+    
+    async def execute(self, input: List{{ name_plural_pascal }}QueryInput) -> List{{ name_plural_pascal }}QueryResult:
+        """Execute query to list {{ name_plural }}.
+        
+        Args:
+            input: Query input with pagination parameters
+            
+        Returns:
+            List{{ name_plural_pascal }}QueryResult with {{ name_plural }} and metadata
+        """
+        # Build query
+        query = {{ name }}.objects()
+        
+        # Apply filters
+        # Example:
+        # if input.is_active is not None:
+        #     query = query.where({{ name }}.is_active == input.is_active)
+        
+        # Get total count
+        total = await {{ name }}.count()
+        
+        # Get paginated results
+        {{ name_plural }} = await (
+            query
+            .order_by({{ name }}.created_at, ascending=False)
+            .limit(input.limit)
+            .offset(input.offset)
+        )
+        
+        return List{{ name_plural_pascal }}QueryResult(
+            {{ name_plural }}={{ name_plural }},
+            total=total,
+            limit=input.limit,
+            offset=input.offset,
+        )

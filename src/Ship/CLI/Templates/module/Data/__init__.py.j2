@@ -1,0 +1,12 @@
+"""{{ module_name }} Data layer.
+
+Contains Repository, Schemas (DTOs), and UnitOfWork.
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.Data.Repositories.{{ name }}Repository import {{ name }}Repository
+from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
+
+__all__ = [
+    "{{ name }}Repository",
+    "{{ name }}UnitOfWork",
+]

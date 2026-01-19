@@ -1,0 +1,59 @@
+"""{{ component_name }}Task - Async atomic operation for {{ module_name }}.
+
+This Task:
+- Performs a single atomic operation
+- Is reusable across multiple Actions
+- Handles I/O operations (API calls, DB, email, etc.)
+"""
+
+from src.Ship.Parents.Task import Task
+
+
+# TODO: Define input type
+# from pydantic import BaseModel
+# class {{ component_name }}Input(BaseModel):
+#     """Input for {{ component_name }}Task."""
+#     field: str
+
+
+# TODO: Define output type
+# OutputType = str | dict | SomeModel
+
+
+class {{ component_name }}Task(Task[object, object]):
+    """Async Task: {{ component_name }}.
+    
+    TODO: Describe what this task does.
+    
+    This task is stateless and can be reused across Actions.
+    Use for I/O operations like API calls, database queries, sending emails.
+    
+    Example:
+        task = {{ component_name }}Task()
+        result = await task.run(input_data)
+    """
+    
+    def __init__(self) -> None:
+        """Initialize task with dependencies."""
+        # TODO: Add dependencies if needed
+        # Example: self.client = SomeClient()
+        pass
+    
+    async def run(self, data: object) -> object:
+        """Execute the {{ component_name_snake }} task.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            Task result
+        """
+        # TODO: Implement task logic
+        
+        # Examples:
+        # - Call external API
+        # - Query database
+        # - Send email/notification
+        # - Process file
+        
+        return None  # TODO: Return actual result

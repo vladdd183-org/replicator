@@ -18,6 +18,10 @@ Usage:
     litestar db migrate
     litestar db makemigrations --app user
     litestar db status
+    
+Note: For code generation, use the standalone Porto CLI:
+    porto --help
+    porto make:module Blog
 """
 
 import click
@@ -39,9 +43,11 @@ def cli(ctx: click.Context) -> None:
 # Import and register container command groups
 from src.Containers.AppSection.UserModule.UI.CLI.Commands import users_group
 from src.Ship.CLI.MigrationCommands import db_group
+from src.Ship.Infrastructure.Events.Outbox.CLI import outbox_cli
 
 cli.add_command(users_group)
 cli.add_command(db_group)
+cli.add_command(outbox_cli)
 
 
 if __name__ == "__main__":

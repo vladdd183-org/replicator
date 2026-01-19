@@ -224,6 +224,70 @@ class UserRequestProvider(Provider):
 
 ---
 
+## ⚠️ ЗАПРЕЩЁННЫЕ КОМАНДЫ (КРИТИЧЕСКИ ВАЖНО!)
+
+> **Проект использует UV** — НЕ используй pip и НЕ активируй venv вручную!
+
+| ❌ **ЗАПРЕЩЕНО**                     | ✅ **Используй**                       |
+|--------------------------------------|----------------------------------------|
+| `pip install X`                      | `uv add X`                             |
+| `pip install -r requirements.txt`    | `uv sync`                              |
+| `pip uninstall X`                    | `uv remove X`                          |
+| `python script.py`                   | `uv run python script.py`              |
+| `python -m pytest`                   | `uv run pytest`                        |
+| `pytest`                             | `uv run pytest`                        |
+| `source .venv/bin/activate`          | **Не нужно!** UV активирует сам        |
+| `. .venv/bin/activate`               | **Не нужно!**                          |
+
+---
+
+## 🛠️ Команды проекта (Quick Reference)
+
+### UV Package Management
+
+```bash
+uv add package-name           # Добавить зависимость
+uv add --dev pytest          # Dev зависимость  
+uv remove package-name       # Удалить
+uv sync                      # Синхронизировать окружение
+```
+
+### Запуск Python
+
+```bash
+uv run python script.py      # Скрипт
+uv run python -m module      # Модуль
+uv run pytest               # Тесты
+```
+
+### Porto CLI Generator
+
+```bash
+uv run porto make:module Blog                    # Новый модуль
+uv run porto make:action CreatePost --module=Blog
+uv run porto make:task SendEmail --module=Notification
+uv run porto make:query GetPost --module=Blog
+uv run porto make:event PostPublished --module=Blog
+```
+
+### Piccolo Migrations
+
+```bash
+uv run piccolo migrations new ModuleName --auto  # Создать
+uv run piccolo migrations forwards all          # Применить
+```
+
+### Сервер
+
+```bash
+uv run python -m src.Main                    # Запуск
+uv run uvicorn src.App:create_app --reload  # Hot reload
+```
+
+> 📚 Полный справочник: `agent-os/standards/tooling/commands.md`
+
+---
+
 ## 📋 Именование
 
 | Компонент | Паттерн | Пример |

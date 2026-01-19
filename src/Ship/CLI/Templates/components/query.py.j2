@@ -1,0 +1,65 @@
+"""{{ component_name }}Query - CQRS read operation for {{ module_name }}.
+
+This Query:
+- Is a read-only operation
+- Bypasses UnitOfWork for better performance
+- Returns data directly (not Result)
+"""
+
+from pydantic import BaseModel, ConfigDict
+
+from src.Ship.Parents.Query import Query
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class {{ component_name }}QueryInput(BaseModel):
+    """Input parameters for {{ component_name }}Query.
+    
+    Attributes:
+        # TODO: Add input parameters
+    """
+    
+    model_config = ConfigDict(frozen=True)
+    
+    # TODO: Add input fields
+    # Example:
+    # {{ name_lower }}_id: UUID
+    # filter: str | None = None
+    pass
+
+
+# TODO: Define output type
+# If returning single entity: {{ name }} | None
+# If returning list: list[{{ name }}]
+# If returning complex result: define a dataclass
+
+
+class {{ component_name }}Query(Query[{{ component_name }}QueryInput, {{ name }} | None]):
+    """CQRS Query: {{ component_name }}.
+    
+    TODO: Describe what this query does.
+    
+    Read-only operation optimized for data retrieval.
+    Does not go through UnitOfWork for better performance.
+    
+    Example:
+        query = {{ component_name }}Query()
+        result = await query.execute({{ component_name }}QueryInput(...))
+    """
+    
+    async def execute(self, input: {{ component_name }}QueryInput) -> {{ name }} | None:
+        """Execute the {{ component_name_snake }} query.
+        
+        Args:
+            input: Query input parameters
+            
+        Returns:
+            Query result
+        """
+        # TODO: Implement query logic
+        
+        # Examples:
+        # return await {{ name }}.objects().where({{ name }}.id == input.{{ name_lower }}_id).first()
+        # return await {{ name }}.objects().where({{ name }}.status == input.status).limit(input.limit)
+        
+        return None  # TODO: Return actual result

@@ -1,0 +1,48 @@
+"""{{ module_name }} domain events.
+
+All domain events for the {{ name }} module in one place.
+Events are immutable (frozen) Pydantic models published after UoW commit.
+"""
+
+from uuid import UUID
+
+from pydantic import Field
+
+from src.Ship.Parents.Event import DomainEvent
+
+
+class {{ name }}Created(DomainEvent):
+    """Event raised when a new {{ name_lower }} is created.
+    
+    Attributes:
+        {{ name_lower }}_id: UUID of the created {{ name_lower }}
+    """
+    
+    {{ name_lower }}_id: UUID
+    # Add more fields as needed (e.g., name, type, etc.)
+
+
+class {{ name }}Updated(DomainEvent):
+    """Event raised when a {{ name_lower }} is updated.
+    
+    Attributes:
+        {{ name_lower }}_id: UUID of the updated {{ name_lower }}
+        updated_fields: List of field names that were updated
+    """
+    
+    {{ name_lower }}_id: UUID
+    updated_fields: list[str] = Field(default_factory=list)
+
+
+class {{ name }}Deleted(DomainEvent):
+    """Event raised when a {{ name_lower }} is deleted.
+    
+    Attributes:
+        {{ name_lower }}_id: UUID of the deleted {{ name_lower }}
+    """
+    
+    {{ name_lower }}_id: UUID
+
+
+# Export all events
+__all__ = ["{{ name }}Created", "{{ name }}Updated", "{{ name }}Deleted"]

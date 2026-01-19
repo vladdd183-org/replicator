@@ -1,0 +1,10 @@
+"""{{ module_name }} Background Workers.
+
+TaskIQ tasks for background processing.
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.UI.Workers.Tasks import (
+    process_{{ name_lower }}_task,
+)
+
+__all__ = ["process_{{ name_lower }}_task"]

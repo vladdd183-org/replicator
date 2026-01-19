@@ -1,0 +1,21 @@
+"""{{ module_name }} API Routes configuration.
+
+Combines all controllers into a single router.
+Register this router in App.py.
+"""
+
+from litestar import Router
+
+from src.Containers.{{ section }}.{{ module_name }}.UI.API.Controllers.{{ name }}Controller import {{ name }}Controller
+
+
+# Route handlers (Controllers)
+route_handlers = [
+    {{ name }}Controller,
+]
+
+# Main router for this module
+router = Router(
+    path="/api/v1",
+    route_handlers=route_handlers,
+)

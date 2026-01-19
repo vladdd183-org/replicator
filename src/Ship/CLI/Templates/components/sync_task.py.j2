@@ -1,0 +1,62 @@
+"""{{ component_name }}Task - Sync atomic operation for {{ module_name }}.
+
+This Task:
+- Performs a single CPU-bound operation
+- Is reusable across multiple Actions
+- Does NOT perform I/O operations
+
+For async context, wrap with:
+    result = await anyio.to_thread.run_sync(task.run, data)
+"""
+
+from src.Ship.Parents.Task import SyncTask
+
+
+# TODO: Define input type
+# InputType = str | bytes | SomeModel
+
+
+# TODO: Define output type
+# OutputType = str | bytes | SomeModel
+
+
+class {{ component_name }}Task(SyncTask[object, object]):
+    """Sync Task: {{ component_name }}.
+    
+    TODO: Describe what this task does.
+    
+    This task is synchronous for CPU-bound operations.
+    Use for hashing, calculations, data transformation, validation.
+    
+    Example:
+        task = {{ component_name }}Task()
+        # Sync call:
+        result = task.run(data)
+        # Async call (in Action):
+        result = await anyio.to_thread.run_sync(task.run, data)
+    """
+    
+    def __init__(self) -> None:
+        """Initialize task with configuration."""
+        # TODO: Add configuration if needed
+        # Example: self.rounds = 12
+        pass
+    
+    def run(self, data: object) -> object:
+        """Execute the {{ component_name_snake }} task.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            Task result
+        """
+        # TODO: Implement sync task logic
+        
+        # Examples:
+        # - Hash password
+        # - Calculate checksum
+        # - Transform data structure
+        # - Validate complex rules
+        
+        return None  # TODO: Return actual result

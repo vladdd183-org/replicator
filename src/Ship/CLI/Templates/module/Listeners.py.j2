@@ -1,0 +1,88 @@
+"""{{ module_name }} event listeners.
+
+Listeners handle domain events published via litestar.events.
+They run asynchronously after the response is sent.
+
+Events are published as model_dump() dicts from DomainEvent instances.
+Listeners receive typed event data via keyword arguments.
+"""
+
+import logfire
+
+from litestar import Litestar
+from litestar.events import listener
+
+
+@listener("{{ name }}Created")
+async def on_{{ name_snake }}_created(
+    {{ name_lower }}_id: str,
+    app: Litestar | None = None,
+    occurred_at: str | None = None,
+    **kwargs,
+) -> None:
+    """Handle {{ name }}Created event.
+    
+    Triggered after a new {{ name_lower }} is successfully created.
+    """
+    logfire.info(
+        "{{ name }} created event received",
+        {{ name_lower }}_id={{ name_lower }}_id,
+        occurred_at=occurred_at,
+    )
+    
+    # TODO: Implement event handling logic
+    # Examples:
+    # - Send notification
+    # - Update cache
+    # - Publish to WebSocket channel
+    # - Trigger background task
+
+
+@listener("{{ name }}Updated")
+async def on_{{ name_snake }}_updated(
+    {{ name_lower }}_id: str,
+    app: Litestar | None = None,
+    updated_fields: list[str] | None = None,
+    occurred_at: str | None = None,
+    **kwargs,
+) -> None:
+    """Handle {{ name }}Updated event.
+    
+    Triggered after a {{ name_lower }} is updated.
+    """
+    logfire.info(
+        "{{ name }} updated event received",
+        {{ name_lower }}_id={{ name_lower }}_id,
+        updated_fields=updated_fields,
+        occurred_at=occurred_at,
+    )
+    
+    # TODO: Implement event handling logic
+
+
+@listener("{{ name }}Deleted")
+async def on_{{ name_snake }}_deleted(
+    {{ name_lower }}_id: str,
+    app: Litestar | None = None,
+    occurred_at: str | None = None,
+    **kwargs,
+) -> None:
+    """Handle {{ name }}Deleted event.
+    
+    Triggered after a {{ name_lower }} is deleted.
+    """
+    logfire.info(
+        "{{ name }} deleted event received",
+        {{ name_lower }}_id={{ name_lower }}_id,
+        occurred_at=occurred_at,
+    )
+    
+    # TODO: Implement event handling logic
+
+
+# Export all listeners
+__all__ = [
+    "on_{{ name_snake }}_created",
+    "on_{{ name_snake }}_updated", 
+    "on_{{ name_snake }}_deleted",
+]

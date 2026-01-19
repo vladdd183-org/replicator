@@ -1,0 +1,90 @@
+"""{{ module_name }} GraphQL Resolvers.
+
+Strawberry resolvers for queries and mutations.
+Uses get_dependency helper for DI integration.
+"""
+
+from uuid import UUID
+
+import strawberry
+from strawberry.types import Info
+from returns.result import Success, Failure
+
+from src.Ship.GraphQL.Helpers import get_dependency
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Queries.Get{{ name }}Query import (
+    Get{{ name }}Query,
+    Get{{ name }}QueryInput,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import (
+    List{{ name_plural_pascal }}Query,
+    List{{ name_plural_pascal }}QueryInput,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Requests import Create{{ name }}Request
+from src.Containers.{{ section }}.{{ module_name }}.UI.GraphQL.Types import (
+    {{ name }}Type,
+    Create{{ name }}Input,
+)
+
+
+@strawberry.type
+class {{ name }}Query:
+    """GraphQL queries for {{ name_plural }}."""
+    
+    @strawberry.field
+    async def {{ name_lower }}(
+        self,
+        info: Info,
+        {{ name_lower }}_id: UUID,
+    ) -> {{ name }}Type | None:
+        """Get {{ name_lower }} by ID."""
+        query = await get_dependency(info, Get{{ name }}Query)
+        {{ name_lower }} = await query.execute(Get{{ name }}QueryInput({{ name_lower }}_id={{ name_lower }}_id))
+        
+        if {{ name_lower }} is None:
+            return None
+        
+        return {{ name }}Type.from_entity({{ name_lower }})
+    
+    @strawberry.field
+    async def {{ name_plural }}(
+        self,
+        info: Info,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[{{ name }}Type]:
+        """List {{ name_plural }} with pagination."""
+        query = await get_dependency(info, List{{ name_plural_pascal }}Query)
+        result = await query.execute(List{{ name_plural_pascal }}QueryInput(
+            limit=limit,
+            offset=offset,
+        ))
+        
+        return [{{ name }}Type.from_entity(x) for x in result.{{ name_plural }}]
+
+
+@strawberry.type
+class {{ name }}Mutation:
+    """GraphQL mutations for {{ name_plural }}."""
+    
+    @strawberry.mutation
+    async def create_{{ name_lower }}(
+        self,
+        info: Info,
+        input: Create{{ name }}Input,
+    ) -> {{ name }}Type:
+        """Create a new {{ name_lower }}."""
+        action = await get_dependency(info, Create{{ name }}Action)
+        
+        # Convert GraphQL input to request DTO
+        request = Create{{ name }}Request(
+            # TODO: Map fields from input
+        )
+        
+        result = await action.run(request)
+        
+        match result:
+            case Success(entity):
+                return {{ name }}Type.from_entity(entity)
+            case Failure(error):
+                raise Exception(error.message)

@@ -1,0 +1,87 @@
+"""{{ name }} repository for data access.
+
+Uses Repository hooks for cache invalidation.
+For caching reads, use cashews @cache decorator directly if needed.
+"""
+
+from datetime import datetime, timezone
+
+from src.Ship.Parents.Repository import Repository
+from src.Ship.Decorators.cache_utils import invalidate_cache
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class {{ name }}Repository(Repository[{{ name }}]):
+    """Repository for {{ name }} entity.
+    
+    Extends base Repository with {{ name_lower }}-specific queries.
+    Uses hooks for automatic cache invalidation.
+    """
+    
+    def __init__(self) -> None:
+        """Initialize repository with {{ name }} model."""
+        super().__init__({{ name }})
+    
+    # --- Lifecycle hooks for cache invalidation ---
+    
+    async def _on_add(self, entity: {{ name }}) -> None:
+        """Invalidate cache after adding {{ name_lower }}."""
+        await invalidate_cache("{{ name_plural }}:list:*", "{{ name_plural }}:count")
+    
+    async def _on_update(self, entity: {{ name }}) -> None:
+        """Invalidate cache after updating {{ name_lower }}."""
+        await invalidate_cache(
+            f"{{ name_lower }}:{{ '{' }}entity.id{{ '}' }}",
+            "{{ name_plural }}:list:*",
+            "{{ name_plural }}:count",
+        )
+    
+    async def _on_delete(self, entity: {{ name }}) -> None:
+        """Invalidate cache after deleting {{ name_lower }}."""
+        await invalidate_cache(
+            f"{{ name_lower }}:{{ '{' }}entity.id{{ '}' }}",
+            "{{ name_plural }}:list:*",
+            "{{ name_plural }}:count",
+        )
+    
+    # --- {{ name }}-specific queries ---
+    
+    # TODO: Add domain-specific query methods
+    # Example:
+    # async def find_by_name(self, name: str) -> {{ name }} | None:
+    #     """Find {{ name_lower }} by name."""
+    #     return await {{ name }}.objects().where({{ name }}.name == name).first()
+    #
+    # async def find_active(self, limit: int = 20, offset: int = 0) -> list[{{ name }}]:
+    #     """Find active {{ name_plural }} with pagination."""
+    #     return await (
+    #         {{ name }}.objects()
+    #         .where({{ name }}.is_active == True)
+    #         .limit(limit)
+    #         .offset(offset)
+    #         .order_by({{ name }}.created_at, ascending=False)
+    #     )
+    
+    # --- Override update for SQLite compatibility ---
+    
+    async def update(self, entity: {{ name }}) -> {{ name }}:
+        """Update {{ name_lower }} with SQLite-compatible timestamp handling.
+        
+        Uses raw UPDATE to avoid SQLite TimestamptzNow issues.
+        """
+        # TODO: Map all fields you need to update
+        await {{ name }}.update({
+            # {{ name }}.name: entity.name,
+            # {{ name }}.description: entity.description,
+            # {{ name }}.is_active: entity.is_active,
+            {{ name }}.updated_at: datetime.now(timezone.utc),
+        }).where({{ name }}.id == entity.id)
+        
+        # Refresh to get updated timestamp
+        updated = await {{ name }}.objects().where({{ name }}.id == entity.id).first()
+        if updated:
+            entity.updated_at = updated.updated_at
+        
+        # Call hook for cache invalidation
+        await self._on_update(entity)
+        return entity

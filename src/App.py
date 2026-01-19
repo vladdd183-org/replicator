@@ -26,6 +26,7 @@ from src.Ship.Auth.Middleware import AuthenticationMiddleware
 from src.Ship.Infrastructure.Telemetry import setup_logfire
 from src.Ship.Infrastructure.Telemetry.RequestLoggingMiddleware import RequestLoggingMiddleware
 from src.Ship.Infrastructure.Cache import setup_cache
+from src.Ship.Middleware.Idempotency import IdempotencyMiddleware
 
 # Import routers from containers
 from src.Containers.AppSection.UserModule import user_router
@@ -37,6 +38,7 @@ from src.Containers.AppSection.NotificationModule import notification_router
 from src.Containers.AppSection.AuditModule import audit_router
 from src.Containers.AppSection.SearchModule import search_router
 from src.Containers.AppSection.SettingsModule import settings_router
+from src.Containers.AppSection.OrderModule.UI.API.Routes import order_router
 from src.Containers.VendorSection.EmailModule import email_router
 from src.Containers.VendorSection.PaymentModule import payment_router
 from src.Containers.VendorSection.WebhookModule import webhook_router
@@ -72,6 +74,12 @@ from src.Containers.VendorSection.WebhookModule.Listeners import (
 )
 from src.Containers.AppSection.AuditModule.Listeners import (
     on_action_executed,
+)
+from src.Containers.AppSection.OrderModule.Listeners import (
+    on_order_created,
+    on_order_cancelled,
+    on_saga_completed,
+    on_saga_failed,
 )
 
 # Install Rich traceback globally for beautiful exception output
@@ -149,6 +157,7 @@ def create_app() -> Litestar:
             audit_router,
             search_router,
             settings_router,
+            order_router,
             # VendorSection routers
             email_router,
             payment_router,
@@ -184,6 +193,11 @@ def create_app() -> Litestar:
             on_notification_created_webhook,
             # AuditModule listener (Ship-level ActionExecuted events)
             on_action_executed,
+            # OrderModule listeners
+            on_order_created,
+            on_order_cancelled,
+            on_saga_completed,
+            on_saga_failed,
         ],
         # Plugins
         plugins=[
@@ -202,7 +216,11 @@ def create_app() -> Litestar:
             path="/api/docs",
             render_plugins=[ScalarRenderPlugin()],
         ),
-        middleware=[RequestLoggingMiddleware, AuthenticationMiddleware],
+        middleware=[
+            RequestLoggingMiddleware,
+            AuthenticationMiddleware,
+            IdempotencyMiddleware,
+        ],
         lifespan=[lifespan],
         debug=settings.app_debug,
     )

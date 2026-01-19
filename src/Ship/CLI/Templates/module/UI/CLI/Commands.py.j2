@@ -1,0 +1,90 @@
+"""{{ module_name }} CLI Commands.
+
+Click commands with Dishka DI integration.
+Use @with_container decorator for async commands with DI.
+"""
+
+import click
+from rich.console import Console
+from rich.table import Table
+
+from src.Ship.CLI.Decorators import with_container, handle_cli_result
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import (
+    List{{ name_plural_pascal }}Query,
+    List{{ name_plural_pascal }}QueryInput,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Requests import Create{{ name }}Request
+
+console = Console()
+
+
+@click.group(name="{{ name_plural }}")
+def {{ name_lower }}_group() -> None:
+    """{{ name }} management commands."""
+    pass
+
+
+@{{ name_lower }}_group.command("list")
+@click.option("--limit", "-l", default=20, help="Maximum items to show")
+@click.option("--offset", "-o", default=0, help="Offset for pagination")
+@with_container
+async def list_{{ name_plural }}(container, limit: int, offset: int) -> None:
+    """List all {{ name_plural }}.
+    
+    Examples:
+        litestar {{ name_plural }} list
+        litestar {{ name_plural }} list --limit 50
+    """
+    query = await container.get(List{{ name_plural_pascal }}Query)
+    result = await query.execute(List{{ name_plural_pascal }}QueryInput(limit=limit, offset=offset))
+    
+    if not result.{{ name_plural }}:
+        console.print("[yellow]No {{ name_plural }} found.[/yellow]")
+        return
+    
+    table = Table(title="{{ name_plural_pascal }}")
+    table.add_column("ID", style="cyan")
+    table.add_column("Created At", style="green")
+    # TODO: Add more columns based on your model
+    # table.add_column("Name", style="white")
+    
+    for item in result.{{ name_plural }}:
+        table.add_row(
+            str(item.id),
+            str(item.created_at),
+            # item.name,
+        )
+    
+    console.print(table)
+    console.print(f"\n[dim]Total: {result.total} | Showing: {len(result.{{ name_plural }})}[/dim]")
+
+
+@{{ name_lower }}_group.command("create")
+# TODO: Add options for your model fields
+# @click.option("--name", "-n", required=True, help="{{ name }} name")
+# @click.option("--description", "-d", help="Optional description")
+@with_container
+async def create_{{ name_lower }}(
+    container,
+    # name: str,
+    # description: str | None,
+) -> None:
+    """Create a new {{ name_lower }}.
+    
+    Examples:
+        litestar {{ name_plural }} create --name "My {{ name }}"
+    """
+    action = await container.get(Create{{ name }}Action)
+    
+    result = await action.run(Create{{ name }}Request(
+        # TODO: Map CLI options to request
+        # name=name,
+        # description=description,
+    ))
+    
+    handle_cli_result(
+        result,
+        success_message="{{ name }} created successfully",
+        show_fields=["id", "created_at"],  # Fields to display
+    )

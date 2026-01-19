@@ -13,6 +13,8 @@ DB = SQLiteEngine(path=settings.db_url.replace("sqlite:///", ""))
 # App registry - явная регистрация всех Piccolo приложений
 APP_REGISTRY = AppRegistry(
     apps=[
+        # Ship Infrastructure
+        "src.Ship.Infrastructure.Events.Outbox.PiccoloApp",
         # AppSection
         "src.Containers.AppSection.UserModule.Models.PiccoloApp",
         "src.Containers.AppSection.NotificationModule.Models.PiccoloApp",

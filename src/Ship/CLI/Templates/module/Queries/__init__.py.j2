@@ -1,0 +1,13 @@
+"""{{ module_name }} Queries (CQRS read operations).
+
+Queries are read-only operations optimized for data retrieval.
+They bypass UnitOfWork for better performance.
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.Queries.Get{{ name }}Query import Get{{ name }}Query
+from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_pascal }}Query import List{{ name_plural_pascal }}Query
+
+__all__ = [
+    "Get{{ name }}Query",
+    "List{{ name_plural_pascal }}Query",
+]

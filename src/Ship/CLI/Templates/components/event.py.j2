@@ -1,0 +1,29 @@
+"""{{ component_name }} Domain Event.
+
+Add this event to your module's Events.py file.
+Events are immutable and published after UoW commit.
+"""
+
+from uuid import UUID
+
+from src.Ship.Parents.Event import DomainEvent
+
+
+class {{ component_name }}(DomainEvent):
+    """Event raised when {{ component_name_snake.replace('_', ' ') }}.
+    
+    Attributes:
+        {{ name_lower }}_id: UUID of the {{ name_lower }}
+        # TODO: Add more fields as needed
+    """
+    
+    {{ name_lower }}_id: UUID
+    # Add more fields as needed:
+    # field_name: str
+    # additional_data: dict | None = None
+
+
+# Usage in Action:
+# self.uow.add_event({{ component_name }}(
+#     {{ name_lower }}_id=entity.id,
+# ))

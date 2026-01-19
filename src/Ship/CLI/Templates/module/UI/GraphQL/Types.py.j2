@@ -1,0 +1,56 @@
+"""{{ module_name }} GraphQL Types.
+
+Strawberry types for GraphQL schema.
+"""
+
+from datetime import datetime
+from uuid import UUID
+
+import strawberry
+
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+@strawberry.type
+class {{ name }}Type:
+    """GraphQL type for {{ name }} entity."""
+    
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    # TODO: Add fields from your model
+    # name: str
+    # description: str | None
+    # is_active: bool
+    
+    @classmethod
+    def from_entity(cls, entity: {{ name }}) -> "{{ name }}Type":
+        """Convert entity to GraphQL type."""
+        return cls(
+            id=entity.id,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+            # name=entity.name,
+            # description=entity.description,
+            # is_active=entity.is_active,
+        )
+
+
+@strawberry.input
+class Create{{ name }}Input:
+    """GraphQL input for creating {{ name_lower }}."""
+    
+    # TODO: Add input fields
+    # name: str
+    # description: str | None = None
+    pass
+
+
+@strawberry.input
+class Update{{ name }}Input:
+    """GraphQL input for updating {{ name_lower }}."""
+    
+    {{ name_lower }}_id: UUID
+    # TODO: Add optional update fields
+    # name: str | None = None
+    # description: str | None = None

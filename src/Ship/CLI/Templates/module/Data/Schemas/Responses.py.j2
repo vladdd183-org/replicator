@@ -1,0 +1,46 @@
+"""{{ module_name }} response DTOs.
+
+Response DTOs inherit from EntitySchema for automatic conversion from entities.
+"""
+
+from datetime import datetime
+from uuid import UUID
+
+from src.Ship.Core.BaseSchema import EntitySchema
+
+
+class {{ name }}Response(EntitySchema):
+    """Response DTO for {{ name }} entity.
+    
+    Inherits from_entity() from EntitySchema for automatic conversion.
+    
+    Attributes:
+        id: {{ name }} UUID
+        created_at: Creation timestamp
+        updated_at: Last update timestamp
+        # TODO: Add more fields
+    """
+    
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    # Add fields from your model:
+    # name: str
+    # description: str | None
+    # is_active: bool
+
+
+class {{ name }}ListResponse(EntitySchema):
+    """Response DTO for list of {{ name_plural }}.
+    
+    Attributes:
+        {{ name_plural }}: List of {{ name_lower }} responses
+        total: Total count
+        limit: Page size
+        offset: Page offset
+    """
+    
+    {{ name_plural }}: list[{{ name }}Response]
+    total: int
+    limit: int
+    offset: int

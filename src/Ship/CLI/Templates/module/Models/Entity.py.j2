@@ -1,0 +1,46 @@
+"""{{ name }} model for Piccolo ORM."""
+
+from piccolo.columns import UUID, Varchar, Boolean, Timestamptz, Text
+from piccolo.columns.defaults.uuid import UUID4
+from piccolo.columns.defaults.timestamptz import TimestamptzNow
+
+from src.Ship.Parents.Model import Model
+
+
+class {{ name }}(Model):
+    """{{ name }} entity.
+    
+    Represents a {{ name_lower }} in the system.
+    
+    Attributes:
+        id: Unique identifier (UUID)
+        created_at: Timestamp when entity was created
+        updated_at: Timestamp when entity was last updated
+        # TODO: Add domain-specific fields
+    
+    Example fields:
+        name = Varchar(length=255, required=True)
+        description = Text(null=True)
+        is_active = Boolean(default=True)
+    """
+    
+    # Primary key
+    id = UUID(primary_key=True, default=UUID4())
+    
+    # TODO: Add your domain fields here
+    # Examples:
+    # name = Varchar(length=255, required=True, index=True)
+    # description = Text(null=True)
+    # is_active = Boolean(default=True)
+    # status = Varchar(length=50, default="draft")
+    
+    # Timestamps
+    created_at = Timestamptz(default=TimestamptzNow())
+    # Note: auto_update removed due to SQLite incompatibility with TimestamptzNow
+    # updated_at is set manually in repository.update()
+    updated_at = Timestamptz(default=TimestamptzNow())
+    
+    class Meta:
+        """Piccolo meta configuration."""
+        
+        tablename = "{{ name_plural }}"

@@ -1,0 +1,116 @@
+---
+description: "Structured Concurrency Rules - anyio вместо asyncio"
+globs: ["**/*.py"]
+alwaysApply: false
+---
+
+# 🔄 Structured Concurrency Rules
+
+## ⚠️ КРИТИЧЕСКИ ВАЖНО
+
+В Hyper-Porto используется **anyio** для structured concurrency, НЕ asyncio!
+
+## 🚫 ЗАПРЕЩЕНО
+
+| ❌ НЕ используй | Причина |
+|-----------------|---------|
+| `asyncio.create_task()` | Fire-and-forget, теряются исключения |
+| `asyncio.gather()` | Нет graceful cancellation |
+| `asyncio.wait()` | Сложное управление ошибками |
+| `asyncio.ensure_future()` | Deprecated pattern |
+| `loop.run_until_complete()` | Блокирует event loop |
+
+## ✅ ИСПОЛЬЗУЙ
+
+### TaskGroup для параллельных задач
+
+```python
+import anyio
+
+async def process_batch(items: list[Item]) -> list[Result]:
+    results: list[Result] = []
+    
+    async with anyio.create_task_group() as tg:
+        for item in items:
+            tg.start_soon(process_one, item, results)
+    
+    return results  # Все задачи гарантированно завершены
+```
+
+### CPU-bound операции (sync → async)
+
+```python
+import anyio
+
+# ✅ ПРАВИЛЬНО — offload на thread pool
+password_hash = await anyio.to_thread.run_sync(
+    bcrypt.hashpw, password.encode(), salt
+)
+
+# ❌ НЕПРАВИЛЬНО — блокирует event loop
+password_hash = bcrypt.hashpw(password.encode(), salt)
+```
+
+### Rate Limiting
+
+```python
+import anyio
+
+limiter = anyio.CapacityLimiter(10)  # Макс 10 параллельных
+
+async def limited_operation():
+    async with limiter:
+        await do_work()
+```
+
+### Timeouts
+
+```python
+import anyio
+
+# ✅ ПРАВИЛЬНО
+with anyio.fail_after(30):  # 30 секунд
+    result = await long_operation()
+
+# Или soft timeout (не бросает исключение)
+with anyio.move_on_after(30) as scope:
+    result = await long_operation()
+
+if scope.cancelled_caught:
+    result = default_value
+```
+
+### Sleep
+
+```python
+# ✅ ПРАВИЛЬНО
+await anyio.sleep(1.0)
+
+# ❌ НЕ используй
+await asyncio.sleep(1.0)
+```
+
+## 🔧 Event-Driven вместо Fire-and-Forget
+
+Вместо запуска фоновых задач напрямую — используй Domain Events:
+
+```python
+# ❌ ПЛОХО — fire-and-forget
+async def run(self, data):
+    asyncio.create_task(send_notification(user.id))  # Может потеряться!
+    return Success(user)
+
+# ✅ ХОРОШО — через Events
+async def run(self, data):
+    async with self.uow:
+        user = await create_user(data)
+        self.uow.add_event(UserCreated(user_id=user.id))  # Listener отправит
+        await self.uow.commit()
+    return Success(user)
+```
+
+## 📚 Справка
+
+- [anyio документация](https://anyio.readthedocs.io/)
+- `docs/05-concurrency.md` — полное руководство
+- `foxdocs/anyio-master/docs/` — примеры

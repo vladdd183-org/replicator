@@ -1,0 +1,75 @@
+"""Delete{{ name }}Action - Use case for deleting {{ name_plural }}.
+
+This Action:
+1. Finds the entity by ID
+2. Deletes from database (soft or hard delete)
+3. Publishes {{ name }}Deleted event
+"""
+
+from uuid import UUID
+
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Action import Action
+from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
+from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Error, {{ name }}NotFoundError
+from src.Containers.{{ section }}.{{ module_name }}.Events import {{ name }}Deleted
+
+
+class Delete{{ name }}Action(Action[UUID, None, {{ name }}Error]):
+    """Use Case: Delete a {{ name_lower }}.
+    
+    Implements soft delete by default.
+    Change to hard delete if needed.
+    
+    Steps:
+    1. Find entity by ID
+    2. Delete entity (soft delete)
+    3. Publish {{ name }}Deleted event
+    
+    Example:
+        action = Delete{{ name }}Action(uow)
+        result = await action.run(uuid)
+    """
+    
+    def __init__(
+        self,
+        uow: {{ name }}UnitOfWork,
+    ) -> None:
+        """Initialize action with dependencies.
+        
+        Args:
+            uow: Unit of Work for data operations
+        """
+        self.uow = uow
+    
+    async def run(self, {{ name_lower }}_id: UUID) -> Result[None, {{ name }}Error]:
+        """Execute the delete {{ name_lower }} use case.
+        
+        Args:
+            {{ name_lower }}_id: UUID of {{ name_lower }} to delete
+            
+        Returns:
+            Result[None, {{ name }}Error]: Success or Failure with error
+        """
+        # Step 1: Find entity
+        entity = await self.uow.{{ name_plural }}.get({{ name_lower }}_id)
+        if entity is None:
+            return Failure({{ name }}NotFoundError({{ name_lower }}_id={{ name_lower }}_id))
+        
+        # Step 2-3: Delete and publish event
+        async with self.uow:
+            # Soft delete (recommended)
+            # entity.is_active = False
+            # await self.uow.{{ name_plural }}.update(entity)
+            
+            # Hard delete (use with caution)
+            await self.uow.{{ name_plural }}.delete(entity)
+            
+            self.uow.add_event({{ name }}Deleted(
+                {{ name_lower }}_id=entity.id,
+            ))
+            
+            await self.uow.commit()
+        
+        return Success(None)

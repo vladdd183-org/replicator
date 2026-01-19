@@ -14,10 +14,12 @@ dependencies = [
     "litestar[standard]>=2.12.0",
     # GraphQL
     "strawberry-graphql[litestar]>=0.230",
-    # Background Tasks
+    # Background Tasks (simple jobs)
     "taskiq>=0.11",
     "taskiq-redis>=1.0",
     "taskiq-litestar>=0.2",
+    # Durable Execution (Saga, long-running workflows)
+    "temporalio>=1.9.0",
     # Functional Programming
     "returns>=0.23",
     # Async & Resilience
@@ -59,13 +61,17 @@ dev = [
 ]
 
 [project.scripts]
-porto = "src.Ship.CLI.Main:cli"
+# Main CLI (uses Dishka DI, for container commands)
+cli = "src.Ship.CLI.Main:cli"
+# Porto Generator CLI (standalone, for code generation)
+porto = "src.Ship.CLI.PortoCLI:porto"
 
 # Litestar CLIPlugin entry points
 # Commands are available via: litestar <command> --help
 [project.entry-points."litestar.commands"]
 users = "src.Containers.AppSection.UserModule.UI.CLI.Commands:users_group"
 db = "src.Ship.CLI.MigrationCommands:db_group"
+temporal = "src.Ship.CLI.Commands.TemporalCommands:temporal_group"
 
 [build-system]
 requires = ["hatchling"]

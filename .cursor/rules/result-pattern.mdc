@@ -1,0 +1,123 @@
+---
+description: "Result[T, E] Pattern - Railway-Oriented Programming"
+globs: ["**/Actions/**/*.py", "**/Tasks/**/*.py"]
+alwaysApply: false
+---
+
+# 🚂 Railway-Oriented Programming
+
+## 🎯 Принцип
+
+Код идёт по двум "рельсам":
+- **Success track** → `Success(value)` → продолжаем
+- **Failure track** → `Failure(error)` → останавливаемся
+
+```
+Input → [Action1] → Success → [Action2] → Success → [Action3] → Output
+              ↘ Failure ────────────────────────────────↗
+```
+
+## ⚠️ ОБЯЗАТЕЛЬНО для Actions
+
+### Return Type
+
+```python
+from returns.result import Result, Success, Failure
+
+class CreateUserAction(Action[CreateUserRequest, User, UserError]):
+    async def run(self, data: CreateUserRequest) -> Result[User, UserError]:
+        ...
+```
+
+### Success Path
+
+```python
+# ✅ ПРАВИЛЬНО
+return Success(user)
+
+# ❌ НЕПРАВИЛЬНО
+return user  # Без обёртки!
+```
+
+### Failure Path
+
+```python
+# ✅ ПРАВИЛЬНО — return Failure
+if not user:
+    return Failure(UserNotFoundError(user_id=data.user_id))
+
+# ❌ ЗАПРЕЩЕНО в бизнес-логике — raise
+if not user:
+    raise UserNotFoundException()  # НЕТ!
+```
+
+## 🚫 КОГДА МОЖНО raise
+
+`raise` допустим ТОЛЬКО для:
+1. **Инфраструктурные ошибки** (БД недоступна, сеть упала)
+2. **Программные ошибки** (баги, assertion fails)
+
+```python
+# ✅ OK — инфраструктурная ошибка
+try:
+    await db.execute(query)
+except DatabaseError as e:
+    raise  # Пробросить наверх
+
+# ❌ НЕ OK — бизнес-ошибка как exception
+if user.balance < amount:
+    raise InsufficientFundsError()  # Должно быть Failure!
+```
+
+## 📝 Pattern Matching в Controller
+
+```python
+@post("/users")
+async def create_user(self, action: FromDishka[CreateUserAction]):
+    result = await action.run(data)
+    
+    match result:
+        case Success(user):
+            return Response(content=UserResponse.from_entity(user), status_code=201)
+        case Failure(UserNotFoundError(user_id=uid)):
+            return Response(content={"error": f"User {uid} not found"}, status_code=404)
+        case Failure(UserAlreadyExistsError(email=email)):
+            return Response(content={"error": f"Email {email} taken"}, status_code=409)
+        case Failure(error):
+            return Response(content={"error": str(error)}, status_code=400)
+```
+
+## ✨ Лучше: @result_handler декоратор
+
+```python
+from src.Ship.Decorators.result_handler import result_handler
+
+@post("/users")
+@result_handler(UserResponse, success_status=201)
+async def create_user(
+    self,
+    data: CreateUserRequest,
+    action: FromDishka[CreateUserAction],
+) -> Result[User, UserError]:
+    return await action.run(data)  # Декоратор сам обработает Success/Failure
+```
+
+## 🔗 Цепочки операций (Railway composition)
+
+```python
+from returns.pipeline import flow
+from returns.pointfree import bind
+
+# Последовательные операции
+result = await flow(
+    data,
+    validate_input,       # Result[ValidData, ValidationError]
+    bind(create_user),    # Result[User, UserError]
+    bind(send_welcome),   # Result[User, NotificationError]
+)
+```
+
+## 📚 Справка
+
+- `docs/04-result-railway.md` — полное руководство
+- `foxdocs/returns-master/docs/` — библиотека returns

@@ -1,0 +1,38 @@
+"""{{ module_name }} request DTOs.
+
+Request DTOs use Pydantic for validation.
+All input from API endpoints should use these schemas.
+"""
+
+from pydantic import BaseModel, Field
+
+
+class Create{{ name }}Request(BaseModel):
+    """Request DTO for creating a new {{ name_lower }}.
+    
+    Attributes:
+        # TODO: Add fields with validation
+    """
+    
+    # Example fields:
+    # name: str = Field(..., min_length=1, max_length=255, description="{{ name }} name")
+    # description: str | None = Field(None, max_length=1000, description="Optional description")
+    
+    pass  # TODO: Define fields
+
+
+class Update{{ name }}Request(BaseModel):
+    """Request DTO for updating a {{ name_lower }}.
+    
+    All fields are optional - only provided fields will be updated.
+    
+    Attributes:
+        # TODO: Add optional fields
+    """
+    
+    # Example fields (all optional for partial updates):
+    # name: str | None = Field(None, min_length=1, max_length=255)
+    # description: str | None = None
+    # is_active: bool | None = None
+    
+    pass  # TODO: Define fields

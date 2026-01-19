@@ -1,0 +1,13 @@
+"""{{ module_name }} GraphQL Layer.
+
+Strawberry GraphQL types and resolvers.
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.UI.GraphQL.Types import {{ name }}Type
+from src.Containers.{{ section }}.{{ module_name }}.UI.GraphQL.Resolvers import {{ name }}Query, {{ name }}Mutation
+
+__all__ = [
+    "{{ name }}Type",
+    "{{ name }}Query",
+    "{{ name }}Mutation",
+]

@@ -20,6 +20,12 @@ from src.Containers.AppSection.UserModule.Actions.ChangePasswordAction import (
     ChangePasswordAction,
     ChangePasswordInput,
 )
+from src.Containers.AppSection.UserModule.Actions.CreateUserSubscriptionAction import (
+    CreateUserSubscriptionAction,
+    CreateSubscriptionRequest,
+    SubscriptionResult,
+    SubscriptionPlan,
+)
 
 __all__ = [
     "CreateUserAction",
@@ -30,4 +36,9 @@ __all__ = [
     "AuthResult",
     "ChangePasswordAction",
     "ChangePasswordInput",
+    # Subscription (Gateway example)
+    "CreateUserSubscriptionAction",
+    "CreateSubscriptionRequest",
+    "SubscriptionResult",
+    "SubscriptionPlan",
 ]

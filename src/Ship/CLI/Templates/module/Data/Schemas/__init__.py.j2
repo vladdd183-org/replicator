@@ -1,0 +1,21 @@
+"""{{ module_name }} Schemas (DTOs).
+
+Request DTOs for input validation.
+Response DTOs for output formatting.
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Requests import (
+    Create{{ name }}Request,
+    Update{{ name }}Request,
+)
+from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Responses import (
+    {{ name }}Response,
+    {{ name }}ListResponse,
+)
+
+__all__ = [
+    "Create{{ name }}Request",
+    "Update{{ name }}Request",
+    "{{ name }}Response",
+    "{{ name }}ListResponse",
+]

@@ -1,0 +1,15 @@
+"""{{ module_name }} Actions (Use Cases).
+
+Actions represent the Use Cases of the Application.
+They orchestrate Tasks and always return Result[T, E].
+"""
+
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Create{{ name }}Action import Create{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Update{{ name }}Action import Update{{ name }}Action
+from src.Containers.{{ section }}.{{ module_name }}.Actions.Delete{{ name }}Action import Delete{{ name }}Action
+
+__all__ = [
+    "Create{{ name }}Action",
+    "Update{{ name }}Action",
+    "Delete{{ name }}Action",
+]

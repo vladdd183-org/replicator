@@ -1,0 +1,27 @@
+"""{{ module_name }} Unit of Work."""
+
+from dataclasses import dataclass, field
+
+from src.Ship.Parents.UnitOfWork import BaseUnitOfWork
+from src.Containers.{{ section }}.{{ module_name }}.Data.Repositories.{{ name }}Repository import {{ name }}Repository
+
+
+@dataclass
+class {{ name }}UnitOfWork(BaseUnitOfWork):
+    """Unit of Work for {{ module_name }}.
+    
+    Provides transactional access to {{ name_lower }}-related repositories.
+    Inherits event management from BaseUnitOfWork.
+    
+    The _emit parameter is inherited from BaseUnitOfWork and injected via DI.
+    
+    Example:
+        async with uow:
+            {{ name_lower }} = {{ name }}(...)
+            await uow.{{ name_plural }}.add({{ name_lower }})
+            uow.add_event({{ name }}Created({{ name_lower }}_id={{ name_lower }}.id))
+            await uow.commit()  # Events published here
+    """
+    
+    # Repositories - initialized with default_factory for proper per-instance creation
+    {{ name_plural }}: {{ name }}Repository = field(default_factory={{ name }}Repository)

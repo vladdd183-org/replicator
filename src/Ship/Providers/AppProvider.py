@@ -34,6 +34,13 @@ def get_all_providers() -> list[Provider]:
         List of all providers for HTTP/WebSocket context
     """
     # Import container providers here to avoid circular imports
+    from src.Ship.Infrastructure.Events.Outbox.Providers import (
+        OutboxModuleProvider,
+        OutboxRequestProvider,
+    )
+    from src.Ship.Infrastructure.Temporal.Providers import (
+        TemporalModuleProvider,
+    )
     from src.Containers.AppSection.UserModule.Providers import (
         UserModuleProvider,
         UserRequestProvider,
@@ -53,6 +60,10 @@ def get_all_providers() -> list[Provider]:
         SettingsModuleProvider,
         SettingsRequestProvider,
     )
+    from src.Containers.AppSection.OrderModule.Providers import (
+        OrderModuleProvider,
+        OrderRequestProvider,
+    )
     from src.Containers.VendorSection.EmailModule.Providers import (
         EmailModuleProvider,
         EmailRequestProvider,
@@ -71,6 +82,11 @@ def get_all_providers() -> list[Provider]:
         AppProvider(),
         # Litestar integration - provides Request in REQUEST scope
         LitestarProvider(),
+        # Ship Infrastructure - Outbox
+        OutboxModuleProvider(),
+        OutboxRequestProvider(),
+        # Ship Infrastructure - Temporal (for Workflows)
+        TemporalModuleProvider(),
         # AppSection - UserModule
         UserModuleProvider(),
         UserRequestProvider(),
@@ -85,6 +101,9 @@ def get_all_providers() -> list[Provider]:
         # AppSection - SettingsModule
         SettingsModuleProvider(),
         SettingsRequestProvider(),
+        # AppSection - OrderModule
+        OrderModuleProvider(),
+        OrderRequestProvider(),
         # VendorSection - EmailModule
         EmailModuleProvider(),
         EmailRequestProvider(),
@@ -104,6 +123,13 @@ def get_cli_providers() -> list[Provider]:
         List of providers for CLI context
     """
     # Import container providers here to avoid circular imports
+    from src.Ship.Infrastructure.Events.Outbox.Providers import (
+        OutboxModuleProvider,
+        OutboxCLIProvider,
+    )
+    from src.Ship.Infrastructure.Temporal.Providers import (
+        TemporalModuleProvider,
+    )
     from src.Containers.AppSection.UserModule.Providers import (
         UserModuleProvider,
         UserCLIProvider,
@@ -123,6 +149,10 @@ def get_cli_providers() -> list[Provider]:
         SettingsModuleProvider,
         SettingsRequestProvider,
     )
+    from src.Containers.AppSection.OrderModule.Providers import (
+        OrderModuleProvider,
+        OrderCLIProvider,
+    )
     from src.Containers.VendorSection.EmailModule.Providers import (
         EmailModuleProvider,
         EmailRequestProvider,
@@ -139,6 +169,11 @@ def get_cli_providers() -> list[Provider]:
     return [
         # Core providers
         AppProvider(),
+        # Ship Infrastructure - Outbox (CLI version)
+        OutboxModuleProvider(),
+        OutboxCLIProvider(),
+        # Ship Infrastructure - Temporal (for Workflows)
+        TemporalModuleProvider(),
         # AppSection - UserModule (CLI version without Request)
         UserModuleProvider(),
         UserCLIProvider(),
@@ -153,6 +188,9 @@ def get_cli_providers() -> list[Provider]:
         # AppSection - SettingsModule
         SettingsModuleProvider(),
         SettingsRequestProvider(),
+        # AppSection - OrderModule (CLI version)
+        OrderModuleProvider(),
+        OrderCLIProvider(),
         # VendorSection - EmailModule
         EmailModuleProvider(),
         EmailRequestProvider(),

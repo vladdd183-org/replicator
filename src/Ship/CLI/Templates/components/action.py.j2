@@ -1,0 +1,70 @@
+"""{{ component_name }}Action - Use case for {{ module_name }}.
+
+This Action:
+1. Validates input data
+2. Executes business logic
+3. Returns Result[T, E]
+"""
+
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Action import Action
+from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
+from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Error
+
+
+# TODO: Define input type
+# from pydantic import BaseModel
+# class {{ component_name }}Request(BaseModel):
+#     """Input for {{ component_name }}Action."""
+#     field: str
+
+
+# TODO: Define output type
+# from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class {{ component_name }}Action(Action[object, object, {{ name }}Error]):
+    """Use Case: {{ component_name }}.
+    
+    TODO: Describe what this action does.
+    
+    Steps:
+    1. Validate input
+    2. Execute business logic
+    3. Return result
+    
+    Example:
+        action = {{ component_name }}Action(uow)
+        result = await action.run(data)
+    """
+    
+    def __init__(
+        self,
+        uow: {{ name }}UnitOfWork,
+    ) -> None:
+        """Initialize action with dependencies.
+        
+        Args:
+            uow: Unit of Work for data operations
+        """
+        self.uow = uow
+    
+    async def run(self, data: object) -> Result[object, {{ name }}Error]:
+        """Execute the {{ component_name_snake }} use case.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            Result with success value or Failure with error
+        """
+        # TODO: Implement business logic
+        
+        # Example with UoW:
+        # async with self.uow:
+        #     # Do something
+        #     self.uow.add_event(SomeEvent(...))
+        #     await self.uow.commit()
+        
+        return Success(None)  # TODO: Return actual result

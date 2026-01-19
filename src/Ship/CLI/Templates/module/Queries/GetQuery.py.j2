@@ -1,0 +1,45 @@
+"""Get{{ name }}Query - CQRS query for fetching {{ name_lower }} by ID."""
+
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
+
+from src.Ship.Parents.Query import Query
+from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
+
+
+class Get{{ name }}QueryInput(BaseModel):
+    """Input parameters for Get{{ name }}Query.
+    
+    Attributes:
+        {{ name_lower }}_id: UUID of {{ name_lower }} to fetch
+    """
+    
+    model_config = ConfigDict(frozen=True)
+    
+    {{ name_lower }}_id: UUID
+
+
+class Get{{ name }}Query(Query[Get{{ name }}QueryInput, {{ name }} | None]):
+    """CQRS Query: Get {{ name_lower }} by ID.
+    
+    Read-only operation optimized for data retrieval.
+    Does not go through UnitOfWork for better performance.
+    
+    Example:
+        query = Get{{ name }}Query()
+        {{ name_lower }} = await query.execute(Get{{ name }}QueryInput({{ name_lower }}_id=uuid))
+        if {{ name_lower }}:
+            return {{ name }}Response.from_entity({{ name_lower }})
+    """
+    
+    async def execute(self, input: Get{{ name }}QueryInput) -> {{ name }} | None:
+        """Execute query to get {{ name_lower }} by ID.
+        
+        Args:
+            input: Query input with {{ name_lower }}_id
+            
+        Returns:
+            {{ name }} or None if not found
+        """
+        return await {{ name }}.objects().where({{ name }}.id == input.{{ name_lower }}_id).first()
