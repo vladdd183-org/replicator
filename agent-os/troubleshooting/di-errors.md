@@ -363,7 +363,7 @@ REQUEST can depend on APP and REQUEST
 ## 🔗 Связанные
 
 - **Standards:** `../standards/backend/dependency-injection.md`
-- **Docs:** `foxdocs/dishka-develop/docs/`
+- **Docs:** <https://dishka.dev/>
 
 
 

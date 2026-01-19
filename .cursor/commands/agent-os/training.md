@@ -243,7 +243,6 @@ class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
 - `agent-os/standards/` — стандарты
 - `agent-os/snippets/` — примеры кода
 - `agent-os/templates/` — шаблоны
-- `foxdocs/LitestarPortoShowcase-main/` — рабочий пример
 
 ## Интеграция с другими системами
 

@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: doctrans-app
+    ports:
+      - "8000:8000"
+    network_mode: "host"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Для Linux: доступ к хосту
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - PYTHONPATH=/app
+      - ARGOS_DATA_DIR=/app/.argos
+    # volumes:
+      # Для разработки можно раскомментировать следующие строки:
+      # - ./src:/app/src
+      # - ./run.py:/app/run.py
+    # Команда переопределена в Dockerfile, но можно изменить здесь для разработки
+    # command: uv run python run.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+ 
+
+  # Опциональные сервисы для будущего расширения
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: doctrans-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - doctrans-network
+
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: doctrans-postgres
+  #   environment:
+  #     - POSTGRES_DB=doctrans
+  #     - POSTGRES_USER=doctrans
+  #     - POSTGRES_PASSWORD=doctrans
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - doctrans-network
+
+networks:
+  doctrans-network:
+    driver: bridge
+
+# volumes:
+  # redis_data:
+  # postgres_data:

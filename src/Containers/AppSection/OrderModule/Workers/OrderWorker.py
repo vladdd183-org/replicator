@@ -25,6 +25,7 @@ Configuration (via Settings):
 """
 
 import asyncio
+import anyio
 import signal
 from dataclasses import dataclass
 from typing import Any
@@ -143,13 +144,13 @@ async def run_order_worker(
     worker = await create_order_worker(client, config)
     
     # Setup shutdown handling
-    shutdown_event = asyncio.Event()
+    shutdown_event = anyio.Event()
     
     def signal_handler(sig: signal.Signals) -> None:
         logfire.info(f"Received {sig.name}, shutting down worker...")
         shutdown_event.set()
     
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, signal_handler, sig)

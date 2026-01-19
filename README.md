@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 Hyper-Porto v4.1
+# 🚀 Hyper-Porto v4.3
 
 ### Функциональная архитектура для Python бэкендов
 
@@ -39,7 +39,7 @@
 
 ```mermaid
 mindmap
-  root((Hyper-Porto v4))
+  root((Hyper-Porto v4.3))
     Porto SAP
       Container/Ship
       Actions/Tasks
@@ -778,7 +778,7 @@ source .venv/bin/activate  # Linux/macOS
 pip install -e ".[dev]"
 
 # 4. Копирование конфигурации
-cp .env.example .env
+cp env.example .env
 # Отредактируйте .env под ваши настройки
 
 # 5. Запуск Docker сервисов
@@ -1020,7 +1020,7 @@ Pull requests приветствуются! Для крупных изменен
 
 ---
 
-**Hyper-Porto v4.1** — *Функциональная архитектура для Python бэкендов*
+**Hyper-Porto v4.3** — *Функциональная архитектура для Python бэкендов*
 
 🚢 Porto + 🐍 Cosmic Python + 🦀 Returns + ⚡ anyio = 🚀 Production-Ready
 

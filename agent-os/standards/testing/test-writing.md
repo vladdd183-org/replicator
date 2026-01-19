@@ -338,5 +338,5 @@ def test_with_real_database():
 ## 📚 Дополнительно
 
 - `tests/conftest.py` — shared fixtures
-- `foxdocs/hypothesis-master/` — Hypothesis docs
+- <https://hypothesis.readthedocs.io/> — Hypothesis docs
 - `docs/07-spec-driven.md` — Spec-Driven Development

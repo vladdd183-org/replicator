@@ -1,6 +1,6 @@
 # 📋 План разработки Hyper-Porto проекта
 
-> Поэтапный план для разработки проекта на основе архитектуры Hyper-Porto v4.0
+> Поэтапный план для разработки проекта на основе архитектуры Hyper-Porto v4.3
 
 ---
 
@@ -294,7 +294,6 @@ class UserModuleProvider(Provider):
 ### Документы для чтения
 - `docs/03-components.md` — все компоненты
 - `docs/04-result-railway.md` — Result и flow
-- `foxdocs/LitestarPortoShowcase-main/src/` — пример реализации
 
 ### Проверка
 ```bash
@@ -461,7 +460,6 @@ cp -r src/Containers/AppSection/UserModule src/Containers/AppSection/NewModule
 2. **Показывай документацию** — прикрепляй нужные файлы из `docs/`
 3. **Используй Spec-Driven** — сначала spec.md, потом код
 4. **Проверяй типы** — запускай mypy после генерации
-5. **Копируй примеры** — `foxdocs/LitestarPortoShowcase-main/src/` содержит рабочий код
 
 ---
 
@@ -488,5 +486,5 @@ taskiq worker src.Ship.Infrastructure.TaskIQ.Broker:broker
 
 ---
 
-**Hyper-Porto v4.0** — Удачной разработки! 🚀
+**Hyper-Porto v4.3** — Удачной разработки! 🚀
 

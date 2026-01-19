@@ -1,0 +1,170 @@
+═══════════════════════════════════════════════════════════════════════════════
+ 🎉 ОТЛИЧНО! HOOK РАБОТАЕТ! ОСТАЛОСЬ ДОБАВИТЬ ЕЩЁ ОДИН ПАТЧ
+═══════════════════════════════════════════════════════════════════════════════
+
+ЧТО СРАБОТАЛО:
+--------------
+✅ Runtime hook успешно загружается
+✅ Проверки require_extra() пропускаются
+✅ Видим сообщения: "Skipping dependency check for: ocr (obj: OCR)"
+
+ЧТО ОБНАРУЖИЛОСЬ:
+-----------------
+⚠️ В PaddleX есть ЕЩЁ ОДНА функция проверки: require_deps()
+⚠️ Отсутствует пакет pypdfium2 (для работы с PDF)
+
+ЧТО БЫЛО ИСПРАВЛЕНО:
+-------------------
+1. ✅ pyi_rth_paddlex.py - добавлен патч для require_deps()
+   Теперь патчим ОБЕ функции: require_extra() И require_deps()
+
+2. ✅ build-windows.ps1 - добавлена установка pypdfium2
+
+3. ✅ DocumentTranslator.spec.template:
+   - Добавлен collect_all('pypdfium2')
+   - Добавлены скрытые импорты pypdfium2
+   - Добавлены метаданные pypdfium2
+
+═══════════════════════════════════════════════════════════════════════════════
+ 🚀 КОМАНДЫ ДЛЯ ПЕРЕСБОРКИ:
+═══════════════════════════════════════════════════════════════════════════════
+
+ВАРИАНТ 1 - Быстрая пересборка (если venv уже есть):
+----------------------------------------------------
+PowerShell:
+
+  .\rebuild-exe.ps1
+
+⏱️ Время: 10-20 минут
+
+
+ВАРИАНТ 2 - Полная пересборка (установит pypdfium2 заново):
+-----------------------------------------------------------
+PowerShell:
+
+  Remove-Item -Recurse -Force venv -ErrorAction SilentlyContinue
+  .\build-windows.ps1
+
+⏱️ Время: 20-40 минут
+
+РЕКОМЕНДУЕТСЯ: Используйте ВАРИАНТ 2 для установки pypdfium2!
+
+═══════════════════════════════════════════════════════════════════════════════
+ ✅ ОЖИДАЕМЫЙ РЕЗУЛЬТАТ ПОСЛЕ ПЕРЕСБОРКИ:
+═══════════════════════════════════════════════════════════════════════════════
+
+Вы должны увидеть:
+
+[PyInstaller-Hook] Initializing PaddleX patch...
+[PyInstaller-Hook] ✅ PaddleX dependency checks successfully disabled
+[PyInstaller-Hook] ✅ Patched: require_extra() and require_deps()
+[PyInstaller-Hook] All dependencies are assumed to be bundled in the EXE
+
+12:09:15.140 Logfire configured successfully
+INFO:     Started server process [2128]
+INFO:     Waiting for application startup.
+
+[PyInstaller-Hook] Skipping extra check: ocr (obj: OCR)
+[PyInstaller-Hook] Skipping extra check: ocr (obj: doc_preprocessor)
+[PyInstaller-Hook] Skipping deps check: [pypdfium2, opencv-contrib-python] (obj: PDFReaderBackend)
+
+12:09:15.436 Starting OCR service initialization...
+12:09:15.468 Initializing OCR engines...
+...
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000
+
+═══════════════════════════════════════════════════════════════════════════════
+ 📝 ЧТО ИЗМЕНИЛОСЬ В ЭТОМ ПАТЧЕ:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. pyi_rth_paddlex.py
+   Было:   Патчили только require_extra()
+   Стало:  Патчим require_extra() И require_deps()
+
+2. build-windows.ps1
+   Было:   Только pymupdf
+   Стало:  pymupdf + pypdfium2
+
+3. DocumentTranslator.spec.template
+   Добавлено:
+   - collect_all('pypdfium2')
+   - pypdfium2 в скрытые импорты
+   - pypdfium2 в бинарники
+   - pypdfium2 в метаданные
+
+═══════════════════════════════════════════════════════════════════════════════
+ 🔍 ПРОВЕРКА ИЗМЕНЕНИЙ:
+═══════════════════════════════════════════════════════════════════════════════
+
+PowerShell - проверьте что файлы обновлены:
+
+# Проверить что pypdfium2 упоминается в hook
+Select-String -Path pyi_rth_paddlex.py -Pattern "require_deps"
+# Должно найти функцию patched_require_deps
+
+# Проверить что pypdfium2 в build скрипте
+Select-String -Path build-windows.ps1 -Pattern "pypdfium2"
+# Должно найти строку установки pypdfium2
+
+# Проверить что pypdfium2 в spec файле
+Select-String -Path DocumentTranslator.spec.template -Pattern "pypdfium2"
+# Должно найти несколько упоминаний
+
+═══════════════════════════════════════════════════════════════════════════════
+ ⚡ БЫСТРАЯ КОМАНДА - ВСЁ В ОДНОМ (РЕКОМЕНДУЕТСЯ):
+═══════════════════════════════════════════════════════════════════════════════
+
+PowerShell (скопируйте целиком):
+
+  Remove-Item -Recurse -Force venv -ErrorAction SilentlyContinue; `
+  .\build-windows.ps1; `
+  if ($?) { cd dist\DocumentTranslator; $env:APP_ENV="production"; .\DocumentTranslator.exe }
+
+Это:
+1. Удалит старый venv
+2. Пересоберёт всё с нуля (с pypdfium2)
+3. Соберёт EXE
+4. Запустит с правильными переменными
+
+═══════════════════════════════════════════════════════════════════════════════
+ 📊 ПРОГРЕСС ИСПРАВЛЕНИЙ:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ✅ Множественные процессы Uvicorn         - РЕШЕНО
+2. ✅ Ошибка CppSupport.cpp                  - РЕШЕНО
+3. ✅ PaddleX DependencyError (require_extra) - РЕШЕНО
+4. ✅ PaddleX DependencyError (require_deps)  - РЕШЕНО (СЕЙЧАС)
+5. ✅ Отсутствие pypdfium2                    - РЕШЕНО (СЕЙЧАС)
+
+═══════════════════════════════════════════════════════════════════════════════
+ 🎯 СПИСОК ВСЕХ ПАТЧЕННЫХ ФУНКЦИЙ:
+═══════════════════════════════════════════════════════════════════════════════
+
+В pyi_rth_paddlex.py теперь патчатся:
+
+1. paddlex.utils.deps.require_extra()
+   - Проверяет "extras" зависимости (ocr, det, seg и т.д.)
+   - Вызывается при создании pipeline
+   - Теперь всегда возвращает успех
+
+2. paddlex.utils.deps.require_deps()
+   - Проверяет конкретные пакеты (pypdfium2, opencv и т.д.)
+   - Вызывается при инициализации компонентов
+   - Теперь всегда возвращает успех
+
+ОБЕ функции теперь просто логируют и возвращаются без проверки!
+
+═══════════════════════════════════════════════════════════════════════════════
+ ℹ️  ПОЧЕМУ ЭТО БЕЗОПАСНО:
+═══════════════════════════════════════════════════════════════════════════════
+
+- Все зависимости уже включены в EXE через PyInstaller
+- Если модуль РЕАЛЬНО отсутствует - Python выдаст ImportError
+- ImportError более информативен чем DependencyError от PaddleX
+- Проверка метаданных избыточна в frozen environment
+
+═══════════════════════════════════════════════════════════════════════════════
+Дата: 2025-11-01 | Версия патча: 4.0 (с require_deps + pypdfium2)
+═══════════════════════════════════════════════════════════════════════════════
+

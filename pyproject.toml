@@ -1,7 +1,7 @@
 [project]
 name = "hyper-porto-app"
 version = "0.1.0"
-description = "Hyper-Porto v4.0 - Functional architecture for Python backends"
+description = "Hyper-Porto v4.3 - Functional architecture for Python backends"
 authors = [
     {name = "Developer", email = "dev@example.com"}
 ]

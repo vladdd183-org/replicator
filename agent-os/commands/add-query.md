@@ -284,7 +284,7 @@ class ModuleRequestProvider(Provider):
 ## Действия после создания
 
 1. ✅ Создать `Queries/[QueryName].py`
-2. ✅ Создать `@dataclass(frozen=True)` для Input
+2. ✅ Создать `pydantic.BaseModel` для Input (frozen через `ConfigDict`)
 3. ✅ Метод `execute()` возвращает прямое значение
 4. ✅ Зарегистрировать в `Providers.py` (REQUEST scope)
 5. ✅ Добавить в `Queries/__init__.py` exports

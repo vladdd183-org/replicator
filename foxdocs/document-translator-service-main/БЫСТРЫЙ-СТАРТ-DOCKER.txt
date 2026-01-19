@@ -1,0 +1,57 @@
+╔═══════════════════════════════════════════════════════════╗
+║          БЫСТРЫЙ СТАРТ: Docker и Windows сборка           ║
+╚═══════════════════════════════════════════════════════════╝
+
+📦 СБОРКА WINDOWS EXE (РЕКОМЕНДУЕТСЯ)
+═══════════════════════════════════════
+
+На Windows машине:
+
+1. PowerShell → запустить скрипт:
+   
+   PS> .\build-windows.ps1
+
+2. Результат:
+   
+   ✅ dist\DocumentTranslator\DocumentTranslator.exe (73 MB)
+
+3. Запуск:
+   
+   PS> cd dist\DocumentTranslator
+   PS> $env:APP_ENV = "production"
+   PS> .\DocumentTranslator.exe
+
+
+🐳 СБОРКА LINUX BINARY через Docker
+════════════════════════════════════
+
+На Linux/Mac:
+
+1. Запустить скрипт:
+   
+   $ sudo sh build-in-docker.sh onefile
+
+2. Результат:
+   
+   ✅ dist/DocumentTranslator (629 MB, Linux ELF)
+
+3. Запуск:
+   
+   $ chmod +x dist/DocumentTranslator
+   $ ./dist/DocumentTranslator
+
+
+⚠️  ВАЖНО
+═════════
+
+Docker НЕ создаёт Windows .exe!
+→ Для Windows используйте build-windows.ps1 на Windows машине
+
+
+📖 ПОЛНАЯ ДОКУМЕНТАЦИЯ
+═══════════════════════
+
+• DOCKER-BUILD-README.md    - Детали Docker сборки
+• BUILD-OPTIONS-README.md   - Все опции сборки
+• DOCKER-СБОРКА-ИТОГИ.txt   - Полные итоги
+

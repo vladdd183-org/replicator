@@ -1,6 +1,6 @@
 # 🚀 Transports (UI Layer)
 
-> **Версия:** 4.1 | **Дата:** Январь 2026
+> **Версия:** 4.3 | **Дата:** Январь 2026
 
 В Hyper-Porto **один Action** может быть доступен через **несколько транспортов**:
 HTTP REST, GraphQL, CLI, WebSocket, Background Workers.

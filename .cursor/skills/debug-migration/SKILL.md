@@ -13,7 +13,7 @@ description: Debug Piccolo ORM migration issues in Hyper-Porto. Use when the use
 |-----|------|
 | **Troubleshooting** | `agent-os/troubleshooting/import-errors.md` |
 | **Standard** | `agent-os/standards/backend/migrations.md` |
-| **Library docs** | `foxdocs/piccolo-master/docs/` |
+| **Library docs** | <https://piccolo-orm.com/docs/> |
 
 ## Quick Diagnostic
 

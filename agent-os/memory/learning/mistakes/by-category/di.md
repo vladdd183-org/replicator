@@ -125,4 +125,4 @@ async def create_user(action: FromDishka[CreateUserAction]):
 
 - [DI Errors Troubleshooting](../../../../troubleshooting/di-errors.md)
 - [Dependency Injection Standards](../../../../standards/backend/dependency-injection.md)
-- [Dishka Documentation](../../../../../foxdocs/dishka-develop/docs/)
+- [Dishka Documentation](https://dishka.dev/)

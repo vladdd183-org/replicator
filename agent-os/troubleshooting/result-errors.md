@@ -342,7 +342,7 @@ Result Issue Debugging:
 
 - **Standards:** `../standards/global/error-handling.md`
 - **Patterns:** `../standards/architecture/patterns.md`
-- **Docs:** `foxdocs/returns-master/docs/`
+- **Docs:** <https://returns.readthedocs.io/>
 
 
 

@@ -1,0 +1,117 @@
+# syntax=docker/dockerfile:1.4
+
+# ===================================================================
+# СТАДИЯ 1: Builder - установка зависимостей
+# ===================================================================
+FROM python:3.11-slim AS builder
+
+# Устанавливаем переменные окружения для оптимизации
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # Явно отключаем CUDA
+    CUDA_VISIBLE_DEVICES="" \
+    USE_CUDA=0 \
+    USE_GPU=0
+
+WORKDIR /app
+
+# Устанавливаем минимальные build-зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем uv для быстрого управления зависимостями
+RUN pip install --no-cache-dir uv
+
+# Копируем файлы конфигурации проекта
+COPY pyproject.toml uv.lock constraints.txt ./
+
+# Настраиваем pip для использования constraints
+ENV PIP_CONSTRAINT=/app/constraints.txt
+
+# Устанавливаем зависимости в виртуальное окружение
+# Используем многоступенчатую установку для гарантии CPU-only версий
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    # КРИТИЧНО: Сначала устанавливаем только CPU-only библиотеки БЕЗ зависимостей
+    pip install --no-cache-dir --no-deps opencv-python-headless==4.8.1.78 && \
+    # Блокируем установку нежелательных пакетов через environment variable
+    export PIP_NO_BINARY=opencv-python,opencv-contrib-python && \
+    # Устанавливаем остальные зависимости, исключая проблемные
+    uv sync --frozen --no-dev || true && \
+    # Проверяем, что nvidia пакеты НЕ установлены
+    ! pip list | grep -i nvidia && \
+    echo "✅ NO NVIDIA packages found - SUCCESS!"
+
+# ===================================================================
+# СТАДИЯ 2: Runtime - финальный минимальный образ
+# ===================================================================
+FROM python:3.11-slim
+
+# Устанавливаем переменные окружения
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Явно отключаем CUDA
+    CUDA_VISIBLE_DEVICES="" \
+    USE_CUDA=0 \
+    USE_GPU=0 \
+    # Настройка путей для виртуального окружения
+    PATH="/app/.venv/bin:$PATH" \
+    VIRTUAL_ENV="/app/.venv" \
+    # Настройки для PaddlePaddle
+    HOME=/app \
+    XDG_CACHE_HOME=/app/.cache
+
+WORKDIR /app
+
+# Устанавливаем только минимальные runtime зависимости
+# libglib2.0-0 - для OpenCV
+# libgomp1 - для OpenMP (используется NumPy, PaddlePaddle)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libgomp1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Копируем виртуальное окружение из builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Копируем скрипты (для prewarm если нужно)
+COPY scripts ./scripts
+
+# Создаем директории для данных и кеша
+RUN mkdir -p data .cache && chmod 755 data .cache
+
+# Создаем пользователя для безопасности
+RUN useradd --create-home --shell /bin/bash --uid 1000 app && \
+    chown -R app:app /app
+
+# Копируем исходный код приложения
+COPY --chown=app:app src ./src
+COPY --chown=app:app run.py ./
+
+# Переключаемся на непривилегированного пользователя
+USER app
+
+# Открываем порт приложения
+EXPOSE 8000
+
+# Healthcheck для мониторинга
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=5)" || exit 1
+
+# Команда запуска приложения
+CMD ["python", "run.py"]
+
+# ===================================================================
+# Метаданные образа
+# ===================================================================
+LABEL maintainer="your-email@example.com" \
+      description="Document Translator Service (CPU-only optimized)" \
+      version="1.0.0" \
+      org.opencontainers.image.source="https://github.com/yourusername/document-translator-service"
+

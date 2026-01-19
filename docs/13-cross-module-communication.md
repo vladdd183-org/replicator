@@ -1,6 +1,6 @@
 # 🔗 Кросс-модульное взаимодействие
 
-> **Версия:** 4.2 | **Дата:** Январь 2026
+> **Версия:** 4.3 | **Дата:** Январь 2026
 
 ---
 
@@ -304,13 +304,13 @@ async def on_user_created_index(
 
 - [03-components.md](03-components.md) — Компоненты архитектуры
 - [11-litestar-features.md](11-litestar-features.md) — Litestar Events
-- [Porto Containers Dependencies](../foxdocs/Porto-master/docs/docs/Basics/Containers%20Dependencies.md)
+- [Porto Containers Dependencies](https://github.com/Mahmoudz/Porto/blob/master/docs/docs/Basics/Containers%20Dependencies.md)
 
 ---
 
 <div align="center">
 
-**Hyper-Porto v4.2**
+**Hyper-Porto v4.3**
 
 *Event-Driven кросс-модульное взаимодействие*
 

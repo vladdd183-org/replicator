@@ -46,7 +46,7 @@
 ```bash
 # Убедись, что проект запускается
 cd /home/vladdd183/Рабочий\ стол/kwork/new_porto
-python -m src.Main
+uv run python -m src.Main
 ```
 
 ### 2. Начало туториала
@@ -101,7 +101,6 @@ python -m src.Main
 ## Быстрые ссылки
 
 - [Документация архитектуры](../../../docs/)
-- [Примеры кода](../../../foxdocs/LitestarPortoShowcase-main/)
 - [Чеклисты](../../checklists/)
 
 ---

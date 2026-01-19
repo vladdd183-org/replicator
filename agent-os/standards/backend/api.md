@@ -236,4 +236,4 @@ async def create_user(self, action):
 
 - `src/Ship/Decorators/result_handler.py` — декоратор @result_handler
 - `docs/09-transports.md` — HTTP, GraphQL, CLI, WebSocket
-- `foxdocs/litestar-main/docs/` — документация Litestar
+- <https://docs.litestar.dev/> — документация Litestar

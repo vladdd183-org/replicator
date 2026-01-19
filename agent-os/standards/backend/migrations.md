@@ -168,4 +168,4 @@ async def backwards():
 
 - `src/Ship/CLI/MigrationCommands.py` — CLI команды
 - `piccolo_conf.py` — конфигурация Piccolo
-- `foxdocs/piccolo-master/docs/` — документация Piccolo
+- <https://piccolo-orm.com/docs/> — документация Piccolo

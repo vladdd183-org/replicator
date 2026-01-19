@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  app:
+    image: document-translator-service:latest
+    container_name: doctrans-app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - PYTHONPATH=/app
+      - ARGOS_DATA_DIR=/app/.argos
+    restart: unless-stopped

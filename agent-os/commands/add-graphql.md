@@ -401,4 +401,4 @@ src/Ship/
 
 - **Template:** `../templates/graphql-resolver.py.template`
 - **Docs:** `docs/09-transports.md` (GraphQL секция)
-- **Library docs:** `foxdocs/strawberry-main/docs/`
+- **Library docs:** <https://strawberry.rocks/docs/>

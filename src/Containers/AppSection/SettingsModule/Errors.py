@@ -39,6 +39,15 @@ class FeatureFlagNotFoundError(ErrorWithTemplate, SettingsError):
     flag_name: str
 
 
+class FeatureFlagAlreadyExistsError(ErrorWithTemplate, SettingsError):
+    """Raised when feature flag already exists."""
+    
+    _message_template: ClassVar[str] = "Feature flag '{flag_name}' already exists"
+    code: str = "FEATURE_FLAG_ALREADY_EXISTS"
+    http_status: int = 409
+    flag_name: str
+
+
 class SettingReadOnlyError(ErrorWithTemplate, SettingsError):
     """Raised when trying to modify a read-only setting."""
     

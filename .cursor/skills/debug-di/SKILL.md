@@ -13,7 +13,7 @@ description: Debug Dishka Dependency Injection issues in Hyper-Porto. Use when t
 |-----|------|
 | **Troubleshooting** | `agent-os/troubleshooting/di-errors.md` |
 | **Standard** | `agent-os/standards/backend/dependency-injection.md` |
-| **Library docs** | `foxdocs/dishka-develop/docs/` |
+| **Library docs** | <https://dishka.dev/> |
 
 ## Quick Diagnostic
 

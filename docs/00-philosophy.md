@@ -1,6 +1,6 @@
 # 🎯 Философия Hyper-Porto Architecture
 
-> **Версия:** 4.1 | **Дата:** Январь 2026  
+> **Версия:** 4.3 | **Дата:** Январь 2026  
 > **Назначение:** Модульные монолиты, микросервисы, ML-бэкенды  
 > **Оптимизировано для:** AI-Driven Development + Human-Friendly Code
 
@@ -469,7 +469,7 @@ class HashPasswordTask(SyncTask[str, str]):
 
 ## 📊 Сравнение подходов
 
-| Аспект | Классический Porto | Hyper-Porto v4 |
+| Аспект | Классический Porto | Hyper-Porto v4.3 |
 |--------|-------------------|----------------|
 | Обработка ошибок | Exceptions | Result[T, E] |
 | Async | asyncio | anyio (structured) |
@@ -529,7 +529,7 @@ class HashPasswordTask(SyncTask[str, str]):
 
 <div align="center">
 
-**Hyper-Porto v4.1**
+**Hyper-Porto v4.3**
 
 *Функциональная архитектура для Python бэкендов*
 

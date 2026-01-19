@@ -269,7 +269,7 @@ pytest tests/unit/
 
 ```
 docs/               # Архитектура Hyper-Porto
-foxdocs/            # Документация библиотек
+external-docs/      # Официальные ссылки на документацию
 /api/docs           # OpenAPI (Scalar UI)
 /graphql            # GraphQL Playground
 ```

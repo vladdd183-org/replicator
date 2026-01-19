@@ -1,6 +1,6 @@
 # CLAUDE.md — AI Quick Reference for Hyper-Porto
 
-> Компактный справочник для AI-агентов по архитектуре Hyper-Porto v4.2.0
+> Компактный справочник для AI-агентов по архитектуре Hyper-Porto v4.3
 
 ---
 
@@ -335,7 +335,7 @@ Repository → Model (Piccolo Table)
 | HTTP/GraphQL/CLI/WS | `docs/09-transports.md` |
 | Litestar features | `docs/11-litestar-features.md` |
 | Сокращение бойлерплейта | `docs/12-reducing-boilerplate.md` |
-| Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
+| Module Gateway Pattern | `docs/14-module-gateway-pattern.md` |
 | Roadmap и будущее | `docs/16-future-roadmap.md` |
 | Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
 | Saga Patterns | `docs/15-saga-patterns.md` |
@@ -397,7 +397,7 @@ from src.Ship.Core.Errors import ErrorWithTemplate
 
 ---
 
-**Hyper-Porto v4.2.0** — Функциональная архитектура для Python бэкендов 🚀
+**Hyper-Porto v4.3** — Функциональная архитектура для Python бэкендов 🚀
 
 
 

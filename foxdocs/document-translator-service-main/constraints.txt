@@ -1,0 +1,48 @@
+# Constraints файл для блокировки CUDA/GPU зависимостей
+# Используется при установке пакетов для гарантии CPU-only установки
+
+# Блокируем все NVIDIA/CUDA пакеты
+nvidia-cublas-cu12==invalid
+nvidia-cublas-cu11==invalid
+nvidia-cuda-cupti-cu12==invalid
+nvidia-cuda-cupti-cu11==invalid
+nvidia-cuda-nvrtc-cu12==invalid
+nvidia-cuda-nvrtc-cu11==invalid
+nvidia-cuda-runtime-cu12==invalid
+nvidia-cuda-runtime-cu11==invalid
+nvidia-cudnn-cu12==invalid
+nvidia-cudnn-cu11==invalid
+nvidia-cufft-cu12==invalid
+nvidia-cufft-cu11==invalid
+nvidia-curand-cu12==invalid
+nvidia-curand-cu11==invalid
+nvidia-cusolver-cu12==invalid
+nvidia-cusolver-cu11==invalid
+nvidia-cusparse-cu12==invalid
+nvidia-cusparse-cu11==invalid
+nvidia-nccl-cu12==invalid
+nvidia-nccl-cu11==invalid
+nvidia-nvtx-cu12==invalid
+nvidia-nvtx-cu11==invalid
+nvidia-nvjitlink-cu12==invalid
+nvidia-nvjitlink-cu11==invalid
+
+# Блокируем GPU версии популярных библиотек
+torch+cu11==invalid
+torch+cu12==invalid
+tensorflow-gpu==invalid
+jax[cuda]==invalid
+jax[cuda11]==invalid
+jax[cuda12]==invalid
+
+# Блокируем opencv с GUI и contrib (которые могут тянуть CUDA)
+opencv-python==invalid
+opencv-contrib-python==invalid
+opencv-contrib-python-headless==invalid
+
+# Разрешаем только CPU-only версии
+# opencv-python-headless - OK (будет установлен из pyproject.toml)
+# ctranslate2 без extras - OK
+
+
+

@@ -44,11 +44,11 @@
                 return Failure(OrderCreationFailed(reason=str(ex)))
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Callable
 
+import anyio
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
@@ -198,17 +198,16 @@ class SagaCompensations:
         Returns:
             Список ошибок (порядок не гарантирован)
         """
-        tasks = [
-            self._execute_one(func, args)
-            for func, args in self._stack
-        ]
+        results: list[Exception | None] = [None] * len(self._stack)
         
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        async def _run_one(index: int, func: Callable[..., Any], args: tuple[Any, ...]) -> None:
+            results[index] = await self._execute_one(func, args)
         
-        return [
-            r if isinstance(r, Exception) else None
-            for r in results
-        ]
+        async with anyio.create_task_group() as tg:
+            for index, (func, args) in enumerate(self._stack):
+                tg.start_soon(_run_one, index, func, args)
+        
+        return results
     
     async def _execute_one(
         self,

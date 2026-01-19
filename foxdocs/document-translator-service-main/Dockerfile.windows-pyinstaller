@@ -1,0 +1,155 @@
+# ===================================================================
+# Dockerfile для сборки Windows EXE
+# Использует Python 3.11 и собирает напрямую (не через Wine)
+# Результат: Windows EXE собранный на Linux
+# ===================================================================
+
+FROM python:3.11-slim
+
+# Установка зависимостей для сборки
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
+# Копируем файлы проекта
+COPY . /src/
+
+# СЛЕДУЕМ ТОЧНО build-windows.ps1 порядку и версиям!
+
+# Upgrade pip
+RUN python -m pip install --upgrade pip setuptools wheel
+
+# Base dependencies (STEP 4.1)
+RUN pip install --no-cache-dir \
+    "numpy>=1.24.0,<2.0.0" \
+    "setuptools<60" \
+    "pyyaml==6.0.2" \
+    "Cython"
+
+# OpenCV CPU-only (STEP 4.2)
+RUN pip install --no-cache-dir \
+    "pillow==11.*" \
+    "opencv-python-headless==4.10.*" \
+    "opencv-contrib-python-headless==4.10.*"
+
+# Web framework (STEP 4.3)
+RUN pip install --no-cache-dir \
+    "litestar==2.17.0" \
+    "pydantic==2.9.*" \
+    "pydantic-settings==2.*" \
+    "dishka==1.4.*" \
+    "logfire==2.7.*" \
+    "uvicorn[standard]==0.32.*" \
+    "multipart"
+
+# PaddlePaddle CPU-only (STEP 4.4)
+RUN pip install --no-cache-dir \
+    "paddlepaddle==3.2.0" \
+    --index-url https://www.paddlepaddle.org.cn/packages/stable/cpu/
+
+# scikit-image (STEP 4.5)
+RUN pip install --no-cache-dir \
+    "scikit-image>=0.19.0"
+
+# Common dependencies (STEP 4.6)
+RUN pip install --no-cache-dir \
+    "typing-extensions>=4.0.0" \
+    "packaging>=20.0" \
+    "requests>=2.25.0" \
+    "filelock>=3.0.0" \
+    "huggingface-hub" \
+    "pandas" \
+    "prettytable" \
+    "colorlog" \
+    "chardet" \
+    "aistudio-sdk" \
+    "modelscope" \
+    "py-cpuinfo" \
+    "ruamel.yaml" \
+    "ujson" \
+    "protobuf" \
+    "networkx" \
+    "opt-einsum" \
+    "pyclipper>=1.3.0"
+
+# PaddleX and PaddleOCR (STEP 4.7)
+RUN pip install --no-cache-dir "paddlex[ocr-core]==3.2.1"
+RUN pip install --no-cache-dir --no-deps "paddleocr==3.2.0"
+
+# PDF libraries (STEP 4.8)
+RUN pip install --no-cache-dir \
+    "pymupdf>=1.23.0" \
+    "pypdfium2>=4.0.0"
+
+# PyTorch CPU-only (STEP 4.9)
+RUN pip install --no-cache-dir \
+    "torch==2.5.0+cpu" \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Stanza (STEP 4.10)
+RUN pip install --no-cache-dir "tqdm>=1.56.0"
+RUN pip install --no-cache-dir --no-deps "stanza==1.1.1"
+
+# argostranslate (STEP 4.11)
+RUN pip install --no-cache-dir \
+    "ctranslate2>=3.16.0" \
+    "sentencepiece==0.2.0" \
+    "sacremoses==0.0.53"
+RUN pip install --no-cache-dir --no-deps "argostranslate==1.9.*"
+
+# Final dependencies (STEP 4.12)
+RUN pip install --no-cache-dir \
+    "setuptools>=65.0" \
+    "more-itertools"
+
+# Install PyInstaller
+RUN pip install --no-cache-dir "pyinstaller>=6.0.0"
+
+# Build script
+COPY <<'EOF' /build.sh
+#!/bin/bash
+set -e
+
+# Determine which spec to use
+if [ "$BUILD_MODE" = "onefile" ]; then
+    SPEC_TEMPLATE="DocumentTranslator.onefile.spec.template"
+    SPEC_FILE="DocumentTranslator.spec"
+    echo "[INFO] Building ONE-FILE version"
+else
+    SPEC_TEMPLATE="DocumentTranslator.spec.template"
+    SPEC_FILE="DocumentTranslator.spec"
+    echo "[INFO] Building ONE-DIR version"
+fi
+
+echo "[INFO] Using spec template: $SPEC_TEMPLATE"
+if [ ! -f "$SPEC_TEMPLATE" ]; then
+    echo "[ERROR] Spec template not found: $SPEC_TEMPLATE"
+    exit 1
+fi
+
+cp "$SPEC_TEMPLATE" "$SPEC_FILE"
+
+echo "[INFO] Running PyInstaller..."
+pyinstaller --clean --noconfirm "$SPEC_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "[SUCCESS] Build completed!"
+    if [ -d "dist" ]; then
+        ls -lh dist/
+    fi
+else
+    echo "[ERROR] Build failed!"
+    exit 1
+fi
+EOF
+
+RUN chmod +x /build.sh
+
+# Default command
+CMD ["/build.sh"]
+
+# Output volume
+VOLUME ["/src/dist"]
+

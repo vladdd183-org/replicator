@@ -13,7 +13,7 @@ description: Create and manage Piccolo ORM database migrations in Hyper-Porto ar
 |-----|------|
 | **Standard** | `agent-os/standards/backend/migrations.md` |
 | **Template** | `agent-os/templates/model.py.template` |
-| **Library docs** | `foxdocs/piccolo-master/docs/` |
+| **Library docs** | <https://piccolo-orm.com/docs/> |
 
 ## Quick Reference
 

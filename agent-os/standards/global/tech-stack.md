@@ -1,4 +1,4 @@
-# Tech Stack — Hyper-Porto v4.0
+# Tech Stack — Hyper-Porto v4.3
 
 > Технический стек проекта. Все компоненты выбраны для функциональной архитектуры с Railway-Oriented Programming.
 
@@ -8,7 +8,7 @@
 
 | Категория | Технология | Версия | Документация |
 |-----------|------------|--------|--------------|
-| **Application Framework** | Litestar | >=2.12.0 | `foxdocs/litestar-main/docs/` |
+| **Application Framework** | Litestar | >=2.12.0 | <https://docs.litestar.dev/> |
 | **Language** | Python | >=3.12 | — |
 | **Package Manager** | uv | latest | — |
 | **Build System** | hatchling | latest | — |
@@ -108,21 +108,17 @@
 
 ## 📚 Документация библиотек
 
-Локальная документация находится в `foxdocs/`:
+Официальные ссылки на документацию:
 
-```
-foxdocs/
-├── litestar-main/docs/         # Litestar
-├── piccolo-master/docs/        # Piccolo ORM
-├── dishka-develop/docs/        # Dishka DI
-├── returns-master/docs/        # Returns
-├── anyio-master/docs/          # anyio
-├── strawberry-main/docs/       # Strawberry GraphQL
-├── taskiq-litestar-develop/    # TaskIQ
-├── Porto-master/docs/          # Porto SAP
-├── cosmic/                     # Cosmic Python
-└── LitestarPortoShowcase-main/ # Пример проекта
-```
+- Litestar — <https://docs.litestar.dev/>
+- Piccolo ORM — <https://piccolo-orm.com/docs/>
+- Dishka DI — <https://dishka.dev/>
+- Returns — <https://returns.readthedocs.io/>
+- anyio — <https://anyio.readthedocs.io/>
+- Strawberry GraphQL — <https://strawberry.rocks/docs/>
+- TaskIQ + Litestar — <https://taskiq-python.github.io/taskiq-litestar/>
+- Porto (оригинал) — <https://github.com/Mahmoudz/Porto>
+- Cosmic Python — <https://www.cosmicpython.com/>
 
 ---
 

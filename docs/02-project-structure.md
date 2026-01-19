@@ -1,6 +1,6 @@
 # 📁 Структура проекта Hyper-Porto
 
-> **Версия:** 4.1 | **Дата:** Январь 2026
+> **Версия:** 4.3 | **Дата:** Январь 2026
 
 ---
 
@@ -23,23 +23,9 @@ new_porto/                            # Root проекта
 │   ├── 11-litestar-features.md       # Channels, Events, Middleware, Stores
 │   └── 12-reducing-boilerplate.md    # Паттерны сокращения бойлерплейта
 │
-├── foxdocs/                          # Документация библиотек (справочник)
-│   ├── litestar-main/docs/           # Litestar документация
-│   ├── piccolo-master/docs/          # Piccolo ORM
-│   ├── dishka-develop/docs/          # Dishka DI
-│   ├── returns-master/docs/          # Returns (Result, Maybe)
-│   ├── anyio-master/docs/            # anyio (Structured Concurrency)
-│   ├── strawberry-main/docs/         # Strawberry GraphQL
-│   ├── taskiq-litestar-develop/      # TaskIQ + Litestar integration
-│   ├── Porto-master/docs/            # Porto SAP оригинал
-│   ├── cosmic/                       # Cosmic Python book
-│   ├── spec-kit-main/                # Spec Kit документация
-│   └── LitestarPortoShowcase-main/   # Пример Porto проекта
-│
-├── specs/                            # Spec-Driven Development
-│   ├── constitution.md               # Конституция проекта
-│   └── features/                     # Спецификации фич
-│       └── user-management.md
+├── agent-os/                         # Agent OS стандарты и workflow
+│   ├── specs/                        # Spec-Driven Development
+│   └── ...
 │
 ├── src/                              # Исходный код
 │   ├── __init__.py
@@ -251,12 +237,12 @@ new_porto/                            # Root проекта
 │   └── e2e/
 │
 ├── .env                              # Environment variables
-├── .env.example                      # Шаблон .env
-├── .cursorrules                      # AI-правила для Cursor
+├── env.example                       # Шаблон .env
+├── .cursor/                          # AI-правила для Cursor (rules/)
 ├── .gitignore
 ├── docker-compose.yml                # Docker (Postgres, Redis)
 ├── piccolo_conf.py                   # Piccolo ORM конфигурация
-├── pyproject.toml                    # Python dependencies (Poetry/PDM)
+├── pyproject.toml                    # Python dependencies (uv / PEP 621)
 └── README.md
 ```
 

@@ -1,0 +1,66 @@
+:doctype: book
+:source-highlighter: pygments
+:icons: font
+:toc: left
+:toclevels: 1
+
+= Architecture Patterns with Python
+
+:sectnums!:
+
+include::preface.asciidoc[]
+
+include::introduction.asciidoc[]
+
+
+:sectnums:
+
+include::part1.asciidoc[]
+
+include::chapter_01_domain_model.asciidoc[]
+
+include::chapter_02_repository.asciidoc[]
+
+include::chapter_03_abstractions.asciidoc[]
+
+
+include::chapter_04_service_layer.asciidoc[]
+
+include::chapter_05_high_gear_low_gear.asciidoc[]
+
+include::chapter_06_uow.asciidoc[]
+
+include::chapter_07_aggregate.asciidoc[]
+
+
+include::part2.asciidoc[]
+
+include::chapter_08_events_and_message_bus.asciidoc[]
+
+include::chapter_09_all_messagebus.asciidoc[]
+
+include::chapter_10_commands.asciidoc[]
+
+include::chapter_11_external_events.asciidoc[]
+
+include::chapter_12_cqrs.asciidoc[]
+
+include::chapter_13_dependency_injection.asciidoc[]
+
+
+:sectnums!:
+
+include::epilogue_1_how_to_get_there_from_here.asciidoc[]
+
+:sectnums:
+
+include::appendix_ds1_table.asciidoc[]
+
+include::appendix_project_structure.asciidoc[]
+
+include::appendix_csvs.asciidoc[]
+
+include::appendix_django.asciidoc[]
+
+include::appendix_validation.asciidoc[]
+

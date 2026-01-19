@@ -124,7 +124,7 @@ hints:
     - level: 3
       name: "Пример"
       description: "Пример кода или ссылка на документацию"
-      example: "Смотри пример в foxdocs/LitestarPortoShowcase-main/"
+      example: "Смотри пример в docs/03-components.md"
       
     - level: 4
       name: "Решение"

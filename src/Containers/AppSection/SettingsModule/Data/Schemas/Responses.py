@@ -23,6 +23,22 @@ class SettingResponse(EntitySchema):
     is_readonly: bool
     created_at: datetime
     updated_at: datetime
+    
+    @classmethod
+    def from_setting(cls, setting) -> "SettingResponse":
+        """Create response from Setting entity with parsed value."""
+        return cls(
+            id=setting.id,
+            key=setting.key,
+            value=setting.value,
+            parsed_value=_parse_setting_value(setting.value, setting.value_type),
+            value_type=setting.value_type,
+            description=setting.description,
+            category=setting.category,
+            is_readonly=setting.is_readonly,
+            created_at=setting.created_at,
+            updated_at=setting.updated_at,
+        )
 
 
 class SettingsListResponse(EntitySchema):
@@ -96,4 +112,17 @@ class FeatureFlagCheckResponse(EntitySchema):
     flag_name: str
     enabled: bool
     user_id: UUID | None
+
+
+def _parse_setting_value(value: str, value_type: str) -> Any:
+    """Parse a setting value based on its type."""
+    if value_type == "int":
+        return int(value)
+    if value_type == "float":
+        return float(value)
+    if value_type == "bool":
+        return value.lower() in ("true", "1", "yes", "on")
+    if value_type == "json":
+        return json.loads(value)
+    return value
 

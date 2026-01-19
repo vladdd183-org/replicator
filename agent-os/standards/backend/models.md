@@ -241,4 +241,4 @@ class User(Table, tablename="user"):  # Должно быть "users" или "ap
 - `piccolo_conf.py` — конфигурация Piccolo
 - `src/Ship/CLI/MigrationCommands.py` — CLI команды миграций
 - `docs/03-components.md` — Repository и UnitOfWork
-- `foxdocs/piccolo-master/docs/` — документация Piccolo
+- <https://piccolo-orm.com/docs/> — документация Piccolo

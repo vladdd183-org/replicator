@@ -113,4 +113,4 @@ async def run(self, data):
 
 - [anyio документация](https://anyio.readthedocs.io/)
 - `docs/05-concurrency.md` — полное руководство
-- `foxdocs/anyio-master/docs/` — примеры
+- <https://anyio.readthedocs.io/> — примеры

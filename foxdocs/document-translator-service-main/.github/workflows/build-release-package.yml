@@ -1,0 +1,618 @@
+name: Build Release Package
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'license_helper/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/build-release-package.yml'
+  workflow_dispatch:  # Позволяет запустить вручную
+
+env:
+  RELEASE_BASE_DIR: /mnt/storage/translator/releases
+  IMAGE_NAME: document-translator-service
+
+jobs:
+  # ============================================
+  # Job 1: Сборка Windows EXE
+  # Использует тот же подход что и build-license-helper.yml
+  # ============================================
+  build-windows-exe:
+    name: Build Windows EXE
+    runs-on: Windows #-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyarmor pyinstaller
+          pip install -r license_helper/requirements.txt
+        
+      - name: Obfuscate code with PyArmor
+        run: |
+          cd license_helper
+          
+          # Создаем директорию для обфусцированного кода
+          mkdir -p obfuscated
+          
+          # Обфусцируем license_helper.py
+          pyarmor gen -O obfuscated -r license_helper.py
+          
+          # Копируем дополнительные файлы если есть
+          if (Test-Path "icon.ico") { Copy-Item icon.ico obfuscated/ }
+          if (Test-Path "LICENSE") { Copy-Item LICENSE obfuscated/ }
+        shell: pwsh
+        
+      - name: Build EXE with PyInstaller
+        run: |
+          cd license_helper/obfuscated
+          
+          # Базовая команда сборки
+          $buildArgs = @(
+            "--onefile",
+            "--name", "license-helper",
+            "--clean",
+            "--hidden-import", "fastapi",
+            "--hidden-import", "uvicorn",
+            "--hidden-import", "uvicorn.logging",
+            "--hidden-import", "uvicorn.loops",
+            "--hidden-import", "uvicorn.loops.auto",
+            "--hidden-import", "uvicorn.protocols",
+            "--hidden-import", "uvicorn.protocols.http",
+            "--hidden-import", "uvicorn.protocols.http.auto",
+            "--hidden-import", "uvicorn.protocols.websockets",
+            "--hidden-import", "uvicorn.protocols.websockets.auto",
+            "--hidden-import", "uvicorn.lifespan",
+            "--hidden-import", "uvicorn.lifespan.on",
+            "--hidden-import", "pydantic",
+            "--hidden-import", "httpx",
+            "--hidden-import", "cryptography",
+            "--hidden-import", "cryptography.hazmat.primitives.asymmetric.padding",
+            "--hidden-import", "cryptography.hazmat.primitives.hashes",
+            "--hidden-import", "cryptography.hazmat.primitives.serialization",
+            "--hidden-import", "cryptography.hazmat.backends",
+            "--collect-all", "uvicorn",
+            "--collect-all", "fastapi"
+          )
+          
+          # Добавляем иконку если есть
+          if (Test-Path "icon.ico") {
+            $buildArgs += "--icon", "icon.ico"
+          }
+          
+          # Добавляем LICENSE если есть
+          if (Test-Path "LICENSE") {
+            $buildArgs += "--add-data", "LICENSE;."
+          }
+          
+          # Добавляем основной файл
+          $buildArgs += "license_helper.py"
+          
+          # Запускаем сборку
+          pyinstaller $buildArgs
+        shell: pwsh
+
+      - name: Generate version
+        id: get_version
+        run: |
+          # Генерируем версию из даты и SHA коммита
+          $date = Get-Date -Format "yyyy.MM.dd"
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $version = "v$date-$sha"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "DATE=$date" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Rename artifact
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          cd license_helper/obfuscated/dist
+          
+          # Переименовываем exe с версией
+          Rename-Item "license-helper.exe" "license-helper-$version-windows.exe"
+        shell: pwsh
+
+      # Загружаем EXE напрямую на сервер через SSH (не используем GitHub Artifacts)
+      - name: Create directory on server and upload EXE
+        timeout-minutes: 30
+        run: |
+          # Установка Posh-SSH для Windows
+          Install-Module -Name Posh-SSH -Force -Scope CurrentUser -AllowClobber
+          
+          # Создание credentials
+          $password = ConvertTo-SecureString '${{ secrets.SSH_PASS }}' -AsPlainText -Force
+          $credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USER }}', $password)
+          
+          # Создание сессии SSH с retry логикой и увеличенным таймаутом
+          $maxRetries = 5
+          $retryDelay = 10
+          $session = $null
+          
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            Write-Host "================================================"
+            Write-Host "SSH Connection Attempt $i of $maxRetries"
+            Write-Host "Host: ${{ secrets.SSH_HOST }}:${{ secrets.SSH_PORT }}"
+            Write-Host "================================================"
+            
+            try {
+              # ConnectionTimeout в миллисекундах (60 секунд)
+              $session = New-SSHSession -ComputerName '${{ secrets.SSH_HOST }}' `
+                                       -Port ${{ secrets.SSH_PORT }} `
+                                       -Credential $credential `
+                                       -AcceptKey `
+                                       -ConnectionTimeout 60000 `
+                                       -ErrorAction Stop
+              
+              Write-Host "✅ SSH connection established successfully"
+              break
+            } catch {
+              Write-Host "❌ Connection attempt $i failed: $_"
+              
+              if ($i -lt $maxRetries) {
+                $waitTime = $retryDelay * $i
+                Write-Host "⏳ Waiting $waitTime seconds before retry..."
+                Start-Sleep -Seconds $waitTime
+              } else {
+                Write-Error "Failed to establish SSH connection after $maxRetries attempts"
+                throw
+              }
+            }
+          }
+          
+          if (-not $session) {
+            throw "Failed to create SSH session"
+          }
+          
+          # Создание директории
+          $result = Invoke-SSHCommand -SessionId $session.SessionId -Command "mkdir -p /tmp/license-helper-build-${{ github.sha }}"
+          Write-Host "Directory creation result: $($result.ExitStatus)"
+          
+          # Загрузка файла
+          cd license_helper/obfuscated/dist
+          $exeFile = Get-ChildItem -Filter "*.exe" | Select-Object -First 1
+          Write-Host "Uploading file: $($exeFile.FullName)"
+          
+          Set-SCPItem -ComputerName '${{ secrets.SSH_HOST }}' -Port ${{ secrets.SSH_PORT }} -Credential $credential -Path $exeFile.FullName -Destination "/tmp/license-helper-build-${{ github.sha }}/" -ErrorAction Stop
+          
+          Write-Host "File uploaded successfully"
+          
+          # Закрытие сессии с обработкой ошибок
+          try {
+            $null = Remove-SSHSession -SessionId $session.SessionId -ErrorAction SilentlyContinue
+            Write-Host "SSH session closed"
+          } catch {
+            Write-Host "Warning: Error closing SSH session (this is usually safe to ignore): $_"
+          }
+          
+          # Принудительно закрываем все SSH сессии если остались
+          Get-SSHSession | Remove-SSHSession -ErrorAction SilentlyContinue | Out-Null
+          
+          Write-Host "Upload step completed"
+        shell: pwsh
+
+  # ============================================
+  # Job 1.5: Сборка DocumentTranslator Windows EXE
+  # Используем тот же подход что и license-helper
+  # ============================================
+  build-document-translator-exe:
+    name: Build DocumentTranslator EXE
+    runs-on: Windows #-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      # build-windows.ps1 -DepsOnly установит только зависимости без ONEDIR сборки
+      - name: Install dependencies with build-windows.ps1
+        run: |
+          # Параметр -DepsOnly остановит скрипт после установки зависимостей
+          # Не будет тратить время на ONEDIR сборку
+          .\build-windows.ps1 -DepsOnly
+        shell: pwsh
+        timeout-minutes: 25
+        
+      - name: Build DocumentTranslator EXE (ONEFILE)
+        run: |
+          # Запускаем ONEFILE сборку (использует готовый venv)
+          .\build-onefile.ps1
+        shell: pwsh
+        timeout-minutes: 25
+
+      - name: Generate version
+        id: get_version
+        run: |
+          $date = Get-Date -Format "yyyy.MM.dd"
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          $version = "v$date-$sha"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Rename artifact
+        run: |
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          
+          # Переходим в dist где лежит готовый exe
+          cd dist
+          
+          # Проверяем что сборка завершилась
+          if (-not (Test-Path "DocumentTranslator.exe")) {
+            Write-Error "Build failed - DocumentTranslator.exe not found"
+            Write-Host "Contents of dist:"
+            Get-ChildItem
+            exit 1
+          }
+          
+          # Переименовываем exe с версией
+          Rename-Item "DocumentTranslator.exe" "DocumentTranslator-$version.exe"
+          
+          Write-Host "File renamed successfully:"
+          Get-Item "DocumentTranslator-$version.exe" | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB, 2)}}
+        shell: pwsh
+
+      # Копируем подход license-helper - простая и надёжная загрузка
+      - name: Create directory on server and upload EXE
+        timeout-minutes: 90
+        run: |
+          # Установка Posh-SSH
+          Install-Module -Name Posh-SSH -Force -Scope CurrentUser -AllowClobber
+          
+          # Создание credentials
+          $password = ConvertTo-SecureString '${{ secrets.SSH_PASS }}' -AsPlainText -Force
+          $credential = New-Object System.Management.Automation.PSCredential ('${{ secrets.SSH_USER }}', $password)
+          
+          # Создание сессии SSH с retry логикой и увеличенным таймаутом
+          $maxRetries = 5
+          $retryDelay = 10
+          $session = $null
+          
+          for ($i = 1; $i -le $maxRetries; $i++) {
+            Write-Host "================================================"
+            Write-Host "SSH Connection Attempt $i of $maxRetries"
+            Write-Host "Host: ${{ secrets.SSH_HOST }}:${{ secrets.SSH_PORT }}"
+            Write-Host "================================================"
+            
+            try {
+              # ConnectionTimeout в миллисекундах (60 секунд)
+              $session = New-SSHSession -ComputerName '${{ secrets.SSH_HOST }}' `
+                                       -Port ${{ secrets.SSH_PORT }} `
+                                       -Credential $credential `
+                                       -AcceptKey `
+                                       -ConnectionTimeout 60000 `
+                                       -ErrorAction Stop
+              
+              Write-Host "✅ SSH connection established successfully"
+              break
+            } catch {
+              Write-Host "❌ Connection attempt $i failed: $_"
+              
+              if ($i -lt $maxRetries) {
+                $waitTime = $retryDelay * $i
+                Write-Host "⏳ Waiting $waitTime seconds before retry..."
+                Start-Sleep -Seconds $waitTime
+              } else {
+                Write-Error "Failed to establish SSH connection after $maxRetries attempts"
+                throw
+              }
+            }
+          }
+          
+          if (-not $session) {
+            throw "Failed to create SSH session"
+          }
+          
+          # Создание директории
+          $result = Invoke-SSHCommand -SessionId $session.SessionId -Command "mkdir -p /tmp/document-translator-build-${{ github.sha }}"
+          Write-Host "Directory creation result: $($result.ExitStatus)"
+          
+          # Загрузка файла
+          cd dist
+          $exeFile = Get-ChildItem -Filter "*.exe" | Select-Object -First 1
+          
+          if (-not $exeFile) {
+            Write-Error "No EXE file found in dist directory!"
+            Write-Host "Contents of dist:"
+            Get-ChildItem
+            exit 1
+          }
+          
+          $fileSizeMB = [math]::Round($exeFile.Length / 1MB, 2)
+          Write-Host "================================================"
+          Write-Host "Uploading file: $($exeFile.Name)"
+          Write-Host "Full path: $($exeFile.FullName)"
+          Write-Host "File size: $fileSizeMB MB"
+          Write-Host "Destination: /tmp/document-translator-build-${{ github.sha }}/"
+          Write-Host "Estimated time: ~$([math]::Ceiling($fileSizeMB / 1)) minutes"
+          Write-Host "================================================"
+          
+          $uploadStart = Get-Date
+          try {
+            Set-SCPItem -ComputerName '${{ secrets.SSH_HOST }}' -Port ${{ secrets.SSH_PORT }} -Credential $credential -Path $exeFile.FullName -Destination "/tmp/document-translator-build-${{ github.sha }}/" -ErrorAction Stop
+            
+            $uploadEnd = Get-Date
+            $duration = ($uploadEnd - $uploadStart).TotalSeconds
+            Write-Host "================================================"
+            Write-Host "✅ Upload completed in $([math]::Round($duration, 1)) seconds"
+            Write-Host "================================================"
+          } catch {
+            Write-Error "Upload failed: $_"
+            throw
+          }
+          
+          # Проверяем что файл действительно загрузился
+          Write-Host "Verifying upload..."
+          $verifyResult = Invoke-SSHCommand -SessionId $session.SessionId -Command "ls -lh /tmp/document-translator-build-${{ github.sha }}/"
+          Write-Host "Files on server:"
+          Write-Host $verifyResult.Output
+          
+          if ($verifyResult.Output -match "DocumentTranslator") {
+            Write-Host "✅ DocumentTranslator.exe verified on server"
+          } else {
+            Write-Error "⚠️  WARNING: DocumentTranslator.exe not found on server after upload!"
+          }
+          
+          # Закрытие сессии с обработкой ошибок
+          try {
+            $null = Remove-SSHSession -SessionId $session.SessionId -ErrorAction SilentlyContinue
+            Write-Host "SSH session closed"
+          } catch {
+            Write-Host "Warning: Error closing SSH session (this is usually safe to ignore): $_"
+          }
+          
+          # Принудительно закрываем все SSH сессии если остались
+          Get-SSHSession | Remove-SSHSession -ErrorAction SilentlyContinue | Out-Null
+          
+          Write-Host "✅ Upload step completed successfully"
+        shell: pwsh
+
+  # ============================================
+  # Job 2: Создание релизного пакета
+  # Выполняется на удалённом сервере через SSH
+  # ============================================
+  build-and-package:
+    name: Package Release
+    runs-on: Linux
+    needs: [build-windows-exe, build-document-translator-exe]  # Ждём обе сборки
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Release Info
+        id: release_info
+        run: |
+          # Генерируем дату и версию
+          RELEASE_DATE=$(date +%Y-%m-%d_%H-%M-%S)
+          VERSION=$(date +%Y.%m.%d)
+          SHA_SHORT=$(echo ${{ github.sha }} | cut -c1-7)
+          
+          echo "RELEASE_DATE=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "SHA_SHORT=$SHA_SHORT" >> $GITHUB_OUTPUT
+          echo "FULL_VERSION=v${VERSION}-${SHA_SHORT}" >> $GITHUB_OUTPUT
+
+      # EXE уже на сервере (загружен в Job 1 через SSH из Windows runner)
+      # Linux runner работает в изолированном окружении - используем SSH
+      
+      # Проверяем наличие необходимых команд
+      - name: Check SSH tools
+        run: |
+          echo "Checking sshpass..."
+          if ! command -v sshpass &> /dev/null; then
+            echo "sshpass not found, installing..."
+            if command -v nix-env &> /dev/null; then
+              nix-env -iA nixpkgs.sshpass
+            fi
+          else
+            echo "sshpass found at: $(command -v sshpass)"
+          fi
+          
+          echo "Checking ssh..."
+          if ! command -v ssh &> /dev/null; then
+            echo "ssh not found, installing..."
+            if command -v nix-env &> /dev/null; then
+              nix-env -iA nixpkgs.openssh
+            fi
+          else
+            echo "ssh found at: $(command -v ssh)"
+          fi
+          
+          # Проверяем версии
+          sshpass -V || echo "sshpass version check failed"
+          ssh -V || echo "ssh version check failed"
+      
+      # Создаём релизный пакет через SSH
+      - name: Create Release Package via SSH
+        run: |
+          set -e
+          
+          # Переменные
+          RELEASE_DATE="${{ steps.release_info.outputs.RELEASE_DATE }}"
+          VERSION="${{ steps.release_info.outputs.VERSION }}"
+          SHA_SHORT="${{ steps.release_info.outputs.SHA_SHORT }}"
+          FULL_VERSION="${{ steps.release_info.outputs.FULL_VERSION }}"
+          RELEASE_DIR="${{ env.RELEASE_BASE_DIR }}/${RELEASE_DATE}"
+          GITHUB_SHA="${{ github.sha }}"
+          GITHUB_REPO="${{ github.repository }}"
+          
+          echo "============================================"
+          echo "Starting Release Build via SSH"
+          echo "============================================"
+          echo "Date: $RELEASE_DATE"
+          echo "Version: $FULL_VERSION"
+          echo "Release Directory: $RELEASE_DIR"
+          echo ""
+          
+          # Используем sshpass для выполнения команд на сервере
+          # sshpass должен быть установлен в NixOS конфигурации: environment.systemPackages = [ sshpass ];
+          export SSHPASS='${{ secrets.SSH_PASS }}'
+          
+          # Выполняем скрипт на сервере через SSH
+          sshpass -e ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "RELEASE_DATE='$RELEASE_DATE' \
+             VERSION='$VERSION' \
+             SHA_SHORT='$SHA_SHORT' \
+             FULL_VERSION='$FULL_VERSION' \
+             RELEASE_DIR='$RELEASE_DIR' \
+             GITHUB_SHA='$GITHUB_SHA' \
+             GITHUB_REPO='$GITHUB_REPO' \
+             GITHUB_TOKEN='${{ secrets.GITHUB_TOKEN }}' \
+             bash -s" <<'ENDSSH'
+          set -e
+          
+          echo "============================================"
+          echo "Starting Release Build on Server"
+          echo "============================================"
+          echo "Date: $RELEASE_DATE"
+          echo "Version: $FULL_VERSION"
+          echo "Release Directory: $RELEASE_DIR"
+          echo ""
+          
+          # Создаём директорию для релиза
+          mkdir -p "$RELEASE_DIR"
+          
+          # ============================================
+          # Копирование Windows EXE файлов
+          # ============================================
+          echo ""
+          echo "============================================"
+          echo "Copying Windows EXE files"
+          echo "============================================"
+          
+          # License Helper EXE (загружен через SSH из Windows runner)
+          EXE_TMP_DIR="/tmp/license-helper-build-${GITHUB_SHA}"
+          EXE_FILE=$(ls "$EXE_TMP_DIR"/*.exe 2>/dev/null | head -1) || true
+          
+          if [ -z "$EXE_FILE" ] || [ ! -f "$EXE_FILE" ]; then
+              echo "ERROR: License Helper EXE not found in $EXE_TMP_DIR!"
+              ls -la "$EXE_TMP_DIR" 2>/dev/null || echo "Directory doesn't exist"
+              exit 1
+          fi
+          
+          echo "Found License Helper EXE: $EXE_FILE"
+          cp "$EXE_FILE" "$RELEASE_DIR/"
+          chmod +x "$RELEASE_DIR"/*.exe 2>/dev/null || true
+          echo "✓ License-helper copied successfully"
+          ls -lh "$RELEASE_DIR"/*.exe 2>/dev/null || true
+          
+          # Удаляем временный каталог
+          rm -rf "$EXE_TMP_DIR" 2>/dev/null || true
+          
+          # DocumentTranslator EXE (загружен через SSH из Windows runner)
+          echo ""
+          echo "============================================"
+          echo "Copying DocumentTranslator EXE"
+          echo "============================================"
+          
+          DOC_TMP_DIR="/tmp/document-translator-build-${GITHUB_SHA}"
+          DOC_EXE_FILE=$(find "$DOC_TMP_DIR" -maxdepth 1 -name "*.exe" -type f 2>/dev/null | head -1) || true
+          
+          if [ -n "$DOC_EXE_FILE" ] && [ -f "$DOC_EXE_FILE" ]; then
+              echo "Found DocumentTranslator EXE: $DOC_EXE_FILE"
+              cp "$DOC_EXE_FILE" "$RELEASE_DIR/"
+              chmod +x "$RELEASE_DIR"/DocumentTranslator-*.exe 2>/dev/null || true
+              echo "✓ DocumentTranslator copied successfully"
+              ls -lh "$RELEASE_DIR"/DocumentTranslator-*.exe 2>/dev/null || true
+          else
+              echo "WARNING: DocumentTranslator EXE not found in $DOC_TMP_DIR!"
+              echo "Release will be created WITHOUT DocumentTranslator.exe"
+          fi
+          
+          rm -rf "$DOC_TMP_DIR" 2>/dev/null || true
+          
+          # ============================================
+          # Копирование файлов из репозитория
+          # ============================================
+          echo ""
+          echo "============================================"
+          echo "Copying release files from repository"
+          echo "============================================"
+          
+          # Клонируем репозиторий во временную директорию
+          TEMP_REPO="/tmp/repo-${GITHUB_SHA}"
+          rm -rf "$TEMP_REPO" 2>/dev/null || true
+          
+          echo "Cloning repository..."
+          git clone --depth 1 --branch main "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git" "$TEMP_REPO"
+          cd "$TEMP_REPO"
+          
+          # Переключаемся на нужный коммит
+          git fetch origin "${GITHUB_SHA}" --depth 1
+          git checkout "${GITHUB_SHA}"
+          
+          echo "Copying files..."
+          cp docker-compose.yml "$RELEASE_DIR/"
+          
+          [ -f RELEASE_README.md ] && cp RELEASE_README.md "$RELEASE_DIR/README.md"
+          [ -f WINDOWS_SETUP_GUIDE.md ] && cp WINDOWS_SETUP_GUIDE.md "$RELEASE_DIR/"
+          
+          # Копируем Windows скрипты
+          if [ -d scripts/windows ]; then
+              echo "Copying Windows scripts..."
+              cp scripts/windows/*.bat "$RELEASE_DIR/" 2>/dev/null || true
+              cp scripts/windows/*.ps1 "$RELEASE_DIR/" 2>/dev/null || true
+          fi
+          
+          # Удаляем временный репозиторий
+          cd /
+          rm -rf "$TEMP_REPO"
+          
+          # ============================================
+          # Финальная информация
+          # ============================================
+          echo ""
+          echo "============================================"
+          echo "Build Complete!"
+          echo "============================================"
+          echo ""
+          echo "Release Directory: $RELEASE_DIR"
+          echo ""
+          echo "Files created:"
+          ls -lh "$RELEASE_DIR"
+          echo ""
+          echo "Total size:"
+          du -sh "$RELEASE_DIR"
+          echo ""
+          ENDSSH
+
+      - name: Summary
+        run: |
+          echo "## ✅ Release Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.release_info.outputs.FULL_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** ${{ steps.release_info.outputs.RELEASE_DATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Directory:** ${{ env.RELEASE_BASE_DIR }}/${{ steps.release_info.outputs.RELEASE_DATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Package Contents" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **DocumentTranslator Windows EXE** (ONEFILE ~350-450 MB)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **License Helper Windows EXE**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ docker-compose.yml" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ README.md" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ WINDOWS_SETUP_GUIDE.md" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Windows scripts (.bat & .ps1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "The release package is ready on the server at:" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ env.RELEASE_BASE_DIR }}/${{ steps.release_info.outputs.RELEASE_DATE }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 What Changed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Added DocumentTranslator.exe build" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔧 Docker image build disabled (not needed)" >> $GITHUB_STEP_SUMMARY

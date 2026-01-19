@@ -42,6 +42,7 @@ Worker выполняет Workflows и Activities. Один Worker может о
 """
 
 import asyncio
+import anyio
 import signal
 from dataclasses import dataclass, field
 from typing import Any, Callable, Sequence
@@ -232,7 +233,7 @@ async def run_temporal_worker(
     worker = await create_temporal_worker(client, config)
     
     # Setup graceful shutdown
-    shutdown_event = asyncio.Event()
+    shutdown_event = anyio.Event()
     
     def signal_handler(sig: signal.Signals) -> None:
         print(f"\n🛑 Received {sig.name}, shutting down worker gracefully...")

@@ -14,7 +14,7 @@ description: Create GraphQL Types and Resolvers using Strawberry for Hyper-Porto
 | **Инструкция** | `agent-os/commands/add-graphql.md` |
 | **Template** | `agent-os/templates/graphql-resolver.py.template` |
 | **Docs** | `docs/09-transports.md` (GraphQL секция) |
-| **Library** | `foxdocs/strawberry-main/docs/` |
+| **Library** | <https://strawberry.rocks/docs/> |
 
 ## Быстрая справка
 

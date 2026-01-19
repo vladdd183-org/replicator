@@ -39,6 +39,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 from returns.result import Result, Success, Failure
 
+from src.Ship.Core.Errors import BaseError
 with workflow.unsafe.imports_passed_through():
     from src.Ship.Infrastructure.Temporal.Saga import SagaCompensations
     from src.Containers.AppSection.OrderModule.Activities import (
@@ -128,7 +129,7 @@ class OrderWorkflowResult(BaseModel):
     total_amount: str  # Decimal as string
 
 
-class OrderWorkflowError(BaseModel):
+class OrderWorkflowError(BaseError):
     """Error result from CreateOrderWorkflow.
     
     Contains failure details for debugging and user feedback.
@@ -142,6 +143,7 @@ class OrderWorkflowError(BaseModel):
     
     message: str
     code: str = "ORDER_WORKFLOW_FAILED"
+    http_status: int = 500
     failed_step: str | None = None
     compensations_run: list[str] = Field(default_factory=list)
 

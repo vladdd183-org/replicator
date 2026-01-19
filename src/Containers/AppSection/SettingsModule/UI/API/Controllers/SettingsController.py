@@ -7,22 +7,39 @@ from litestar import Controller, get, post, put, patch
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from returns.result import Result
 
+from src.Ship.Core.Errors import DomainException
 from src.Ship.Decorators.result_handler import result_handler
-from src.Containers.AppSection.SettingsModule.Data.Repositories.SettingsRepository import SettingsRepository
-from src.Containers.AppSection.SettingsModule.Data.Repositories.FeatureFlagRepository import FeatureFlagRepository
 from src.Containers.AppSection.SettingsModule.Actions.SetSettingAction import SetSettingAction
+from src.Containers.AppSection.SettingsModule.Actions.CreateFeatureFlagAction import (
+    CreateFeatureFlagAction,
+)
 from src.Containers.AppSection.SettingsModule.Actions.ToggleFeatureFlagAction import (
     ToggleFeatureFlagAction,
     ToggleFeatureFlagInput,
 )
-from src.Containers.AppSection.SettingsModule.Tasks.FeatureFlagTask import (
-    CheckFeatureFlagTask,
-    FeatureFlagCheckInput,
+from src.Containers.AppSection.SettingsModule.Queries.ListSettingsQuery import (
+    ListSettingsQuery,
+    ListSettingsQueryInput,
+)
+from src.Containers.AppSection.SettingsModule.Queries.GetSettingQuery import (
+    GetSettingQuery,
+    GetSettingQueryInput,
+)
+from src.Containers.AppSection.SettingsModule.Queries.ListFeatureFlagsQuery import (
+    ListFeatureFlagsQuery,
+    ListFeatureFlagsQueryInput,
+)
+from src.Containers.AppSection.SettingsModule.Queries.GetFeatureFlagQuery import (
+    GetFeatureFlagQuery,
+    GetFeatureFlagQueryInput,
+)
+from src.Containers.AppSection.SettingsModule.Queries.CheckFeatureFlagQuery import (
+    CheckFeatureFlagQuery,
+    CheckFeatureFlagQueryInput,
 )
 from src.Containers.AppSection.SettingsModule.Data.Schemas.Requests import (
     SetSettingRequest,
     CreateFeatureFlagRequest,
-    CheckFeatureFlagRequest,
 )
 from src.Containers.AppSection.SettingsModule.Data.Schemas.Responses import (
     SettingResponse,
@@ -31,7 +48,11 @@ from src.Containers.AppSection.SettingsModule.Data.Schemas.Responses import (
     FeatureFlagsListResponse,
     FeatureFlagCheckResponse,
 )
-from src.Containers.AppSection.SettingsModule.Errors import SettingsError
+from src.Containers.AppSection.SettingsModule.Errors import (
+    SettingsError,
+    SettingNotFoundError,
+    FeatureFlagNotFoundError,
+)
 from src.Containers.AppSection.SettingsModule.Models.Setting import Setting
 from src.Containers.AppSection.SettingsModule.Models.FeatureFlag import FeatureFlag
 
@@ -45,57 +66,32 @@ class SettingsController(Controller):
     @get("/")
     async def list_settings(
         self,
-        repository: FromDishka[SettingsRepository],
+        query: FromDishka[ListSettingsQuery],
         category: str | None = None,
     ) -> SettingsListResponse:
         """List all settings, optionally filtered by category."""
-        if category:
-            settings = await repository.get_by_category(category)
-        else:
-            settings = await repository.get_all()
+        result = await query.execute(ListSettingsQueryInput(category=category))
         
         return SettingsListResponse(
             settings=[
-                SettingResponse(
-                    id=s.id,
-                    key=s.key,
-                    value=s.value,
-                    parsed_value=repository.parse_value(s),
-                    value_type=s.value_type,
-                    description=s.description,
-                    category=s.category,
-                    is_readonly=s.is_readonly,
-                    created_at=s.created_at,
-                    updated_at=s.updated_at,
-                )
-                for s in settings
+                SettingResponse.from_setting(s)
+                for s in result.settings
             ],
-            total=len(settings),
+            total=result.total,
         )
     
     @get("/{key:str}")
     async def get_setting(
         self,
         key: str,
-        repository: FromDishka[SettingsRepository],
-    ) -> SettingResponse | None:
+        query: FromDishka[GetSettingQuery],
+    ) -> SettingResponse:
         """Get a specific setting by key."""
-        setting = await repository.get_by_key(key)
+        setting = await query.execute(GetSettingQueryInput(key=key))
         if not setting:
-            return None
+            raise DomainException(SettingNotFoundError(key=key))
         
-        return SettingResponse(
-            id=setting.id,
-            key=setting.key,
-            value=setting.value,
-            parsed_value=repository.parse_value(setting),
-            value_type=setting.value_type,
-            description=setting.description,
-            category=setting.category,
-            is_readonly=setting.is_readonly,
-            created_at=setting.created_at,
-            updated_at=setting.updated_at,
-        )
+        return SettingResponse.from_setting(setting)
     
     @put("/")
     @result_handler(SettingResponse, success_status=HTTP_200_OK)
@@ -117,84 +113,42 @@ class FeatureFlagsController(Controller):
     @get("/")
     async def list_flags(
         self,
-        repository: FromDishka[FeatureFlagRepository],
+        query: FromDishka[ListFeatureFlagsQuery],
         enabled_only: bool = False,
     ) -> FeatureFlagsListResponse:
         """List all feature flags."""
-        if enabled_only:
-            flags = await repository.get_enabled()
-        else:
-            flags = await repository.get_all()
+        result = await query.execute(ListFeatureFlagsQueryInput(enabled_only=enabled_only))
         
         return FeatureFlagsListResponse(
             flags=[
-                FeatureFlagResponse(
-                    id=f.id,
-                    name=f.name,
-                    description=f.description,
-                    enabled=f.enabled,
-                    rollout_percentage=f.rollout_percentage,
-                    user_allowlist=f.user_allowlist,
-                    user_denylist=f.user_denylist,
-                    metadata=f.metadata,
-                    created_at=f.created_at,
-                    updated_at=f.updated_at,
-                )
-                for f in flags
+                FeatureFlagResponse.from_entity(f)
+                for f in result.flags
             ],
-            total=len(flags),
+            total=result.total,
         )
     
     @get("/{name:str}")
     async def get_flag(
         self,
         name: str,
-        repository: FromDishka[FeatureFlagRepository],
-    ) -> FeatureFlagResponse | None:
+        query: FromDishka[GetFeatureFlagQuery],
+    ) -> FeatureFlagResponse:
         """Get a specific feature flag by name."""
-        flag = await repository.get_by_name(name)
+        flag = await query.execute(GetFeatureFlagQueryInput(name=name))
         if not flag:
-            return None
+            raise DomainException(FeatureFlagNotFoundError(flag_name=name))
         
-        return FeatureFlagResponse(
-            id=flag.id,
-            name=flag.name,
-            description=flag.description,
-            enabled=flag.enabled,
-            rollout_percentage=flag.rollout_percentage,
-            user_allowlist=flag.user_allowlist,
-            user_denylist=flag.user_denylist,
-            metadata=flag.metadata,
-            created_at=flag.created_at,
-            updated_at=flag.updated_at,
-        )
+        return FeatureFlagResponse.from_entity(flag)
     
     @post("/")
+    @result_handler(FeatureFlagResponse, success_status=HTTP_201_CREATED)
     async def create_flag(
         self,
         data: CreateFeatureFlagRequest,
-        repository: FromDishka[FeatureFlagRepository],
-    ) -> FeatureFlagResponse:
+        action: FromDishka[CreateFeatureFlagAction],
+    ) -> Result[FeatureFlag, SettingsError]:
         """Create a new feature flag."""
-        flag = await repository.create_flag(
-            name=data.name,
-            description=data.description,
-            enabled=data.enabled,
-            rollout_percentage=data.rollout_percentage,
-        )
-        
-        return FeatureFlagResponse(
-            id=flag.id,
-            name=flag.name,
-            description=flag.description,
-            enabled=flag.enabled,
-            rollout_percentage=flag.rollout_percentage,
-            user_allowlist=flag.user_allowlist,
-            user_denylist=flag.user_denylist,
-            metadata=flag.metadata,
-            created_at=flag.created_at,
-            updated_at=flag.updated_at,
-        )
+        return await action.run(data)
     
     @patch("/{name:str}/toggle")
     @result_handler(FeatureFlagResponse, success_status=HTTP_200_OK)
@@ -211,11 +165,11 @@ class FeatureFlagsController(Controller):
     async def check_flag(
         self,
         flag_name: str,
-        task: FromDishka[CheckFeatureFlagTask],
+        query: FromDishka[CheckFeatureFlagQuery],
         user_id: UUID | None = None,
     ) -> FeatureFlagCheckResponse:
         """Check if a feature flag is enabled for a user."""
-        enabled = task.run(FeatureFlagCheckInput(
+        enabled = await query.execute(CheckFeatureFlagQueryInput(
             flag_name=flag_name,
             user_id=user_id,
         ))

@@ -1,0 +1,23 @@
+[Unit]
+Description=Автоматическая синхронизация document-translator-service на сервер
+Documentation=file:///home/vladdd183/Рабочий стол/document-translator-service/SYNC_README.md
+After=network.target
+
+[Service]
+Type=simple
+User=vladdd183
+WorkingDirectory=/home/vladdd183/Рабочий стол/document-translator-service
+ExecStart=/bin/bash /home/vladdd183/Рабочий стол/document-translator-service/auto-sync.sh
+Restart=always
+RestartSec=10
+
+# Переменные окружения
+Environment="HOME=/home/vladdd183"
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

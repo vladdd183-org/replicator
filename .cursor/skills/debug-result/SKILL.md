@@ -15,7 +15,7 @@ description: Debug issues with returns.Result in Hyper-Porto architecture. Use w
 | **Patterns** | `agent-os/snippets/result-patterns.md` |
 | **Standard** | `agent-os/standards/global/error-handling.md` |
 | **Docs** | `docs/04-result-railway.md` |
-| **Library** | `foxdocs/returns-master/docs/` |
+| **Library** | <https://returns.readthedocs.io/> |
 
 ## Quick Diagnostic
 

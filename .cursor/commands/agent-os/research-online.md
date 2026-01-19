@@ -76,20 +76,16 @@ mcp_parrallel_web_fetch(
 )
 ```
 
-### PHASE 4: Локальная документация (foxdocs/)
+### PHASE 4: Официальная документация
 
-Проверь локальные копии документации:
+Проверь официальные источники:
 
-```
-foxdocs/
-├── litestar-main/docs/      # Litestar документация
-├── piccolo-master/docs/     # Piccolo ORM
-├── dishka-develop/docs/     # Dishka DI
-├── returns-master/docs/     # Returns library
-├── strawberry-main/docs/    # Strawberry GraphQL
-├── anyio-master/docs/       # anyio
-└── LitestarPortoShowcase-main/  # Пример Porto проекта
-```
+- Litestar — <https://docs.litestar.dev/>
+- Piccolo ORM — <https://piccolo-orm.com/docs/>
+- Dishka DI — <https://dishka.dev/>
+- Returns — <https://returns.readthedocs.io/>
+- Strawberry GraphQL — <https://strawberry.rocks/docs/>
+- anyio — <https://anyio.readthedocs.io/>
 
 ### PHASE 5: Научные статьи (опционально)
 
@@ -111,7 +107,7 @@ mcp_arxiv-mcp-server_search_papers(
 ### Официальная документация
 
 **[Название библиотеки]**
-- Источник: [URL или путь в foxdocs/]
+- Источник: [URL официальной документации]
 - Ключевые находки:
   - [Находка 1]
   - [Находка 2]

@@ -548,7 +548,7 @@ agent-os/specs/tags-module.spec.yml
 ### Полезные ресурсы
 
 - [Документация Spec-Driven Development](../../../docs/07-spec-driven.md)
-- [Примеры spec-файлов](../../../foxdocs/spec-kit-main/)
+- [Примеры spec-файлов](https://github.com/github/spec-kit)
 - [Шаблон spec-файла](../../templates/spec.template)
 
 ---

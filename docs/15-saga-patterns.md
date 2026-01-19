@@ -1,6 +1,6 @@
 # 🎭 Saga Pattern в Hyper-Porto
 
-> **Версия:** 2.0 | **Дата:** Январь 2026  
+> **Версия:** 4.3 | **Дата:** Январь 2026  
 > Комплексное руководство по распределённым транзакциям с Temporal и TaskIQ
 
 ---
@@ -1261,6 +1261,6 @@ class CreateOrderAction(Action[CreateOrderRequest, OrderResponse, OrderError]):
 
 <div align="center">
 
-**Hyper-Porto v4.1** — Saga Pattern для распределённых транзакций 🎭
+**Hyper-Porto v4.3** — Saga Pattern для распределённых транзакций 🎭
 
 </div>

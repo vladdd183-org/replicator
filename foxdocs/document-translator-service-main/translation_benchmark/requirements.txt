@@ -1,0 +1,29 @@
+# Тестовый стенд для сравнения переводчиков
+# ТОЛЬКО CPU зависимости, БЕЗ NVIDIA/CUDA библиотек
+
+# Базовые зависимости
+numpy>=1.24.0,<2.0.0
+sentencepiece>=0.1.99
+
+# Argos Translate (CPU-only с CTranslate2)
+argostranslate==1.9.*
+
+# T5 для перевода (zh-ru-en) через CTranslate2
+# Используется та же ctranslate2 что и выше
+
+# M2M100 через CTranslate2 (оптимизированный инференс на CPU)
+ctranslate2>=3.16.0   # CPU-оптимизированный движок для Argos и M2M100-CT2
+transformers>=4.30.0  # Для токенизаторов и конвертации
+torch>=2.0.0          # CPU-only, нужен для конвертации в CT2
+
+# M2M100 через ONNX Runtime (максимальная оптимизация для CPU)
+optimum[onnxruntime]>=1.16.0  # ONNX Runtime оптимизация
+onnxruntime>=1.16.0           # CPU-only ONNX Runtime
+
+# Измерение производительности
+psutil>=5.9.0  # Мониторинг использования ресурсов
+tabulate>=0.9.0  # Красивый вывод таблиц
+
+# Дополнительные утилиты
+tqdm>=4.65.0  # Прогресс-бары
+

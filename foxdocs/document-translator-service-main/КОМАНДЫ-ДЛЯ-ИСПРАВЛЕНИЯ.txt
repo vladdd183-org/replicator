@@ -1,0 +1,162 @@
+═══════════════════════════════════════════════════════════════════════════════
+ БЫСТРЫЕ КОМАНДЫ ДЛЯ ИСПРАВЛЕНИЯ ПРОБЛЕМ PYINSTALLER
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ШАГ 1: ПЕРЕСОБРАТЬ EXE (выберите один вариант)                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PowerShell (в корне проекта):
+
+  БЫСТРАЯ ПЕРЕСБОРКА (10-20 минут):
+  .\rebuild-exe.ps1
+
+  ПОЛНАЯ ПЕРЕСБОРКА (20-40 минут):
+  .\build-windows.ps1
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ШАГ 2: ЗАПУСТИТЬ EXE                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PowerShell:
+
+  cd dist\DocumentTranslator
+  .\RUN-EXE.ps1
+
+CMD:
+
+  cd dist\DocumentTranslator
+  RUN-EXE.bat
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ОДНОЙ КОМАНДОЙ (PowerShell) - Пересборка + Запуск                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  .\rebuild-exe.ps1; if ($?) { cd dist\DocumentTranslator; .\RUN-EXE.ps1 }
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ЕСЛИ НУЖНО ЧИСТУЮ СБОРКУ С НУЛЯ                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PowerShell:
+
+  Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
+  .\rebuild-exe.ps1
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ПРОВЕРКА ПРАВИЛЬНОГО ЗАПУСКА                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+✅ ДОЛЖНО БЫТЬ:
+  INFO:     Started server process [XXXX]
+  INFO:     Waiting for application startup.
+  INFO:     Application startup complete.
+  INFO:     Uvicorn running on http://0.0.0.0:8000
+
+❌ НЕ ДОЛЖНО БЫТЬ:
+  INFO:     Will watch for changes in these directories
+  INFO:     Started reloader process
+  paddlex.utils.deps.DependencyError
+  FileNotFoundError: CppSupport.cpp
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ЭКСТРЕННОЕ РЕШЕНИЕ (если всё сломалось)                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PowerShell:
+
+  # Удалить всё и пересобрать с нуля
+  Remove-Item -Recurse -Force venv, dist, build -ErrorAction SilentlyContinue
+  .\build-windows.ps1
+
+⏱️ Время: 20-40 минут
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ЗАПУСК В PRODUCTION РЕЖИМЕ ВРУЧНУЮ                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PowerShell:
+
+  cd dist\DocumentTranslator
+  $env:APP_ENV = "production"
+  $env:APP_DEBUG = "False"
+  .\DocumentTranslator.exe
+
+CMD:
+
+  cd dist\DocumentTranslator
+  set APP_ENV=production
+  set APP_DEBUG=False
+  DocumentTranslator.exe
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ПОЛЕЗНЫЕ КОМАНДЫ                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Проверить размер сборки:
+  Get-ChildItem -Path dist\DocumentTranslator -Recurse | 
+    Measure-Object -Property Length -Sum | 
+    Select-Object @{Name="Size(MB)";Expression={[math]::Round($_.Sum/1MB,2)}}
+
+Найти все запущенные процессы DocumentTranslator:
+  Get-Process -Name DocumentTranslator -ErrorAction SilentlyContinue
+
+Убить все процессы DocumentTranslator:
+  Get-Process -Name DocumentTranslator -ErrorAction SilentlyContinue | Stop-Process
+
+Проверить версию Python:
+  python --version
+
+Проверить установлен ли Visual C++ Redistributable:
+  Get-ItemProperty HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64 
+    -ErrorAction SilentlyContinue
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ЧТО БЫЛО ИСПРАВЛЕНО                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+1. ✅ Множественные процессы Uvicorn
+   - Добавлена проверка is_frozen() в src/Main.py
+   - Reload автоматически отключается в EXE
+
+2. ✅ Ошибка CppSupport.cpp
+   - Добавлен сбор данных Cython в spec файл
+
+3. ✅ PaddleX DependencyError
+   - Добавлен сбор метаданных пакетов (copy_metadata)
+   - Добавлены скрытые импорты PaddleX модулей
+   - СОЗДАН НОВЫЙ ФАЙЛ: pyi_rth_paddlex.py
+     Runtime hook который патчит проверку зависимостей при запуске
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 Подробные инструкции:
+   - ИТОГОВАЯ-СВОДКА.md
+   - PYINSTALLER-RELOAD-FIX.md
+   - BUILD-WINDOWS-README.md
+   - БЫСТРОЕ-ИСПРАВЛЕНИЕ.txt
+
+🌐 После запуска:
+   - API документация: http://localhost:8000/docs
+   - Проверка здоровья: http://localhost:8000/health
+
+📞 Если нужна помощь:
+   - Предоставьте полный текст ошибки
+   - Укажите версию Python: python --version
+   - Укажите версию Windows: winver
+
+═══════════════════════════════════════════════════════════════════════════════
+Дата: 2025-11-01 | Версия: 1.0
+═══════════════════════════════════════════════════════════════════════════════
+

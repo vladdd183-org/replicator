@@ -22,6 +22,7 @@ description: Create new Query (CQRS Read operation) for Hyper-Porto architecture
 |---------|----------|
 | **Purpose** | Read-only получение данных |
 | **Returns** | Прямое значение (НЕ `Result[T, E]`) |
+| **Input DTO** | `pydantic.BaseModel` + `ConfigDict(frozen=True)` |
 | **Side effects** | НИКАКИХ — никогда не модифицирует данные |
 | **Method** | `execute()`, не `run()` |
 | **DI** | Регистрация в `Providers.py` (REQUEST scope) |
@@ -40,7 +41,7 @@ description: Create new Query (CQRS Read operation) for Hyper-Porto architecture
 1. **Загрузи** полную инструкцию из `agent-os/commands/add-query.md`
 2. **Используй** template из `agent-os/templates/query.py.template`
 3. **Создай** Query файл в `Queries/[QueryName].py`
-4. **Создай** `@dataclass(frozen=True)` для Input
+4. **Создай** `pydantic.BaseModel` (frozen) для Input
 5. **Зарегистрируй** в `Providers.py` (REQUEST scope)
 
 ## Именование

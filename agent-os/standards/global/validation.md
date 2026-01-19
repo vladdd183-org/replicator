@@ -257,4 +257,4 @@ name: str | None  # Должно быть: name: str | None = None
 
 - `src/Ship/Core/BaseSchema.py` — EntitySchema
 - `src/Ship/Core/Errors.py` — BaseError, ErrorWithTemplate
-- `foxdocs/litestar-main/docs/` — интеграция с Litestar
+- <https://docs.litestar.dev/> — интеграция с Litestar

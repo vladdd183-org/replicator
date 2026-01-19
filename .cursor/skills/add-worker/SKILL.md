@@ -14,7 +14,7 @@ description: Create TaskIQ background worker task for Hyper-Porto. Use when the 
 | **Инструкция** | `agent-os/commands/add-worker.md` |
 | **Template** | `agent-os/templates/background-task.py.template` |
 | **Docs** | `docs/09-transports.md` (Background Tasks секция) |
-| **Library** | `foxdocs/taskiq-litestar-develop/` |
+| **Library** | <https://taskiq-python.github.io/taskiq-litestar/> |
 
 ## Быстрая справка
 

@@ -1,0 +1,39 @@
+# PyInstaller
+build/
+dist/
+*.spec
+
+# PyArmor
+obfuscated/
+.pyarmor/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Compiled executables
+*.exe
+!install_as_service.bat
+!uninstall_service.bat
+
+# Logs
+*.log
+license-helper.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp

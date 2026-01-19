@@ -43,22 +43,16 @@ OTHERWISE спроси:
 2. **Паттерны** — как реализовано в проекте
 3. **Стандарты** — проверь `agent-os/standards/`
 
-### PHASE 3: Ресерч в локальной документации
+### PHASE 3: Ресерч в официальной документации
 
-Проверь `foxdocs/` на наличие релевантной информации:
+Проверь официальные источники:
 
-```
-foxdocs/
-├── litestar-main/docs/
-├── piccolo-master/docs/
-├── dishka-develop/docs/
-├── returns-master/docs/
-├── strawberry-main/docs/
-├── anyio-master/docs/
-└── LitestarPortoShowcase-main/  # Рабочий пример!
-```
-
-> 💡 `LitestarPortoShowcase-main/` — это рабочий пример Porto проекта, идеальный источник паттернов!
+- Litestar — <https://docs.litestar.dev/>
+- Piccolo ORM — <https://piccolo-orm.com/docs/>
+- Dishka DI — <https://dishka.dev/>
+- Returns — <https://returns.readthedocs.io/>
+- Strawberry GraphQL — <https://strawberry.rocks/docs/>
+- anyio — <https://anyio.readthedocs.io/>
 
 ### PHASE 4: Онлайн ресерч (при необходимости)
 
@@ -88,8 +82,8 @@ foxdocs/
 **Официальные рекомендации:**
 - [Библиотека]: [рекомендация]
 
-**Примеры из foxdocs/:**
-- `foxdocs/LitestarPortoShowcase-main/...` — [релевантный пример]
+**Примеры из GitHub:**
+- `https://github.com/...` — [релевантный пример]
 
 ### Из онлайн-источников
 

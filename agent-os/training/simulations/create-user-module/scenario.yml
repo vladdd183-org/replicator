@@ -206,8 +206,6 @@ resources:
   documentation:
     - docs/02-project-structure.md
     - docs/03-components.md
-  examples:
-    - foxdocs/LitestarPortoShowcase-main/src/Containers/
   checklists:
     - agent-os/checklists/new-module.md
   templates:

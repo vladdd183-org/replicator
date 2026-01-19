@@ -1,0 +1,44 @@
+# ============================================================
+# PIP CONSTRAINTS - Блокировка GPU/CUDA зависимостей
+# ============================================================
+# Используется для гарантии CPU-only установки пакетов
+# Используй: pip install -c .pip-constraints.txt package
+
+# БЛОКИРУЕМ ВСЕ NVIDIA/CUDA ПАКЕТЫ
+# Установка этих пакетов приведет к ошибке
+nvidia-cublas-cu12==99.99.99+invalid
+nvidia-cublas-cu11==99.99.99+invalid
+nvidia-cuda-cupti-cu12==99.99.99+invalid
+nvidia-cuda-cupti-cu11==99.99.99+invalid
+nvidia-cuda-nvrtc-cu12==99.99.99+invalid
+nvidia-cuda-nvrtc-cu11==99.99.99+invalid
+nvidia-cuda-runtime-cu12==99.99.99+invalid
+nvidia-cuda-runtime-cu11==99.99.99+invalid
+nvidia-cudnn-cu12==99.99.99+invalid
+nvidia-cudnn-cu11==99.99.99+invalid
+nvidia-cufft-cu12==99.99.99+invalid
+nvidia-cufft-cu11==99.99.99+invalid
+nvidia-curand-cu12==99.99.99+invalid
+nvidia-curand-cu11==99.99.99+invalid
+nvidia-cusolver-cu12==99.99.99+invalid
+nvidia-cusolver-cu11==99.99.99+invalid
+nvidia-cusparse-cu12==99.99.99+invalid
+nvidia-cusparse-cu11==99.99.99+invalid
+nvidia-nccl-cu12==99.99.99+invalid
+nvidia-nccl-cu11==99.99.99+invalid
+nvidia-nvtx-cu12==99.99.99+invalid
+nvidia-nvtx-cu11==99.99.99+invalid
+nvidia-nvjitlink-cu12==99.99.99+invalid
+nvidia-nvjitlink-cu11==99.99.99+invalid
+
+# БЛОКИРУЕМ GPU ВЕРСИИ БИБЛИОТЕК
+opencv-python==99.99.99+invalid
+opencv-contrib-python==99.99.99+invalid
+tensorflow-gpu==99.99.99+invalid
+
+# РАЗРЕШАЕМ ТОЛЬКО CPU-ONLY
+# opencv-python-headless - OK
+# opencv-contrib-python-headless - OK (CPU-only, требуется для paddlex)
+
+
+

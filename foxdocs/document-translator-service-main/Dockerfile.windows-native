@@ -1,0 +1,143 @@
+# ============================================
+# Native Windows Container Dockerfile
+# Требует: Windows Server 2019+ хост с Docker
+# Использует: mcr.microsoft.com/windows/servercore
+# ============================================
+
+# escape=`
+
+# ============================================
+# Stage 1: Base Windows with Python
+# ============================================
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# Установка Chocolatey для управления пакетами
+RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Установка Python 3.11
+RUN choco install -y python311 --version=3.11.9
+
+# Обновление PATH
+RUN [Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Python311;C:\Python311\Scripts', [EnvironmentVariableTarget]::Machine)
+
+# Проверка установки
+RUN python --version; `
+    pip --version
+
+# ============================================
+# Stage 2: License Helper Builder
+# ============================================
+FROM base AS license-helper-builder
+
+WORKDIR C:\build\license_helper
+
+# Копируем код license_helper
+COPY license_helper\ .\
+
+# Установка зависимостей
+RUN python -m pip install --upgrade pip
+RUN pip install pyarmor pyinstaller
+RUN pip install -r requirements.txt
+
+# Обфускация с PyArmor
+RUN New-Item -ItemType Directory -Force -Path obfuscated
+RUN pyarmor gen -O obfuscated -r license_helper.py
+
+# Копируем дополнительные файлы
+RUN if (Test-Path 'icon.ico') { Copy-Item icon.ico obfuscated\ }; `
+    if (Test-Path 'LICENSE') { Copy-Item LICENSE obfuscated\ }
+
+WORKDIR C:\build\license_helper\obfuscated
+
+# Сборка EXE с PyInstaller
+RUN pyinstaller `
+    --onefile `
+    --name license-helper `
+    --clean `
+    --hidden-import fastapi `
+    --hidden-import uvicorn `
+    --hidden-import uvicorn.logging `
+    --hidden-import uvicorn.loops `
+    --hidden-import uvicorn.loops.auto `
+    --hidden-import uvicorn.protocols `
+    --hidden-import uvicorn.protocols.http `
+    --hidden-import uvicorn.protocols.http.auto `
+    --hidden-import uvicorn.protocols.websockets `
+    --hidden-import uvicorn.protocols.websockets.auto `
+    --hidden-import uvicorn.lifespan `
+    --hidden-import uvicorn.lifespan.on `
+    --hidden-import pydantic `
+    --hidden-import httpx `
+    --hidden-import cryptography `
+    --hidden-import cryptography.hazmat.primitives.asymmetric.padding `
+    --hidden-import cryptography.hazmat.primitives.hashes `
+    --hidden-import cryptography.hazmat.primitives.serialization `
+    --hidden-import cryptography.hazmat.backends `
+    --collect-all uvicorn `
+    --collect-all fastapi `
+    license_helper.py
+
+# ============================================
+# Stage 3: DocumentTranslator Builder
+# ============================================
+FROM base AS document-translator-builder
+
+WORKDIR C:\build\document-translator
+
+# Копируем весь проект
+COPY . .\
+
+# Установка зависимостей
+RUN python -m pip install --upgrade pip
+RUN pip install pyinstaller uv
+
+# Установка зависимостей проекта (эквивалент build-windows.ps1 -DepsOnly)
+# Предполагается что есть requirements.txt или можно установить через uv
+RUN if (Test-Path 'requirements.txt') { pip install -r requirements.txt }
+
+# Сборка ONEFILE EXE (эквивалент build-onefile.ps1)
+# Здесь нужно адаптировать под ваш реальный build-onefile.ps1
+RUN pyinstaller `
+    --onefile `
+    --name DocumentTranslator `
+    --clean `
+    --add-data 'src;src' `
+    run.py
+
+# ============================================
+# Stage 4: Final Package
+# ============================================
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS packager
+
+SHELL ["cmd", "/S", "/C"]
+
+WORKDIR C:\release
+
+# Копируем собранные EXE
+COPY --from=license-helper-builder C:\build\license_helper\obfuscated\dist\license-helper.exe .\
+COPY --from=document-translator-builder C:\build\document-translator\dist\DocumentTranslator.exe .\
+
+# Копируем дополнительные файлы
+COPY docker-compose.yml .\
+COPY RELEASE_README.md .\README.md
+COPY WINDOWS_SETUP_GUIDE.md .\
+COPY scripts\windows\*.bat .\
+COPY scripts\windows\*.ps1 .\
+
+# Версия будет передана через build-arg
+ARG VERSION=dev
+ARG SHA_SHORT=unknown
+
+# Переименование файлов
+RUN ren license-helper.exe license-helper-v%VERSION%-%SHA_SHORT%-windows.exe
+RUN ren DocumentTranslator.exe DocumentTranslator-v%VERSION%-%SHA_SHORT%.exe
+
+# Указываем volume для выгрузки результатов
+VOLUME C:\output
+
+CMD ["cmd", "/c", "xcopy", "C:\\release", "C:\\output", "/E", "/I", "/Y"]
+

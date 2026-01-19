@@ -1,0 +1,86 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.eggs
+
+# Virtual environments
+.venv
+venv
+ENV
+env
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Documentation
+*.md
+!README.md
+docs
+htmlcov
+
+# Tests
+tests
+.pytest_cache
+.coverage
+*.cover
+.tox
+.hypothesis
+
+# Logs
+*.log
+logs
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+build_*.log
+*.tar.gz
+*.zip
+
+# Docker
+# .dockerignore - НЕ игнорируем, иначе будут ошибки в GitHub Actions на Windows
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+
+# License helper
+license_helper/
+
+# Other
+.cache
+tmp
+temp
+*.tmp
+
+
+

@@ -322,5 +322,5 @@ async def on_user_changed(user_id: str, **kwargs) -> None:
 - `src/Ship/Infrastructure/Channels.py` — WebSocket helpers
 - `docs/10-registration.md` — явная регистрация
 - `docs/11-litestar-features.md` — Litestar Events, Channels
-- `foxdocs/dishka-develop/docs/` — документация Dishka
+- <https://dishka.dev/> — документация Dishka
 

@@ -1,0 +1,53 @@
+[project]
+name = "porto-litestar"
+version = "0.1.0"
+description = "Porto architecture implementation with Litestar framework"
+authors = [
+    {name = "Author", email = "author@example.com"}
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+dependencies = [
+    # Web framework
+    "litestar==2.17.0",
+    "pydantic==2.9.*",
+    "pydantic-settings==2.*",
+    "dishka==1.4.*",
+    "logfire==2.7.*",
+    "uvicorn[standard]==0.32.*",
+    "python-multipart==0.0.20",
+    
+    # Security & Licensing
+    "cryptography>=41.0.0",           # RSA подписи для лицензирования
+    "py-machineid>=0.6.0",            # Надежное получение уникального machine ID
+    
+    # OCR dependencies (CPU-only optimized)
+    "paddleocr>=3.2.0",
+    "paddlepaddle==3.2.0",
+    "pillow==11.*",
+    "opencv-python-headless==4.8.*",  # CPU-only, без GUI зависимостей (~50MB вместо ~100MB)
+    "numpy>=1.24.0,<2.0.0",           # Явно указываем версию для совместимости
+    
+    # Translation dependencies (CPU-only)
+    # ВАЖНО: ctranslate2 по умолчанию тянет CUDA! Блокируем через env vars             # CPU-only inference engine
+    "argostranslate==1.9.*",          # Будет использовать CPU-only CTranslate2
+    
+    # PDF processing (CPU-only)
+    "pymupdf>=1.23.0",                # PyMuPDF работает только на CPU
+]
+
+[tool.uv]
+# Приоритет источников пакетов
+index-strategy = "unsafe-best-match"
+extra-index-url = ["https://www.paddlepaddle.org.cn/packages/stable/cpu/"]
+
+[tool.uv.sources]
+# Указываем явно, что paddlepaddle нужно брать из китайского репозитория CPU версий
+paddlepaddle = { index = "paddlepaddle-cpu" }
+
+[[tool.uv.index]]
+name = "paddlepaddle-cpu"  
+url = "https://www.paddlepaddle.org.cn/packages/stable/cpu/"
+

@@ -1,0 +1,205 @@
+# ============================================
+# Multi-stage Dockerfile для сборки Windows EXE
+# Использует Wine для запуска Windows Python/PyInstaller в Linux
+# ============================================
+
+# ============================================
+# Stage 1: License Helper Builder (с PyArmor обфускацией)
+# ============================================
+FROM ubuntu:22.04 AS license-helper-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WINEARCH=win64
+ENV WINEPREFIX=/root/.wine
+
+# Установка Wine и зависимостей (добавляем wine32 для совместимости)
+RUN dpkg --add-architecture i386 && \
+    apt-get update && apt-get install -y \
+    wine64 \
+    wine32 \
+    wget \
+    cabextract \
+    xvfb \
+    winetricks \
+    && rm -rf /var/lib/apt/lists/*
+
+# Инициализация Wine
+RUN xvfb-run wineboot -i && \
+    wineserver -w
+
+# Установка Windows Python через Wine (используем embedded версию - проще и надежнее)
+WORKDIR /build
+
+# Скачиваем Python embedded (portable) версию - не требует установки!
+RUN wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip -O python.zip && \
+    apt-get update && apt-get install -y unzip && \
+    unzip python.zip -d /root/.wine/drive_c/Python311 && \
+    rm python.zip
+
+# Скачиваем get-pip.py для установки pip в embedded Python
+RUN wget https://bootstrap.pypa.io/get-pip.py -O /root/.wine/drive_c/Python311/get-pip.py
+
+# Включаем site-packages в embedded Python (по умолчанию отключено)
+RUN echo "import site" >> /root/.wine/drive_c/Python311/python311._pth
+
+# Устанавливаем pip
+RUN wine C:\\Python311\\python.exe C:\\Python311\\get-pip.py
+
+# Проверка что Python и pip работают
+RUN wine "C:\\Python311\\python.exe" --version && \
+    wine "C:\\Python311\\Scripts\\pip.exe" --version
+
+# Настройка путей для Wine Python
+ENV WINE_PYTHON="wine C:\\Python311\\python.exe"
+ENV WINE_PIP="wine C:\\Python311\\Scripts\\pip.exe"
+
+# Копируем license_helper код
+COPY license_helper /build/license_helper/
+WORKDIR /build/license_helper
+
+# Установка зависимостей
+RUN ${WINE_PIP} install --upgrade pip && \
+    ${WINE_PIP} install pyarmor pyinstaller && \
+    ${WINE_PIP} install -r requirements.txt
+
+# Обфускация с PyArmor
+RUN mkdir -p obfuscated && \
+    wine C:\\Python311\\Scripts\\pyarmor.exe gen -O obfuscated -r license_helper.py
+
+# Копируем дополнительные файлы
+RUN if [ -f "icon.ico" ]; then cp icon.ico obfuscated/; fi && \
+    if [ -f "LICENSE" ]; then cp LICENSE obfuscated/; fi
+
+WORKDIR /build/license_helper/obfuscated
+
+# Сборка EXE с PyInstaller
+RUN wine C:\\Python311\\Scripts\\pyinstaller.exe \
+    --onefile \
+    --name license-helper \
+    --clean \
+    --hidden-import fastapi \
+    --hidden-import uvicorn \
+    --hidden-import uvicorn.logging \
+    --hidden-import uvicorn.loops \
+    --hidden-import uvicorn.loops.auto \
+    --hidden-import uvicorn.protocols \
+    --hidden-import uvicorn.protocols.http \
+    --hidden-import uvicorn.protocols.http.auto \
+    --hidden-import uvicorn.protocols.websockets \
+    --hidden-import uvicorn.protocols.websockets.auto \
+    --hidden-import uvicorn.lifespan \
+    --hidden-import uvicorn.lifespan.on \
+    --hidden-import pydantic \
+    --hidden-import httpx \
+    --hidden-import cryptography \
+    --hidden-import cryptography.hazmat.primitives.asymmetric.padding \
+    --hidden-import cryptography.hazmat.primitives.hashes \
+    --hidden-import cryptography.hazmat.primitives.serialization \
+    --hidden-import cryptography.hazmat.backends \
+    --collect-all uvicorn \
+    --collect-all fastapi \
+    license_helper.py
+
+# ============================================
+# Stage 2: DocumentTranslator Builder
+# ============================================
+FROM ubuntu:22.04 AS document-translator-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WINEARCH=win64
+ENV WINEPREFIX=/root/.wine
+
+# Установка Wine и зависимостей (добавляем wine32 для совместимости)
+RUN dpkg --add-architecture i386 && \
+    apt-get update && apt-get install -y \
+    wine64 \
+    wine32 \
+    wget \
+    cabextract \
+    xvfb \
+    winetricks \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Инициализация Wine
+RUN xvfb-run wineboot -i && \
+    wineserver -w
+
+# Установка Windows Python через Wine (используем embedded версию - проще и надежнее)
+WORKDIR /build
+
+# Скачиваем Python embedded (portable) версию - не требует установки!
+RUN wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip -O python.zip && \
+    apt-get update && apt-get install -y unzip && \
+    unzip python.zip -d /root/.wine/drive_c/Python311 && \
+    rm python.zip
+
+# Скачиваем get-pip.py для установки pip в embedded Python
+RUN wget https://bootstrap.pypa.io/get-pip.py -O /root/.wine/drive_c/Python311/get-pip.py
+
+# Включаем site-packages в embedded Python (по умолчанию отключено)
+RUN echo "import site" >> /root/.wine/drive_c/Python311/python311._pth
+
+# Устанавливаем pip
+RUN wine C:\\Python311\\python.exe C:\\Python311\\get-pip.py
+
+# Проверка что Python и pip работают
+RUN wine "C:\\Python311\\python.exe" --version && \
+    wine "C:\\Python311\\Scripts\\pip.exe" --version
+
+ENV WINE_PYTHON="wine C:\\Python311\\python.exe"
+ENV WINE_PIP="wine C:\\Python311\\Scripts\\pip.exe"
+
+# Копируем весь проект
+COPY . /build/document-translator/
+WORKDIR /build/document-translator
+
+# Установка UV (package manager)
+RUN ${WINE_PIP} install --upgrade pip && \
+    ${WINE_PIP} install uv
+
+# Установка зависимостей (эквивалент build-windows.ps1 -DepsOnly)
+RUN ${WINE_PIP} install pyinstaller && \
+    wine C:\\Python311\\Scripts\\uv.exe pip install --python C:\\Python311\\python.exe -r pyproject.toml
+
+# Сборка ONEFILE EXE (эквивалент build-onefile.ps1)
+# Предполагается что у вас есть .spec файл или нужно создать команду
+RUN wine C:\\Python311\\Scripts\\pyinstaller.exe \
+    --onefile \
+    --name DocumentTranslator \
+    --clean \
+    --add-data "src;src" \
+    run.py
+
+# ============================================
+# Stage 3: Final - Сборка релизного пакета
+# ============================================
+FROM alpine:latest AS packager
+
+# Установка необходимых утилит
+RUN apk add --no-cache \
+    bash \
+    coreutils \
+    findutils \
+    tar \
+    gzip
+
+WORKDIR /release
+
+# Копируем собранные EXE файлы
+COPY --from=document-translator-builder /build/document-translator/dist/DocumentTranslator.exe ./
+
+
+# Генерируем версию (будет заменено при сборке через build-arg)
+ARG VERSION=dev
+ARG SHA_SHORT=unknown
+
+# Переименовываем файлы с версией
+RUN mv DocumentTranslator.exe "DocumentTranslator-v${VERSION}-${SHA_SHORT}.exe"
+
+# Создаём архив для удобства
+RUN tar -czf "/release-v${VERSION}-${SHA_SHORT}.tar.gz" ./*
+
+# Устанавливаем entrypoint для копирования файлов наружу
+CMD ["sh", "-c", "cp -r /release/* /output/ && echo 'Release package copied to /output/'"]
+

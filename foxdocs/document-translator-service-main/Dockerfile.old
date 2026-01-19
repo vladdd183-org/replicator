@@ -1,0 +1,101 @@
+# syntax=docker/dockerfile:1.4
+# Многоступенчатая сборка для оптимизации размера
+# Этап 1: Сборка зависимостей
+FROM python:3.11-slim as builder
+
+# Устанавливаем переменные окружения для оптимизации Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    XDG_CACHE_HOME=/app/.cache \
+    HOME=/app \
+    ARGOS_DATA_DIR=/app/.argos \
+    # Явно отключаем CUDA для PaddlePaddle
+    CUDA_VISIBLE_DEVICES="" \
+    USE_CUDA=0 \
+    USE_GPU=0
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Устанавливаем системные зависимости для сборки
+RUN apt-get update || true && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    wget \
+    || apt-get update --fix-missing && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем uv для быстрого управления зависимостями
+RUN pip install uv
+
+# Копируем файлы конфигурации проекта
+COPY pyproject.toml uv.lock ./
+
+# Устанавливаем зависимости с помощью uv в виртуальное окружение
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv sync --frozen --no-dev
+
+# Этап 2: Финальный образ
+FROM python:3.11-slim
+
+# Устанавливаем переменные окружения
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    XDG_CACHE_HOME=/app/.cache \
+    HOME=/app \
+    ARGOS_DATA_DIR=/app/.argos \
+    CUDA_VISIBLE_DEVICES="" \
+    USE_CUDA=0 \
+    USE_GPU=0 \
+    PATH="/app/.venv/bin:$PATH" \
+    VIRTUAL_ENV="/app/.venv"
+
+WORKDIR /app
+
+# Устанавливаем только runtime зависимости (без build-essential)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    libfontconfig1 \
+    ca-certificates \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Копируем виртуальное окружение из builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Копируем скрипты
+COPY scripts ./scripts
+
+# Создаем директории для данных
+RUN mkdir -p data /.cache /.argos
+
+# Создаем пользователя для запуска приложения
+RUN useradd --create-home --shell /bin/bash --uid 1000 app && \
+    chown -R app:app /app
+
+# Открываем порт
+EXPOSE 8000
+
+USER app
+
+# Прогреваем модели
+RUN python scripts/prewarm_models.py || echo "Models download failed, will retry at runtime"
+
+# Копируем исходный код приложения
+COPY --chown=app:app src ./src
+COPY --chown=app:app run.py ./
+
+# Команда запуска приложения
+CMD ["python", "run.py"]

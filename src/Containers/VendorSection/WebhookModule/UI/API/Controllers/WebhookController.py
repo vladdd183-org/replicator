@@ -7,11 +7,8 @@ from litestar import Controller, get, post, patch, delete, Request
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from returns.result import Result
 
+from src.Ship.Core.Errors import DomainException
 from src.Ship.Decorators.result_handler import result_handler
-from src.Containers.VendorSection.WebhookModule.Data.Repositories.WebhookRepository import (
-    WebhookRepository,
-    WebhookDeliveryRepository,
-)
 from src.Containers.VendorSection.WebhookModule.Actions.RegisterWebhookAction import (
     RegisterWebhookAction,
     RegisterWebhookInput,
@@ -19,9 +16,32 @@ from src.Containers.VendorSection.WebhookModule.Actions.RegisterWebhookAction im
 from src.Containers.VendorSection.WebhookModule.Actions.TriggerWebhookAction import (
     TriggerWebhookAction,
 )
+from src.Containers.VendorSection.WebhookModule.Actions.ToggleWebhookAction import (
+    ToggleWebhookAction,
+    ToggleWebhookInput,
+)
+from src.Containers.VendorSection.WebhookModule.Actions.ResetWebhookAction import (
+    ResetWebhookAction,
+    ResetWebhookInput,
+)
+from src.Containers.VendorSection.WebhookModule.Actions.DeleteWebhookAction import (
+    DeleteWebhookAction,
+    DeleteWebhookInput,
+)
 from src.Containers.VendorSection.WebhookModule.Tasks.DeliverWebhookTask import (
-    VerifySignatureTask,
     DeliveryResult,
+)
+from src.Containers.VendorSection.WebhookModule.Queries.ListWebhooksQuery import (
+    ListWebhooksQuery,
+    ListWebhooksQueryInput,
+)
+from src.Containers.VendorSection.WebhookModule.Queries.GetWebhookQuery import (
+    GetWebhookQuery,
+    GetWebhookQueryInput,
+)
+from src.Containers.VendorSection.WebhookModule.Queries.ListWebhookDeliveriesQuery import (
+    ListWebhookDeliveriesQuery,
+    ListWebhookDeliveriesQueryInput,
 )
 from src.Containers.VendorSection.WebhookModule.Data.Schemas.Requests import (
     RegisterWebhookRequest,
@@ -36,7 +56,10 @@ from src.Containers.VendorSection.WebhookModule.Data.Schemas.Responses import (
     WebhookDeliveriesListResponse,
     TriggerWebhookResponse,
 )
-from src.Containers.VendorSection.WebhookModule.Errors import WebhookError
+from src.Containers.VendorSection.WebhookModule.Errors import (
+    WebhookError,
+    WebhookNotFoundError,
+)
 from src.Containers.VendorSection.WebhookModule.Models.Webhook import Webhook
 
 
@@ -49,14 +72,11 @@ class WebhookController(Controller):
     @get("/")
     async def list_webhooks(
         self,
-        repository: FromDishka[WebhookRepository],
+        query: FromDishka[ListWebhooksQuery],
         user_id: UUID | None = None,
     ) -> WebhooksListResponse:
         """List registered webhooks."""
-        if user_id:
-            webhooks = await repository.get_by_user(user_id)
-        else:
-            webhooks = await repository.get_all()
+        result = await query.execute(ListWebhooksQueryInput(user_id=user_id))
         
         return WebhooksListResponse(
             webhooks=[
@@ -72,9 +92,9 @@ class WebhookController(Controller):
                     created_at=w.created_at,
                     updated_at=w.updated_at,
                 )
-                for w in webhooks
+                for w in result.webhooks
             ],
-            total=len(webhooks),
+            total=result.total,
         )
     
     @post("/")
@@ -95,12 +115,12 @@ class WebhookController(Controller):
     async def get_webhook(
         self,
         webhook_id: UUID,
-        repository: FromDishka[WebhookRepository],
-    ) -> WebhookResponse | None:
+        query: FromDishka[GetWebhookQuery],
+    ) -> WebhookResponse:
         """Get a specific webhook by ID."""
-        webhook = await repository.get(webhook_id)
+        webhook = await query.execute(GetWebhookQueryInput(webhook_id=webhook_id))
         if not webhook:
-            return None
+            raise DomainException(WebhookNotFoundError(webhook_id=webhook_id))
         
         return WebhookResponse(
             id=webhook.id,
@@ -116,64 +136,38 @@ class WebhookController(Controller):
         )
     
     @patch("/{webhook_id:uuid}/toggle")
+    @result_handler(WebhookResponse, success_status=HTTP_200_OK)
     async def toggle_webhook(
         self,
         webhook_id: UUID,
-        repository: FromDishka[WebhookRepository],
+        action: FromDishka[ToggleWebhookAction],
         is_active: bool = True,
-    ) -> WebhookResponse | None:
+    ) -> Result[Webhook, WebhookError]:
         """Enable or disable a webhook."""
-        webhook = await repository.toggle_active(webhook_id, is_active)
-        if not webhook:
-            return None
-        
-        return WebhookResponse(
-            id=webhook.id,
-            user_id=webhook.user_id,
-            url=webhook.url,
-            events=webhook.events,
-            is_active=webhook.is_active,
-            description=webhook.description,
-            failure_count=int(webhook.failure_count or "0"),
-            last_triggered_at=webhook.last_triggered_at,
-            created_at=webhook.created_at,
-            updated_at=webhook.updated_at,
-        )
+        return await action.run(ToggleWebhookInput(
+            webhook_id=webhook_id,
+            is_active=is_active,
+        ))
     
     @post("/{webhook_id:uuid}/reset")
+    @result_handler(WebhookResponse, success_status=HTTP_200_OK)
     async def reset_webhook(
         self,
         webhook_id: UUID,
-        repository: FromDishka[WebhookRepository],
-    ) -> WebhookResponse | None:
+        action: FromDishka[ResetWebhookAction],
+    ) -> Result[Webhook, WebhookError]:
         """Reset webhook failure count and re-enable."""
-        webhook = await repository.reset_failure_count(webhook_id)
-        if not webhook:
-            return None
-        
-        return WebhookResponse(
-            id=webhook.id,
-            user_id=webhook.user_id,
-            url=webhook.url,
-            events=webhook.events,
-            is_active=webhook.is_active,
-            description=webhook.description,
-            failure_count=int(webhook.failure_count or "0"),
-            last_triggered_at=webhook.last_triggered_at,
-            created_at=webhook.created_at,
-            updated_at=webhook.updated_at,
-        )
+        return await action.run(ResetWebhookInput(webhook_id=webhook_id))
     
-    @delete("/{webhook_id:uuid}")
+    @delete("/{webhook_id:uuid}", status_code=HTTP_200_OK)
+    @result_handler(None, success_status=HTTP_204_NO_CONTENT)
     async def delete_webhook(
         self,
         webhook_id: UUID,
-        repository: FromDishka[WebhookRepository],
-    ) -> None:
+        action: FromDishka[DeleteWebhookAction],
+    ) -> Result[None, WebhookError]:
         """Delete a webhook."""
-        webhook = await repository.get(webhook_id)
-        if webhook:
-            await webhook.remove()
+        return await action.run(DeleteWebhookInput(webhook_id=webhook_id))
     
     @post("/trigger")
     @result_handler(TriggerWebhookResponse, success_status=HTTP_200_OK)
@@ -189,16 +183,16 @@ class WebhookController(Controller):
     async def get_deliveries(
         self,
         webhook_id: UUID,
-        repository: FromDishka[WebhookDeliveryRepository],
+        query: FromDishka[ListWebhookDeliveriesQuery],
         limit: int = 50,
         offset: int = 0,
     ) -> WebhookDeliveriesListResponse:
         """Get delivery history for a webhook."""
-        deliveries = await repository.get_by_webhook(
-            webhook_id,
+        result = await query.execute(ListWebhookDeliveriesQueryInput(
+            webhook_id=webhook_id,
             limit=min(limit, 100),
             offset=offset,
-        )
+        ))
         
         return WebhookDeliveriesListResponse(
             deliveries=[
@@ -213,9 +207,9 @@ class WebhookController(Controller):
                     delivered_at=d.delivered_at,
                     created_at=d.created_at,
                 )
-                for d in deliveries
+                for d in result.deliveries
             ],
-            total=len(deliveries),
+            total=result.total,
         )
 
 

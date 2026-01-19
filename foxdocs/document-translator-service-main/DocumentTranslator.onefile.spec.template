@@ -1,0 +1,267 @@
+# -*- mode: python ; coding: utf-8 -*-
+# ONE-FILE VERSION - All dependencies packed into single EXE
+# WARNING: First startup is slower due to extraction to temp directory
+# File size: ~2-3 GB
+
+import sys
+from pathlib import Path
+from PyInstaller.utils.hooks import collect_all, copy_metadata
+
+block_cipher = None
+
+# Collect all data from packages (CRITICAL FIX!)
+multipart_datas, multipart_binaries, multipart_hiddenimports = collect_all('multipart')
+
+# Collect paddlex data files (includes .version file)
+paddlex_datas, paddlex_binaries, paddlex_hiddenimports = collect_all('paddlex')
+
+# Collect paddleocr data files
+paddleocr_datas, paddleocr_binaries, paddleocr_hiddenimports = collect_all('paddleocr')
+
+# Collect paddle data files
+paddle_datas, paddle_binaries, paddle_hiddenimports = collect_all('paddle')
+
+# Collect argostranslate data files
+argos_datas, argos_binaries, argos_hiddenimports = collect_all('argostranslate')
+
+# Collect stanza data files
+stanza_datas, stanza_binaries, stanza_hiddenimports = collect_all('stanza')
+
+# Collect Cython utility files (CRITICAL for PaddlePaddle!)
+cython_datas, cython_binaries, cython_hiddenimports = collect_all('Cython')
+
+# Collect pypdfium2 data files (for PDF processing)
+pypdfium2_datas, pypdfium2_binaries, pypdfium2_hiddenimports = collect_all('pypdfium2')
+
+# Collect pyclipper (for OCR polygon processing)
+pyclipper_datas, pyclipper_binaries, pyclipper_hiddenimports = collect_all('pyclipper')
+
+# Collect cryptography (for license signature verification)
+cryptography_datas, cryptography_binaries, cryptography_hiddenimports = collect_all('cryptography')
+
+# Collect package metadata (CRITICAL for PaddleX dependency checks!)
+# PaddleX checks if dependencies are installed by looking for metadata
+metadata_packages = [
+    'paddlex',
+    'paddleocr', 
+    'paddle',
+    'paddlepaddle',
+    'opencv-python-headless',
+    'opencv-contrib-python-headless',
+    'opencv-python',
+    'opencv-contrib-python',
+    'pypdfium2',
+    'pillow',
+    'numpy',
+    'pyyaml',
+    'scikit-image',
+    'pymupdf',
+    'fitz',
+]
+
+metadata_datas = []
+for pkg in metadata_packages:
+    try:
+        metadata_datas.extend(copy_metadata(pkg))
+    except Exception:
+        # Package not found, skip
+        pass
+
+# Пути к данным и моделям
+data_files = [
+    ('src', 'src'),
+]
+
+# Add package data files
+data_files.extend(multipart_datas)
+data_files.extend(paddlex_datas)
+data_files.extend(paddleocr_datas)
+data_files.extend(paddle_datas)
+data_files.extend(argos_datas)
+data_files.extend(stanza_datas)
+data_files.extend(cython_datas)
+data_files.extend(pypdfium2_datas)
+data_files.extend(pyclipper_datas)
+data_files.extend(cryptography_datas)
+data_files.extend(metadata_datas)  # Package metadata for dependency checks
+
+# Добавляем кеши моделей если они существуют
+cache_dirs = ['.cache', '.argos', '.paddlex', '.stanza']
+for cache_dir in cache_dirs:
+    if Path(cache_dir).exists():
+        data_files.append((cache_dir, cache_dir))
+
+# Hidden imports - modules that PyInstaller may not find
+hidden_imports = [
+    # Web framework
+    'litestar',
+    'litestar.response',
+    'litestar.handlers',
+    'litestar.middleware',
+    'pydantic',
+    'pydantic_settings',
+    'dishka',
+    'uvicorn',
+    'uvicorn.loops',
+    'uvicorn.loops.auto',
+    'uvicorn.protocols',
+    'uvicorn.protocols.http',
+    'uvicorn.protocols.http.auto',
+    'uvicorn.protocols.websockets',
+    'uvicorn.protocols.websockets.auto',
+    'uvicorn.lifespan',
+    'uvicorn.lifespan.on',
+    
+    # python-multipart (CRITICAL!)
+    'multipart',
+    'multipart.multipart',
+    'python_multipart',
+    
+    # Security & Licensing
+    'cryptography',
+    'cryptography.hazmat',
+    'cryptography.hazmat.primitives',
+    'cryptography.hazmat.primitives.asymmetric',
+    'cryptography.hazmat.primitives.asymmetric.padding',
+    'cryptography.hazmat.primitives.hashes',
+    'cryptography.hazmat.primitives.serialization',
+    'cryptography.hazmat.backends',
+    'cryptography.hazmat.backends.openssl',
+    
+    # Paddle
+    'paddle',
+    'paddle.inference',
+    'paddleocr',
+    'paddlex',
+    'paddlex.inference',
+    'paddlex.inference.pipelines',
+    'paddlex.utils',
+    'paddlex.utils.deps',
+    'paddlex.modules',
+    'paddlex.modules.text_recognition',
+    'paddlex.modules.text_detection',
+    
+    # Cython (required by PaddlePaddle)
+    'Cython',
+    'Cython.Compiler',
+    'Cython.Compiler.Main',
+    'Cython.Build',
+    
+    # Computer Vision
+    'cv2',
+    'PIL',
+    'skimage',
+    'skimage.io',
+    'skimage.color',
+    'skimage.transform',
+    'pyclipper',
+    
+    # ML/AI
+    'torch',
+    'numpy',
+    'pandas',
+    
+    # Translation
+    'argostranslate',
+    'argostranslate.translate',
+    'argostranslate.package',
+    'stanza',
+    'ctranslate2',
+    'sentencepiece',
+    
+    # PDF
+    'fitz',
+    'pymupdf',
+    'pypdfium2',
+    'pypdfium2._helpers',
+    
+    # Utilities
+    'yaml',
+    'ujson',
+    'protobuf',
+    'networkx',
+    'more_itertools',
+    'colorlog',
+    'chardet',
+    'prettytable',
+]
+
+a = Analysis(
+    ['src/Main.py'],
+    pathex=[],
+    binaries=(
+        multipart_binaries + 
+        paddlex_binaries + 
+        paddleocr_binaries + 
+        paddle_binaries + 
+        argos_binaries + 
+        stanza_binaries + 
+        cython_binaries + 
+        pypdfium2_binaries + 
+        pyclipper_binaries + 
+        cryptography_binaries
+    ),
+    datas=data_files,
+    hiddenimports=(
+        hidden_imports + 
+        multipart_hiddenimports + 
+        paddlex_hiddenimports + 
+        paddleocr_hiddenimports + 
+        paddle_hiddenimports + 
+        argos_hiddenimports + 
+        stanza_hiddenimports + 
+        cython_hiddenimports + 
+        pypdfium2_hiddenimports + 
+        pyclipper_hiddenimports + 
+        cryptography_hiddenimports
+    ),
+    hookspath=['.'],  # Look for custom hooks in current directory
+    hooksconfig={},
+    runtime_hooks=[
+        'pyi_rth_logfire.py',   # Runtime hook to fix logfire/pydantic inspection
+        'pyi_rth_paddlex.py',   # Runtime hook to patch PaddleX dependency checks
+    ],
+    excludes=[
+        'tkinter',
+        'matplotlib',
+        'IPython',
+        'jupyter',
+        'notebook',
+        'test',
+        'tests',
+        'testing',
+    ],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+# ONE-FILE mode: All dependencies packed into single executable
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,      # Include binaries in EXE
+    a.zipfiles,      # Include zip files in EXE
+    a.datas,         # Include data files in EXE
+    [],
+    name='DocumentTranslator',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,       # Don't use UPX compression (causes issues with large files)
+    upx_exclude=[],
+    runtime_tmpdir=None,  # Extract to system temp directory
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=None,
+)
+
+# Note: No COLLECT section for one-file build
+

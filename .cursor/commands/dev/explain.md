@@ -97,4 +97,3 @@ match result:
 
 Каждый `/explain` ссылается на:
 - Соответствующий документ в `docs/`
-- Пример в `foxdocs/LitestarPortoShowcase-main/`

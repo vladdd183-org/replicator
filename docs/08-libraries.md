@@ -1,6 +1,6 @@
 # 📚 Библиотеки и зависимости
 
-> **Версия:** 4.1 | **Дата:** Январь 2026  
+> **Версия:** 4.3 | **Дата:** Январь 2026  
 > Полный стек технологий Hyper-Porto с обоснованием выбора
 
 ---
@@ -157,7 +157,7 @@
 [project]
 name = "hyper-porto-app"
 version = "0.1.0"
-description = "Hyper-Porto v4.0 - Functional architecture for Python backends"
+description = "Hyper-Porto v4.3 - Functional architecture for Python backends"
 requires-python = ">=3.12"
 
 dependencies = [
@@ -322,15 +322,15 @@ async def update(self, user: AppUser) -> AppUser:
 
 ## 📁 Где искать документацию
 
-| Библиотека | Путь в foxdocs/ |
+| Библиотека | Официальная документация |
 |------------|-----------------|
-| Litestar | `foxdocs/litestar-main/docs/` |
-| Piccolo | `foxdocs/piccolo-master/docs/` |
-| Dishka | `foxdocs/dishka-develop/docs/` |
-| Returns | `foxdocs/returns-master/docs/` |
-| anyio | `foxdocs/anyio-master/docs/` |
-| Strawberry | `foxdocs/strawberry-main/docs/` |
-| TaskIQ | `foxdocs/taskiq-litestar-develop/` |
+| Litestar | <https://docs.litestar.dev/> |
+| Piccolo | <https://piccolo-orm.com/docs/> |
+| Dishka | <https://dishka.dev/> |
+| Returns | <https://returns.readthedocs.io/> |
+| anyio | <https://anyio.readthedocs.io/> |
+| Strawberry | <https://strawberry.rocks/docs/> |
+| TaskIQ | <https://taskiq-python.github.io/taskiq-litestar/> |
 
 ---
 

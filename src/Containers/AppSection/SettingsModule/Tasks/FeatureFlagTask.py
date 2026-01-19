@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.Ship.Parents.Task import SyncTask
+from src.Ship.Parents.Task import Task
 from src.Containers.AppSection.SettingsModule.Models.FeatureFlag import FeatureFlag
 
 
@@ -18,7 +18,7 @@ class FeatureFlagCheckInput(BaseModel):
     user_id: UUID | None = None
 
 
-class CheckFeatureFlagTask(SyncTask[FeatureFlagCheckInput, bool]):
+class CheckFeatureFlagTask(Task[FeatureFlagCheckInput, bool]):
     """Task for checking if a feature flag is enabled for a user.
     
     Logic:
@@ -33,23 +33,13 @@ class CheckFeatureFlagTask(SyncTask[FeatureFlagCheckInput, bool]):
     
     _flags_cache: dict[str, FeatureFlag] = {}
     
-    def run(self, data: FeatureFlagCheckInput) -> bool:
+    async def run(self, data: FeatureFlagCheckInput) -> bool:
         """Check if feature flag is enabled.
         
-        Note: This is a sync task but accesses DB.
+        Note: This task is async because it hits the database.
         In production, flags would be cached in Redis.
         """
-        # For sync context, we need to use asyncio
-        import asyncio
-        
-        try:
-            loop = asyncio.get_running_loop()
-            # If there's a running loop, create a task
-            future = asyncio.ensure_future(self._check_flag_async(data))
-            return loop.run_until_complete(future)
-        except RuntimeError:
-            # No running loop, run synchronously
-            return asyncio.run(self._check_flag_async(data))
+        return await self._check_flag_async(data)
     
     async def _check_flag_async(self, data: FeatureFlagCheckInput) -> bool:
         """Async implementation of flag check."""
@@ -98,17 +88,17 @@ class CheckFeatureFlagTask(SyncTask[FeatureFlagCheckInput, bool]):
         return False
 
 
-def is_feature_enabled(flag_name: str, user_id: UUID | None = None) -> bool:
-    """Convenience function to check feature flag.
+async def is_feature_enabled(flag_name: str, user_id: UUID | None = None) -> bool:
+    """Convenience async function to check feature flag.
     
     Example:
-        if is_feature_enabled("new_dashboard", current_user.id):
+        if await is_feature_enabled("new_dashboard", current_user.id):
             return render_new_dashboard()
         else:
             return render_old_dashboard()
     """
     task = CheckFeatureFlagTask()
-    return task.run(FeatureFlagCheckInput(flag_name=flag_name, user_id=user_id))
+    return await task.run(FeatureFlagCheckInput(flag_name=flag_name, user_id=user_id))
 
 
 

@@ -5,7 +5,7 @@
 ## Источники
 
 - Skill: `.cursor/skills/piccolo-migration/SKILL.md`
-- Docs: `foxdocs/piccolo-master/docs/`
+- Docs: <https://piccolo-orm.com/docs/>
 
 ## Синтаксис
 

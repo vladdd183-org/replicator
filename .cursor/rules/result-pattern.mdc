@@ -120,4 +120,4 @@ result = await flow(
 ## 📚 Справка
 
 - `docs/04-result-railway.md` — полное руководство
-- `foxdocs/returns-master/docs/` — библиотека returns
+- <https://returns.readthedocs.io/> — библиотека returns

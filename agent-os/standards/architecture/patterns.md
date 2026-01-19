@@ -1,6 +1,6 @@
 # 🎨 Architectural Patterns — Шпаргалка
 
-> Ключевые паттерны Hyper-Porto v4. Детали: [`docs/03-components.md`](../../../docs/03-components.md)
+> Ключевые паттерны Hyper-Porto v4.3. Детали: [`docs/03-components.md`](../../../docs/03-components.md)
 
 ---
 

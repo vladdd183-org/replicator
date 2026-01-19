@@ -1,0 +1,177 @@
+# ===================================================================
+# Dockerfile for building Windows EXE in Docker
+# Uses Wine to run Python/PyInstaller in Linux container
+# ===================================================================
+
+FROM ubuntu:22.04
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WINEDEBUG=-all
+ENV WINEARCH=win64
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    software-properties-common \
+    gnupg2 \
+    apt-transport-https \
+    ca-certificates \
+    xvfb \
+    winbind \
+    cabextract \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Wine repository and install Wine
+RUN dpkg --add-architecture i386 \
+    && mkdir -pm755 /etc/apt/keyrings \
+    && wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key \
+    && wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources \
+    && apt-get update \
+    && apt-get install -y --install-recommends winehq-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create runtime directory
+RUN mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root
+
+# Install Python 3.11 for Windows using Wine with virtual X server
+WORKDIR /tmp
+RUN wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe \
+    && xvfb-run -a wine python-3.11.9-amd64.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 \
+    && rm python-3.11.9-amd64.exe
+
+# Wait for Wine to settle
+RUN sleep 10
+
+# Set up Wine Python paths and X11
+ENV WINEPREFIX=/root/.wine
+ENV PYTHONPATH="C:\\Python311"
+ENV PATH="/root/.wine/drive_c/Python311:/root/.wine/drive_c/Python311/Scripts:${PATH}"
+ENV DISPLAY=:99
+ENV XDG_RUNTIME_DIR=/tmp/runtime-root
+
+# Upgrade pip and install build tools
+RUN xvfb-run -a wine python -m pip install --upgrade pip setuptools wheel
+
+# Create working directory
+WORKDIR /build
+
+# Copy project files
+COPY . /build/
+
+# Install PyInstaller first
+RUN xvfb-run -a wine python -m pip install --no-cache-dir pyinstaller
+
+# Install all dependencies from project
+# Note: Install dependencies as per build-windows.ps1 order
+RUN xvfb-run -a wine python -m pip install --no-cache-dir \
+    numpy==1.26.4 \
+    setuptools==69.5.1 \
+    pyyaml==6.0.2 \
+    Cython \
+    pillow==11.0.0 \
+    opencv-python-headless==4.10.0.84 \
+    opencv-contrib-python-headless==4.10.0.84 \
+    litestar==2.17.0 \
+    pydantic==2.9.2 \
+    pydantic-settings==2.6.1 \
+    dishka==1.4.0 \
+    logfire==2.7.0 \
+    "uvicorn[standard]==0.32.1" \
+    multipart \
+    scikit-image \
+    pypdfium2 \
+    pyclipper \
+    pymupdf \
+    typing-extensions \
+    packaging \
+    requests \
+    filelock \
+    huggingface-hub \
+    pandas \
+    prettytable \
+    colorlog \
+    chardet \
+    || true
+
+# Install PaddlePaddle (CPU-only) from official index
+RUN xvfb-run -a wine python -m pip install --no-cache-dir \
+    paddlepaddle==3.2.0 \
+    --index-url https://www.paddlepaddle.org.cn/packages/stable/cpu/ \
+    || true
+
+# Install PaddleX with OCR core
+RUN xvfb-run -a wine python -m pip install --no-cache-dir \
+    "paddlex[ocr-core]==3.2.1" \
+    || true
+
+# Install PaddleOCR
+RUN xvfb-run -a wine python -m pip install --no-cache-dir --no-deps \
+    paddleocr==3.2.0 \
+    || true
+
+# Install PyTorch (CPU-only)
+RUN xvfb-run -a wine python -m pip install --no-cache-dir \
+    "torch==2.5.0+cpu" \
+    --index-url https://download.pytorch.org/whl/cpu \
+    || true
+
+# Install translation libraries
+RUN xvfb-run -a wine python -m pip install --no-cache-dir \
+    stanza==1.1.1 \
+    "argostranslate==1.9.6" \
+    ctranslate2 \
+    sentencepiece \
+    || true
+
+# Build script
+COPY <<'EOF' /build/docker-build.sh
+#!/bin/bash
+set -e
+
+echo "=== Starting Windows EXE build in Docker ==="
+date
+
+# Determine which spec file to use
+SPEC_FILE="${SPEC_FILE:-DocumentTranslator.spec.template}"
+BUILD_MODE="${BUILD_MODE:-onedir}"
+
+if [ "$BUILD_MODE" = "onefile" ]; then
+    SPEC_FILE="DocumentTranslator.onefile.spec.template"
+    echo "[INFO] Building ONE-FILE version"
+else
+    SPEC_FILE="DocumentTranslator.spec.template"
+    echo "[INFO] Building ONE-DIR version"
+fi
+
+# Copy spec template
+cp "$SPEC_FILE" DocumentTranslator.spec
+
+# Run PyInstaller
+echo "[INFO] Running PyInstaller..."
+xvfb-run -a wine python -m PyInstaller \
+    --clean \
+    --noconfirm \
+    DocumentTranslator.spec
+
+# Check result
+if [ -f "dist/DocumentTranslator/DocumentTranslator.exe" ] || [ -f "dist/DocumentTranslator.exe" ]; then
+    echo "[SUCCESS] Build completed!"
+    ls -lh dist/
+else
+    echo "[ERROR] Build failed - EXE not found"
+    exit 1
+fi
+
+echo "=== Build finished ==="
+date
+EOF
+
+RUN chmod +x /build/docker-build.sh
+
+# Default command
+CMD ["/build/docker-build.sh"]
+
+# Output directory
+VOLUME ["/build/dist"]
+

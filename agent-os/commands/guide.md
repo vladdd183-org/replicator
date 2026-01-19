@@ -30,7 +30,7 @@
 
 ## Что такое Agent OS?
 
-**Agent OS** — это система стандартов, шаблонов и инструкций для AI-assisted разработки в проекте **Hyper-Porto v4.0**.
+**Agent OS** — это система стандартов, шаблонов и инструкций для AI-assisted разработки в проекте **Hyper-Porto v4.3**.
 
 ### 🎯 Назначение
 
@@ -97,7 +97,7 @@ src/
 
 # 🏗️ /guide architecture — Архитектура
 
-## Hyper-Porto v4.0
+## Hyper-Porto v4.3
 
 **Синтез трёх парадигм:**
 
@@ -227,7 +227,7 @@ src/Containers/AppSection/[Module]/
 | Команда | Где ищет | Когда использовать |
 |---------|----------|-------------------|
 | `agent-os/research` | Везде | Комплексный ресерч перед фичей |
-| `agent-os/research-codebase` | `src/`, `foxdocs/` | Найти примеры в коде |
+| `agent-os/research-codebase` | `src/`, `docs/`, внешние ссылки | Найти примеры в коде |
 | `agent-os/research-online` | Web, Context7 | Документация, best practices |
 
 ## Примеры использования
@@ -578,12 +578,11 @@ return Failure(UserNotFoundError(user_id=id))
 
 | Библиотека | Путь |
 |------------|------|
-| Litestar | `foxdocs/litestar-main/docs/` |
-| Piccolo | `foxdocs/piccolo-master/docs/` |
-| Dishka | `foxdocs/dishka-develop/docs/` |
-| Returns | `foxdocs/returns-master/docs/` |
-| Strawberry | `foxdocs/strawberry-main/docs/` |
-| **Пример Porto** | `foxdocs/LitestarPortoShowcase-main/` |
+| Litestar | <https://docs.litestar.dev/> |
+| Piccolo | <https://piccolo-orm.com/docs/> |
+| Dishka | <https://dishka.dev/> |
+| Returns | <https://returns.readthedocs.io/> |
+| Strawberry | <https://strawberry.rocks/docs/> |
 
 ---
 
@@ -637,4 +636,4 @@ dev/slang <слово>
 
 ---
 
-**Agent OS v4.1.0** — Your AI Development Companion 🚀
+**Agent OS v4.3** — Your AI Development Companion 🚀

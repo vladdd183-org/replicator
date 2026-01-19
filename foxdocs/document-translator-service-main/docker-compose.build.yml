@@ -1,0 +1,27 @@
+# Docker Compose для сборки Windows EXE
+# Использует Python 3.11 и PyInstaller
+# Следует точной последовательности build-windows.ps1
+
+services:
+  # ONE-DIR build (папка с EXE и зависимостями) - РЕКОМЕНДУЕТСЯ
+  build-onedir:
+    build:
+      context: .
+      dockerfile: Dockerfile.windows-pyinstaller
+    environment:
+      - BUILD_MODE=onedir
+    volumes:
+      - ./:/src
+    working_dir: /src
+
+  # ONE-FILE build (один большой EXE файл)
+  build-onefile:
+    build:
+      context: .
+      dockerfile: Dockerfile.windows-pyinstaller
+    environment:
+      - BUILD_MODE=onefile
+    volumes:
+      - ./:/src
+    working_dir: /src
+

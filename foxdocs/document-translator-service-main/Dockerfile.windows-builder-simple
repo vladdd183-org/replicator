@@ -1,0 +1,223 @@
+# ============================================
+# Dockerfile для сборки DocumentTranslator.exe
+# Повторяет логику build-windows.ps1 + build-onefile.ps1
+# БЕЗ PowerShell - просто через Wine + Python напрямую
+# ============================================
+
+FROM ubuntu:22.04 AS document-translator-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WINEARCH=win64
+ENV WINEPREFIX=/root/.wine
+
+# Установка Wine и зависимостей
+RUN dpkg --add-architecture i386 && \
+    apt-get update && apt-get install -y \
+    wine64 \
+    wine32 \
+    wget \
+    cabextract \
+    xvfb \
+    winetricks \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Инициализация Wine
+RUN xvfb-run wineboot -i && \
+    wineserver -w
+
+WORKDIR /build
+
+# ============================================
+# Установка Python embedded (portable версия)
+# ============================================
+RUN wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip -O python.zip && \
+    unzip python.zip -d /root/.wine/drive_c/Python311 && \
+    rm python.zip
+
+# Скачиваем get-pip.py для установки pip
+RUN wget https://bootstrap.pypa.io/get-pip.py -O /root/.wine/drive_c/Python311/get-pip.py
+
+# Включаем site-packages в embedded Python
+RUN echo "import site" >> /root/.wine/drive_c/Python311/python311._pth
+
+# Устанавливаем pip
+RUN wine C:\\Python311\\python.exe C:\\Python311\\get-pip.py
+
+# Проверка
+RUN wine C:\\Python311\\python.exe --version && \
+    wine C:\\Python311\\Scripts\\pip.exe --version
+
+# ============================================
+# Копируем проект
+# ============================================
+COPY . /build/document-translator/
+WORKDIR /build/document-translator
+
+# ============================================
+# Создаем constraints.txt для блокирования GPU
+# ============================================
+RUN echo "nvidia-cublas-cu12==99.99.99+invalid" > constraints.txt && \
+    echo "nvidia-cublas-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-cupti-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-cupti-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-nvrtc-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-nvrtc-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-runtime-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cuda-runtime-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cudnn-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cudnn-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cufft-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cufft-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-curand-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-curand-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cusolver-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cusolver-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cusparse-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-cusparse-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nccl-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nccl-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nvtx-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nvtx-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nvjitlink-cu12==99.99.99+invalid" >> constraints.txt && \
+    echo "nvidia-nvjitlink-cu11==99.99.99+invalid" >> constraints.txt && \
+    echo "opencv-python==99.99.99+invalid" >> constraints.txt && \
+    echo "opencv-contrib-python==99.99.99+invalid" >> constraints.txt && \
+    echo "tensorflow-gpu==99.99.99+invalid" >> constraints.txt
+
+# ============================================
+# Устанавливаем зависимости (следуя build-windows.ps1)
+# ============================================
+ENV WINE_PIP="wine C:\\Python311\\Scripts\\pip.exe"
+
+# Base dependencies
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "numpy>=1.24.0,<2.0.0" \
+    "setuptools<60" \
+    "pyyaml==6.0.2" \
+    "Cython"
+
+# OpenCV CPU-only
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "pillow==11.*" \
+    "opencv-python-headless==4.10.*" \
+    "opencv-contrib-python-headless==4.10.*"
+
+# Web framework
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "litestar==2.17.0" \
+    "pydantic==2.9.*" \
+    "pydantic-settings==2.*" \
+    "dishka==1.4.*" \
+    "logfire==2.7.*" \
+    "uvicorn[standard]==0.32.*" \
+    "multipart"
+
+# PaddlePaddle CPU-only
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "paddlepaddle==3.2.0" \
+    --index-url https://www.paddlepaddle.org.cn/packages/stable/cpu/
+
+# scikit-image
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "scikit-image>=0.19.0"
+
+# Common dependencies
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "typing-extensions>=4.0.0" \
+    "packaging>=20.0" \
+    "requests>=2.25.0" \
+    "filelock>=3.0.0" \
+    "cryptography>=41.0.0" \
+    "huggingface-hub" \
+    "pandas" \
+    "prettytable" \
+    "colorlog" \
+    "chardet" \
+    "aistudio-sdk" \
+    "modelscope" \
+    "py-cpuinfo" \
+    "ruamel.yaml" \
+    "ujson" \
+    "protobuf" \
+    "networkx" \
+    "opt-einsum" \
+    "pyclipper>=1.3.0"
+
+# PaddleX and PaddleOCR
+RUN ${WINE_PIP} install --no-cache-dir "paddlex[ocr-core]==3.2.1"
+RUN ${WINE_PIP} install --no-cache-dir --no-deps "paddleocr==3.2.0"
+
+# PDF libraries
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "pymupdf>=1.23.0" \
+    "pypdfium2>=4.0.0"
+
+# PyTorch CPU-only
+RUN ${WINE_PIP} install --no-cache-dir \
+    "torch==2.5.0+cpu" \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Stanza
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt "tqdm>=1.56.0"
+RUN ${WINE_PIP} install --no-cache-dir --no-deps "stanza==1.1.1"
+
+# argostranslate
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "ctranslate2>=3.16.0" \
+    "sentencepiece==0.2.0" \
+    "sacremoses==0.0.53"
+RUN ${WINE_PIP} install --no-cache-dir --no-deps -c constraints.txt \
+    "argostranslate==1.9.*"
+
+# Final dependencies
+RUN ${WINE_PIP} install --no-cache-dir -c constraints.txt \
+    "setuptools>=65.0" \
+    "more-itertools"
+
+# PyInstaller
+RUN ${WINE_PIP} install --no-cache-dir "pyinstaller>=6.0.0"
+
+# ============================================
+# Сборка ONE-FILE EXE (логика build-onefile.ps1)
+# ============================================
+
+# Копируем spec template как рабочий файл
+RUN cp DocumentTranslator.onefile.spec.template DocumentTranslator.spec
+
+# Запускаем PyInstaller
+RUN wine C:\\Python311\\Scripts\\pyinstaller.exe \
+    --clean \
+    --noconfirm \
+    DocumentTranslator.spec
+
+# Проверяем что EXE создался
+RUN ls -lh dist/DocumentTranslator.exe || \
+    (echo "ERROR: DocumentTranslator.exe not found!" && exit 1)
+
+# ============================================
+# Stage 2: Final - Упаковка результата
+# ============================================
+FROM alpine:latest AS packager
+
+RUN apk add --no-cache bash coreutils tar gzip
+
+WORKDIR /release
+
+# Копируем собранный EXE
+COPY --from=document-translator-builder /build/document-translator/dist/DocumentTranslator.exe ./
+
+# Версия через build-arg
+ARG VERSION=dev
+ARG SHA_SHORT=unknown
+
+# Переименовываем с версией
+RUN mv DocumentTranslator.exe "DocumentTranslator-v${VERSION}-${SHA_SHORT}.exe"
+
+# Архив
+RUN tar -czf "/release-v${VERSION}-${SHA_SHORT}.tar.gz" ./*
+
+# Показываем результат
+RUN echo "Built files:" && ls -lh /release/
+
+CMD ["sh", "-c", "cp -r /release/* /output/ && echo 'Release package copied to /output/'"]

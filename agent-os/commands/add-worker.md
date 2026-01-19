@@ -479,4 +479,4 @@ src/Ship/Infrastructure/Workers/
 
 - **Template:** `../templates/background-task.py.template`
 - **Docs:** `docs/09-transports.md` (Background Tasks секция)
-- **Library docs:** `foxdocs/taskiq-litestar-develop/`
+- **Library docs:** <https://taskiq-python.github.io/taskiq-litestar/>

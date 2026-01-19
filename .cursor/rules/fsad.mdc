@@ -1,7 +1,7 @@
 ---
 alwaysApply: true
 ---
-# 🚀 Hyper-Porto v4.2.0 — Cursor AI Rules
+# 🚀 Hyper-Porto v4.3 — Cursor AI Rules
 
 > Эти правила помогают AI-агенту правильно понимать и генерировать код по архитектуре Hyper-Porto.
 
@@ -373,40 +373,38 @@ Repository → Model (Piccolo Table)
 | Явная регистрация | `docs/10-registration.md` |
 | Litestar features (events, channels) | `docs/11-litestar-features.md` |
 | Справочник реализации | `docs/12-reducing-boilerplate.md` |
-| Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
+| Module Gateway Pattern | `docs/14-module-gateway-pattern.md` |
 | Roadmap и будущее | `docs/16-future-roadmap.md` |
 | Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
 | Saga Patterns | `docs/15-saga-patterns.md` |
 
 ---
 
-## 🌐 ДОПОЛНИТЕЛЬНАЯ ДОКУМЕНТАЦИЯ (foxdocs/)
+## 🌐 ДОПОЛНИТЕЛЬНАЯ ДОКУМЕНТАЦИЯ (официальные ссылки)
 
 | Библиотека | Путь |
 |------------|------|
-| Litestar | `foxdocs/litestar-main/docs/` |
-| Piccolo ORM | `foxdocs/piccolo-master/docs/` |
-| Dishka DI | `foxdocs/dishka-develop/docs/` |
-| Returns | `foxdocs/returns-master/docs/` |
-| anyio | `foxdocs/anyio-master/docs/` |
-| Strawberry GraphQL | `foxdocs/strawberry-main/docs/` |
-| TaskIQ + Litestar | `foxdocs/taskiq-litestar-develop/` |
-| Porto (оригинал) | `foxdocs/Porto-master/docs/` |
-| Cosmic Python | `foxdocs/cosmic/` |
-| Spec Kit | `foxdocs/spec-kit-main/` |
-| Пример Porto проекта | `foxdocs/LitestarPortoShowcase-main/` |
+| Litestar | <https://docs.litestar.dev/> |
+| Piccolo ORM | <https://piccolo-orm.com/docs/> |
+| Dishka DI | <https://dishka.dev/> |
+| Returns | <https://returns.readthedocs.io/> |
+| anyio | <https://anyio.readthedocs.io/> |
+| Strawberry GraphQL | <https://strawberry.rocks/docs/> |
+| TaskIQ + Litestar | <https://taskiq-python.github.io/taskiq-litestar/> |
+| Porto (оригинал) | <https://github.com/Mahmoudz/Porto> |
+| Cosmic Python | <https://www.cosmicpython.com/> |
+| Spec Kit | <https://github.com/github/spec-kit> |
 
 ---
 
 ## 💡 СОВЕТЫ ДЛЯ AI
 
 1. **Перед написанием кода** — прочитай соответствующий раздел документации
-2. **Копируй паттерны** из `foxdocs/LitestarPortoShowcase-main/src/` — это рабочий пример
-3. **Проверяй типы** — всё должно быть типизировано
-4. **Используй match-case** для Result вместо if/else
-5. **Не изобретай велосипеды** — смотри таблицу библиотек выше
+2. **Проверяй типы** — всё должно быть типизировано
+3. **Используй match-case** для Result вместо if/else
+4. **Не изобретай велосипеды** — смотри таблицу библиотек выше
 
 ---
 
-**Hyper-Porto v4.2.0** — Функциональная архитектура для Python бэкендов 🚀
+**Hyper-Porto v4.3** — Функциональная архитектура для Python бэкендов 🚀
 

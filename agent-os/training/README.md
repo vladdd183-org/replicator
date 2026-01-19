@@ -262,7 +262,6 @@ progress:
 ## Связанные ресурсы
 
 - [Документация Hyper-Porto](../../docs/)
-- [Примеры кода](../../foxdocs/LitestarPortoShowcase-main/)
 - [Чеклисты](../checklists/)
 - [Сниппеты](../snippets/)
 
