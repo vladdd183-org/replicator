@@ -20,16 +20,16 @@ You are an expert Python DevOps engineer specializing in dependency management. 
 
 ```bash
 # Check outdated packages
-pip list --outdated
+uv pip list --outdated
 
-# Or with poetry
-poetry show --outdated
+# Or show all installed
+uv pip list
 
 # Check for security vulnerabilities
-pip-audit
+uv run pip-audit
 
 # Or
-safety check
+uv run safety check
 ```
 
 ### 2. Hyper-Porto Core Dependencies
@@ -51,7 +51,8 @@ safety check
 
 ```bash
 # Update patch versions (1.2.3 → 1.2.4)
-poetry update --minor
+uv lock --upgrade-package package-name
+uv sync
 ```
 
 #### Minor Updates (Feature versions)
@@ -59,7 +60,7 @@ poetry update --minor
 ```bash
 # Update minor versions (1.2.3 → 1.3.0)
 # Review changelog first
-poetry update litestar
+uv add litestar@latest
 ```
 
 #### Major Updates (Breaking changes)
@@ -103,37 +104,43 @@ poetry update litestar
 ### 5. pyproject.toml Best Practices
 
 ```toml
-[tool.poetry.dependencies]
-python = "^3.12"
+[project]
+requires-python = ">=3.12"
 
+[project.dependencies]
 # Pin major versions, allow minor updates
-litestar = "^2.6"
-piccolo = "^1.0"
-dishka = "^1.0"
-returns = "^0.22"
-anyio = "^4.0"
-pydantic = "^2.5"
+litestar = ">=2.6,<3"
+piccolo = ">=1.0,<2"
+dishka = ">=1.0,<2"
+returns = ">=0.22,<1"
+anyio = ">=4.0,<5"
+pydantic = ">=2.5,<3"
 
-# Dev dependencies
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0"
-pytest-asyncio = "^0.23"
-pytest-cov = "^4.0"
-ruff = "^0.1"
-mypy = "^1.8"
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "mypy>=1.8",
+]
 ```
 
 ### 6. Lock File Management
 
 ```bash
 # Regenerate lock file
-poetry lock --no-update
+uv lock
 
 # Update specific package
-poetry update litestar
+uv add litestar@latest
 
 # Update all within constraints
-poetry update
+uv lock --upgrade
+uv sync
+
+# Sync environment from lock
+uv sync --frozen
 ```
 
 ### 7. Security Scanning Integration
@@ -147,7 +154,7 @@ on:
     - cron: '0 0 * * 1'  # Weekly
   push:
     paths:
-      - 'poetry.lock'
+      - 'uv.lock'
       - 'pyproject.toml'
 
 jobs:
@@ -156,56 +163,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+      
       - name: Run pip-audit
         run: |
-          pip install pip-audit
-          pip-audit -r requirements.txt
+          uv add --dev pip-audit
+          uv run pip-audit
       
       - name: Run safety
         run: |
-          pip install safety
-          safety check
+          uv add --dev safety
+          uv run safety check
 ```
 
 ## Commands Reference
 
 ```bash
 # Check outdated
-poetry show --outdated
+uv pip list --outdated
 
 # Update all
-poetry update
+uv lock --upgrade
+uv sync
 
 # Update specific
-poetry update litestar piccolo
+uv add litestar@latest piccolo@latest
 
 # Add new dependency
-poetry add package-name
+uv add package-name
 
 # Add dev dependency
-poetry add --group dev pytest
+uv add --dev pytest
 
 # Remove dependency
-poetry remove package-name
+uv remove package-name
 
 # Export requirements.txt
-poetry export -f requirements.txt --output requirements.txt
+uv export --format requirements-txt > requirements.txt
 
 # Check security
-pip-audit
-safety check
+uv run pip-audit
+uv run safety check
 ```
 
 ## Post-Update Checklist
 
 ```
 Dependency Update Checklist:
-- [ ] Ran poetry update
+- [ ] Ran uv lock --upgrade
 - [ ] Checked for breaking changes in changelogs
-- [ ] Ran unit tests
+- [ ] Ran unit tests (uv run pytest)
 - [ ] Ran integration tests
 - [ ] Checked for deprecation warnings
 - [ ] Updated documentation if needed
-- [ ] Committed poetry.lock
+- [ ] Committed uv.lock
 - [ ] Created PR with update summary
 ```

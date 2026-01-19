@@ -1,6 +1,6 @@
 # 📖 Hyper-Porto Architecture Documentation
 
-> Полная документация по архитектуре Hyper-Porto v4.0
+> Полная документация по архитектуре Hyper-Porto v4.3
 
 ---
 
@@ -22,26 +22,15 @@
 | 11 | [Litestar Features](11-litestar-features.md) | Channels, Events, Middleware, WebSockets... |
 | 12 | [Reducing Boilerplate](12-reducing-boilerplate.md) | Справочник по реализации (EntitySchema, BaseUnitOfWork, etc.) |
 | 13 | [Cross-Module Communication](13-cross-module-communication.md) | Event-Driven кросс-модульное взаимодействие |
-| 14 | [Future Roadmap](14-future-roadmap-and-patterns.md) | Roadmap развития и будущие паттерны |
-| 15 | [Module Gateway](15-module-gateway-pattern.md) | Паттерн Gateway и Репликация данных |
-| 16 | [Extract Module to Microservice](16-extract-module-to-microservice.md) | Вынос Container в микросервис (обзорный документ) |
-| 17 | [Microservice Extraction Guide](17-microservice-extraction-guide.md) | **Полное практическое руководство** по выносу модуля в микросервис |
-| 18 | [Unified Event Bus](18-unified-event-bus.md) | **Единая система событий** с подменяемыми бэкендами (Memory/Redis/RabbitMQ) |
-| 19 | [Istio Ambient Mesh](19-istio-ambient-mesh.md) | **Service Mesh без sidecar'ов** — mTLS, traffic management, observability |
-| 20 | [Saga Pattern](20-saga-pattern.md) | Распределённые транзакции с TaskIQ и Dishka |
-| 21 | [Integration Patterns Guide](21-integration-patterns-guide.md) | **Когда использовать Event Bus vs Gateway vs Temporal vs TaskIQ** |
-| 22 | [Temporal Saga Patterns](22-temporal-saga-patterns.md) | **Saga паттерны для Temporal.io** с Railway интеграцией |
+| 14 | [Module Gateway Pattern](14-module-gateway-pattern.md) | Паттерн Gateway и Репликация данных |
+| 15 | [Saga Patterns](15-saga-patterns.md) | Распределённые транзакции и SAGA паттерны |
+| 16 | [Future Roadmap](16-future-roadmap.md) | Roadmap развития архитектуры |
+| 17 | [Microservice Extraction Guide](17-microservice-extraction-guide.md) | **Полное руководство** по выносу Container в микросервис |
+| 18 | [Unified Event Bus](18-unified-event-bus.md) | **Единая система событий** с подменяемыми бэкендами |
+| 19 | [Istio Ambient Mesh](19-istio-ambient-mesh.md) | **Service Mesh без sidecar'ов** — mTLS, traffic management |
+| 21 | [Integration Patterns Guide](21-integration-patterns-guide.md) | **Когда использовать** Event Bus vs Gateway vs Temporal vs TaskIQ |
 | 23 | [Cursor AI Components](23-cursor-ai-components.md) | **Rules, Skills, Subagents, Commands** — автоматизация разработки |
-| 24 | [Self-Improving Systems](24-self-improving-systems.md) | **Memory, Feedback, Standards Evolution, Knowledge Integration, Training** |
-
----
-
-## 📊 Gap Analysis
-
-| Документ | Описание |
-|----------|----------|
-| [GAP_ANALYSIS_ADVANCED.md](GAP_ANALYSIS_ADVANCED.md) | Event Bus, Outbox, Module Gateway, Idempotency |
-| [GAP_ANALYSIS_PATTERNS.md](GAP_ANALYSIS_PATTERNS.md) | **Современные паттерны**: Specification, AggregateRoot, msgspec, Polars, Temporal vs Prefect |
+| 24 | [Self-Improving Systems](24-self-improving-systems.md) | Memory, Feedback, Standards Evolution, Training |
 
 ---
 
@@ -64,7 +53,7 @@
 > 🎯 **Главная команда:** `/agent-os/ask [любой запрос]` — единая точка входа, автоматически роутит к нужному агенту
 
 1. [23-cursor-ai-components.md](23-cursor-ai-components.md) — **Rules, Skills, Subagents, Commands**
-2. [24-self-improving-systems.md](24-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training, Orchestrator**
+2. [24-self-improving-systems.md](24-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training**
 3. [07-spec-driven.md](07-spec-driven.md) — workflow разработки
 4. [06-metaprogramming.md](06-metaprogramming.md) — паттерны
 5. [08-libraries.md](08-libraries.md) — tech stack
@@ -78,8 +67,8 @@
 
 1. [18-unified-event-bus.md](18-unified-event-bus.md) — **Unified Event Bus** (Memory → Redis → RabbitMQ)
 2. [17-microservice-extraction-guide.md](17-microservice-extraction-guide.md) — **Полный пошаговый гайд** по выносу модуля
-3. [15-module-gateway-pattern.md](15-module-gateway-pattern.md) — Gateway Pattern для синхронных зависимостей
-4. [14-future-roadmap-and-patterns.md](14-future-roadmap-and-patterns.md) — Outbox, Idempotency, SAGA
+3. [14-module-gateway-pattern.md](14-module-gateway-pattern.md) — Gateway Pattern для синхронных зависимостей
+4. [15-saga-patterns.md](15-saga-patterns.md) — Распределённые транзакции и SAGA
 5. [19-istio-ambient-mesh.md](19-istio-ambient-mesh.md) — **Istio Ambient Mesh** — Service Mesh без sidecar'ов
 
 ---
@@ -149,7 +138,7 @@ match result:
 
 <div align="center">
 
-**Hyper-Porto v4.0**
+**Hyper-Porto v4.3**
 
 *Функциональная архитектура для Python бэкендов*
 

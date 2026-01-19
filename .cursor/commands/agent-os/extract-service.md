@@ -5,7 +5,7 @@
 ## Источники
 
 - Skill: `.cursor/skills/extract-module/SKILL.md`
-- Docs: `docs/16-extract-module-to-microservice.md`
+- Docs: `docs/17-microservice-extraction-guide.md`
 - Docs: `docs/17-microservice-extraction-guide.md`
 
 ## Синтаксис

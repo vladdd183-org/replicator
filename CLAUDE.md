@@ -1,6 +1,6 @@
 # CLAUDE.md — AI Quick Reference for Hyper-Porto
 
-> Компактный справочник для AI-агентов по архитектуре Hyper-Porto v4.1
+> Компактный справочник для AI-агентов по архитектуре Hyper-Porto v4.2.0
 
 ---
 
@@ -12,7 +12,7 @@
 - **Returns** (Result[T, E], Railway-oriented programming)
 - **anyio** (Structured Concurrency)
 
-**Tech Stack:** Litestar, Piccolo ORM, Dishka DI, Strawberry GraphQL, TaskIQ, Pydantic, Logfire
+**Tech Stack:** Litestar, Piccolo ORM, Dishka DI, Strawberry GraphQL, TaskIQ, Temporal, Pydantic, Logfire
 
 ---
 
@@ -233,11 +233,13 @@ class UserRequestProvider(Provider):
 | `pip install X`                      | `uv add X`                             |
 | `pip install -r requirements.txt`    | `uv sync`                              |
 | `pip uninstall X`                    | `uv remove X`                          |
+| `pip freeze > requirements.txt`      | `uv lock` (автоматически)              |
 | `python script.py`                   | `uv run python script.py`              |
+| `python3 script.py`                  | `uv run python script.py`              |
 | `python -m pytest`                   | `uv run pytest`                        |
 | `pytest`                             | `uv run pytest`                        |
 | `source .venv/bin/activate`          | **Не нужно!** UV активирует сам        |
-| `. .venv/bin/activate`               | **Не нужно!**                          |
+| `. .venv/bin/activate`               | **Не нужно!** UV активирует сам        |
 
 ---
 
@@ -250,6 +252,7 @@ uv add package-name           # Добавить зависимость
 uv add --dev pytest          # Dev зависимость  
 uv remove package-name       # Удалить
 uv sync                      # Синхронизировать окружение
+uv lock                      # Обновить lock файл
 ```
 
 ### Запуск Python
@@ -332,6 +335,10 @@ Repository → Model (Piccolo Table)
 | HTTP/GraphQL/CLI/WS | `docs/09-transports.md` |
 | Litestar features | `docs/11-litestar-features.md` |
 | Сокращение бойлерплейта | `docs/12-reducing-boilerplate.md` |
+| Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
+| Roadmap и будущее | `docs/16-future-roadmap.md` |
+| Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
+| Temporal Saga Patterns | `docs/22-temporal-saga-patterns.md` |
 
 ---
 
@@ -383,11 +390,14 @@ from src.Ship.CLI.Decorators import with_container, handle_cli_result
 
 # Ошибки с шаблоном message
 from src.Ship.Core.Errors import ErrorWithTemplate
+
+# Temporal Saga (для распределённых транзакций)
+# См. docs/22-temporal-saga-patterns.md
 ```
 
 ---
 
-**Hyper-Porto v4.1** — Функциональная архитектура для Python бэкендов 🚀
+**Hyper-Porto v4.2.0** — Функциональная архитектура для Python бэкендов 🚀
 
 
 

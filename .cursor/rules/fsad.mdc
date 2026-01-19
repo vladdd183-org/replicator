@@ -1,7 +1,7 @@
 ---
 alwaysApply: true
 ---
-# 🚀 Hyper-Porto v4.0 — Cursor AI Rules
+# 🚀 Hyper-Porto v4.2.0 — Cursor AI Rules
 
 > Эти правила помогают AI-агенту правильно понимать и генерировать код по архитектуре Hyper-Porto.
 
@@ -289,10 +289,11 @@ uv run pytest --cov=src                     # С coverage
 |-----------|---------|--------|
 | Action | `{Verb}{Noun}Action` | `CreateUserAction` |
 | Task | `{Verb}{Noun}Task` | `HashPasswordTask` |
+| Query | `{Verb/Get}{Noun}Query` | `GetUserQuery`, `ListOrdersQuery` |
 | Repository | `{Noun}Repository` | `UserRepository` |
 | Controller | `{Noun}Controller` | `UserController` |
 | Error | `{Noun}Error` | `UserNotFoundError` |
-| Event | `{Noun}{Verb}` | `UserCreated` |
+| Event | `{Noun}{PastVerb}` | `UserCreated` |
 | Request DTO | `{Action}Request` | `CreateUserRequest` |
 | Response DTO | `{Noun}Response` | `UserResponse` |
 
@@ -330,6 +331,7 @@ Repository → Model (Piccolo Table)
 | Cache | cashews | @cached декоратор |
 | Retry | tenacity | @retry декоратор |
 | Background | TaskIQ | Async task queue |
+| Saga/Workflow | Temporal | Durable execution, Saga компенсации |
 | Observability | Logfire | Tracing + logging |
 
 ---
@@ -371,6 +373,10 @@ Repository → Model (Piccolo Table)
 | Явная регистрация | `docs/10-registration.md` |
 | Litestar features (events, channels) | `docs/11-litestar-features.md` |
 | Справочник реализации | `docs/12-reducing-boilerplate.md` |
+| Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
+| Roadmap и будущее | `docs/16-future-roadmap.md` |
+| Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
+| Temporal Saga Patterns | `docs/22-temporal-saga-patterns.md` |
 
 ---
 
@@ -402,5 +408,5 @@ Repository → Model (Piccolo Table)
 
 ---
 
-**Hyper-Porto v4.0** — Функциональная архитектура для Python бэкендов 🚀
+**Hyper-Porto v4.2.0** — Функциональная архитектура для Python бэкендов 🚀
 
