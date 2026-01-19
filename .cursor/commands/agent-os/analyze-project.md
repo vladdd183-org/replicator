@@ -9,11 +9,11 @@ Analyze the current project and update Agent OS standards to match the project's
 Delegate this analysis to the **project-analyzer** agent:
 
 ```
-@.claude/agents/agent-os/project-analyzer.md
+@.cursor/agents/project-analyzer.md
 
 Analyze this project's codebase and adapt Agent OS standards.
 
-Follow the analyze-codebase workflow to:
+Follow these steps to:
 1. Scan project structure
 2. Detect tech stack (languages, frameworks, dependencies)
 3. Analyze code patterns and conventions
@@ -24,8 +24,6 @@ After analysis, ask the user if they want to:
 1. Auto-update standards
 2. Review changes first
 3. Skip updates
-
-Reference workflow: @agent-os/workflows/analysis/analyze-codebase.md
 ```
 
 ## Expected Output

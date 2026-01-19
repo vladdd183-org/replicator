@@ -45,13 +45,18 @@
 
 ### Model
 ```python
+from datetime import datetime, timezone
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 class Product(Table, tablename="products"):
     id = UUID(primary_key=True, default=uuid4)
     name = Varchar(length=100)
     price = Numeric(digits=(10, 2))
     stock = Integer(default=0)
     active = Boolean(default=True)
-    created_at = Timestamptz(default=datetime.utcnow)
+    created_at = Timestamptz(default=_utc_now)
     updated_at = Timestamptz(null=True)
 ```
 

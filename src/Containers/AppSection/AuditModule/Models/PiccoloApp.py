@@ -10,7 +10,6 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 # Import table classes directly
 from src.Containers.AppSection.AuditModule.Models.AuditLog import AuditLog
 
-
 APP_CONFIG = AppConfig(
     app_name="audit",
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "migrations"),

@@ -5,7 +5,7 @@ Uses @with_container decorator for async DI container management.
 
 NOTE: For new projects, consider using dishka.integrations.click directly:
     from dishka.integrations.click import setup_dishka, FromDishka, inject
-    
+
     @click.command()
     @inject
     async def create_user(
@@ -21,24 +21,25 @@ Usage:
     litestar users delete <user_id> --force
 """
 
-import click
 from uuid import UUID
+
+import click
+from returns.result import Failure, Success
 from rich.console import Console
 from rich.table import Table
-from returns.result import Success, Failure
 
-from src.Ship.CLI.Decorators import with_container
 from src.Containers.AppSection.UserModule.Actions.CreateUserAction import CreateUserAction
 from src.Containers.AppSection.UserModule.Actions.DeleteUserAction import DeleteUserAction
-from src.Containers.AppSection.UserModule.Queries.ListUsersQuery import (
-    ListUsersQuery,
-    ListUsersQueryInput,
-)
+from src.Containers.AppSection.UserModule.Data.Schemas.Requests import CreateUserRequest
 from src.Containers.AppSection.UserModule.Queries.GetUserQuery import (
     GetUserQuery,
     GetUserQueryInput,
 )
-from src.Containers.AppSection.UserModule.Data.Schemas.Requests import CreateUserRequest
+from src.Containers.AppSection.UserModule.Queries.ListUsersQuery import (
+    ListUsersQuery,
+    ListUsersQueryInput,
+)
+from src.Ship.CLI.Decorators import with_container
 
 console = Console()
 
@@ -46,7 +47,7 @@ console = Console()
 @click.group(name="users")
 def users_group() -> None:
     """User management commands.
-    
+
     Available via Litestar CLI: litestar users <command>
     """
     pass
@@ -59,17 +60,17 @@ def users_group() -> None:
 @with_container
 async def create_user(container, email: str, password: str, name: str) -> None:
     """Create a new user.
-    
+
     Example:
         litestar users create -e user@example.com -p password123 -n "John Doe"
     """
     action = await container.get(CreateUserAction)
     request = CreateUserRequest(email=email, password=password, name=name)
     result = await action.run(request)
-    
+
     match result:
         case Success(user):
-            console.print(f"[green]✓[/green] User created successfully!")
+            console.print("[green]✓[/green] User created successfully!")
             console.print(f"  ID: {user.id}")
             console.print(f"  Email: {user.email}")
             console.print(f"  Name: {user.name}")
@@ -83,7 +84,7 @@ async def create_user(container, email: str, password: str, name: str) -> None:
 @with_container
 async def get_user(container, user_id: UUID) -> None:
     """Get user by ID.
-    
+
     Example:
         litestar users get 550e8400-e29b-41d4-a716-446655440000
     """
@@ -91,10 +92,10 @@ async def get_user(container, user_id: UUID) -> None:
     user = await query.execute(GetUserQueryInput(user_id=user_id))
 
     if user is None:
-        console.print(f"[red]✗[/red] User not found")
+        console.print("[red]✗[/red] User not found")
         raise SystemExit(1)
 
-    console.print(f"[bold]User Details[/bold]")
+    console.print("[bold]User Details[/bold]")
     console.print(f"  ID: {user.id}")
     console.print(f"  Email: {user.email}")
     console.print(f"  Name: {user.name}")
@@ -109,9 +110,9 @@ async def get_user(container, user_id: UUID) -> None:
 @with_container
 async def list_users(container, limit: int, offset: int, active_only: bool) -> None:
     """List all users with pagination.
-    
+
     Uses CQRS Query directly for read operations.
-    
+
     Example:
         litestar users list --limit 10 --active-only
     """
@@ -146,7 +147,7 @@ async def list_users(container, limit: int, offset: int, active_only: bool) -> N
 @with_container
 async def delete_user(container, user_id: UUID, force: bool) -> None:
     """Delete a user by ID (soft delete).
-    
+
     Example:
         litestar users delete 550e8400-e29b-41d4-a716-446655440000 --force
     """

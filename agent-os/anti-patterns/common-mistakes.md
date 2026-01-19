@@ -60,26 +60,74 @@ self.uow.add_event(UserCreated(user_id=user.id))  # ✅
 
 ---
 
-## 4. ❌ dataclass для DTO
+## 4. ❌ dataclass для DTO (Request/Response)
 
-### Плохо
+> **Важно:** Это правило относится ТОЛЬКО к DTO (Data Transfer Objects).
+> Компоненты архитектуры (Actions, Tasks, Queries, UnitOfWork) МОГУТ использовать `@dataclass`.
+
+### Плохо — dataclass для DTO
 ```python
 from dataclasses import dataclass
 
-@dataclass  # ❌ Нет валидации!
+@dataclass  # ❌ Нет валидации для Request/Response DTO!
 class CreateUserRequest:
     email: str
     name: str
+
+@dataclass  # ❌ Нет сериализации "из коробки"!
+class UserResponse:
+    id: UUID
+    email: str
 ```
 
-### Хорошо
+### Хорошо — Pydantic для DTO
 ```python
 from pydantic import BaseModel, EmailStr, Field
+from src.Ship.Core.BaseSchema import EntitySchema
 
 class CreateUserRequest(BaseModel):  # ✅ Валидация из коробки
     email: EmailStr
     name: str = Field(..., min_length=2)
+
+class UserResponse(EntitySchema):  # ✅ Сериализация + from_entity
+    id: UUID
+    email: str
 ```
+
+### ✅ dataclass РАЗРЕШЁН для компонентов
+
+```python
+from dataclasses import dataclass
+
+@dataclass  # ✅ Для компонентов с DI — это OK!
+class CreateUserAction(Action[CreateUserRequest, User, UserError]):
+    hash_password: HashPasswordTask
+    uow: UserUnitOfWork
+
+    async def run(self, data: CreateUserRequest) -> Result[User, UserError]:
+        ...
+
+@dataclass  # ✅ Для Query — это OK!
+class GetUserQuery(Query[GetUserInput, User | None]):
+    user_repository: UserRepository
+
+    async def execute(self, input: GetUserInput) -> User | None:
+        ...
+
+@dataclass  # ✅ Для UnitOfWork — это OK!
+class UserUnitOfWork(BaseUnitOfWork):
+    users: UserRepository
+```
+
+### Почему так?
+
+| Компонент | Используй | Причина |
+|-----------|-----------|---------|
+| Request DTO | `pydantic.BaseModel` | Валидация входных данных |
+| Response DTO | `EntitySchema` | Сериализация + `from_entity()` |
+| Action, Task, Query | `@dataclass` или `__init__` | DI инъекция зависимостей |
+| UnitOfWork | `@dataclass` | DI инъекция репозиториев |
+| Error | `pydantic.BaseModel` (frozen) | Иммутабельность + сериализация |
 
 ---
 
@@ -220,6 +268,3 @@ async def create_user(self, action: FromDishka[CreateUserAction]):  # ✅
 | `container.resolve()` | Constructor injection |
 | `app.emit()` до commit | `uow.add_event()` |
 | `action: Action` | `action: FromDishka[Action]` |
-
-
-

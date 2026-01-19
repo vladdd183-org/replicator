@@ -1,4 +1,1 @@
 """NotificationModule UI layer."""
-
-
-

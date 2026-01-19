@@ -562,10 +562,16 @@ from src.Containers.AppSection.UserModule.Events import UserCreated
 from src.Containers.AppSection.UserModule.Models.User import AppUser
 from src.Containers.AppSection.UserModule.Tasks.HashPasswordTask import HashPasswordTask
 
-@dataclass
 class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
-    hash_password: HashPasswordTask
-    uow: UserUnitOfWork
+    """Use Case: Create a new user."""
+    
+    def __init__(
+        self,
+        hash_password: HashPasswordTask,
+        uow: UserUnitOfWork,
+    ) -> None:
+        self.hash_password = hash_password
+        self.uow = uow
 
     async def run(self, data: CreateUserRequest) -> Result[AppUser, UserError]:
         # Check if user exists

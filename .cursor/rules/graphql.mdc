@@ -20,19 +20,21 @@ UI/GraphQL/
 import strawberry
 from uuid import UUID
 
+# Рекомендуемый способ - автогенерация из Pydantic
+@strawberry.experimental.pydantic.type(model=UserResponse, all_fields=True)
+class UserType:
+    pass
+
+# Или ручное определение
 @strawberry.type
 class UserType:
-    id: UUID
+    id: strawberry.ID
     email: str
     name: str
     
     @classmethod
-    def from_entity(cls, entity: AppUser) -> "UserType":
-        return cls(
-            id=entity.id,
-            email=entity.email,
-            name=entity.name,
-        )
+    def from_entity(cls, user: AppUser) -> "UserType":
+        return cls(id=str(user.id), email=user.email, name=user.name)
 ```
 
 ## Input Types

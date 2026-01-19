@@ -20,28 +20,28 @@
 | Декларативный     | ⭐⭐⭐    | Сложные зависимости        |
 """
 
-from dataclasses import dataclass
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Callable
+from typing import Any
 from uuid import UUID
 
-from temporalio import workflow, activity
-from temporalio.common import RetryPolicy
-from returns.result import Result, Success, Failure
 from pydantic import BaseModel
+from returns.result import Failure, Result, Success
+from temporalio import activity, workflow
+from temporalio.common import RetryPolicy
 
+from src.Ship.Core.Errors import BaseError
 from src.Ship.Infrastructure.Temporal.Saga.Compensations import SagaCompensations
-from src.Ship.Infrastructure.Temporal.Saga.Steps import SagaStep, SagaBuilder, execute_saga
-from src.Ship.Infrastructure.Temporal.Saga.Errors import SagaStepFailedError
-
+from src.Ship.Infrastructure.Temporal.Saga.Steps import SagaBuilder, SagaStep, execute_saga
 
 # ============================================================================
 # Example DTOs (для примеров)
 # ============================================================================
 
+
 class CreateOrderInput(BaseModel):
     """Входные данные для создания заказа."""
-    
+
     user_id: UUID
     items: list[dict[str, Any]]
     shipping_address: str
@@ -50,24 +50,23 @@ class CreateOrderInput(BaseModel):
 
 class OrderResult(BaseModel):
     """Результат создания заказа."""
-    
+
     order_id: str
     reservation_id: str
     payment_id: str
     delivery_id: str | None = None
 
 
-class OrderError(BaseModel):
+class OrderError(BaseError):
     """Ошибка заказа."""
-    
-    model_config = {"frozen": True}
-    message: str
+
     code: str = "ORDER_ERROR"
 
 
 # ============================================================================
 # Паттерн 1: ПРОСТОЙ LIST (Официальный паттерн Temporal)
 # ============================================================================
+
 
 # Пример Activities (функции с @activity.defn)
 @activity.defn
@@ -118,24 +117,24 @@ async def schedule_delivery_activity(order_id: str) -> dict[str, Any]:
 @workflow.defn
 class SimpleListPatternWorkflow:
     """Паттерн 1: Простой list компенсаций.
-    
+
     Официальный паттерн Temporal из документации.
     Минималистичный и идиоматичный для Python.
-    
+
     Используй когда:
     - 2-4 шага
     - Компенсации не требуют разных аргументов
     - Простая линейная логика
-    
+
     Ключевые моменты:
     1. compensations.append() ДО выполнения activity
     2. reversed(compensations) — LIFO порядок
     """
-    
+
     @workflow.run
     async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderError]:
         compensations: list[Callable[..., Any]] = []
-        
+
         try:
             # Step 1: Create order
             compensations.append(cancel_order_activity)
@@ -144,7 +143,7 @@ class SimpleListPatternWorkflow:
                 data.model_dump(),
                 start_to_close_timeout=timedelta(seconds=30),
             )
-            
+
             # Step 2: Reserve inventory
             compensations.append(cancel_reservation_activity)
             reservation = await workflow.execute_activity(
@@ -152,7 +151,7 @@ class SimpleListPatternWorkflow:
                 order["order_id"],
                 start_to_close_timeout=timedelta(seconds=30),
             )
-            
+
             # Step 3: Charge payment
             compensations.append(refund_payment_activity)
             payment = await workflow.execute_activity(
@@ -161,21 +160,23 @@ class SimpleListPatternWorkflow:
                 start_to_close_timeout=timedelta(seconds=60),
                 retry_policy=RetryPolicy(maximum_attempts=3),
             )
-            
+
             # Step 4: Schedule delivery (no compensation needed)
             delivery = await workflow.execute_activity(
                 schedule_delivery_activity,
                 order["order_id"],
                 start_to_close_timeout=timedelta(seconds=30),
             )
-            
-            return Success(OrderResult(
-                order_id=order["order_id"],
-                reservation_id=reservation["reservation_id"],
-                payment_id=payment["payment_id"],
-                delivery_id=delivery["delivery_id"],
-            ))
-            
+
+            return Success(
+                OrderResult(
+                    order_id=order["order_id"],
+                    reservation_id=reservation["reservation_id"],
+                    payment_id=payment["payment_id"],
+                    delivery_id=delivery["delivery_id"],
+                )
+            )
+
         except Exception as ex:
             # Компенсации в ОБРАТНОМ порядке (LIFO)
             for compensation in reversed(compensations):
@@ -186,16 +187,15 @@ class SimpleListPatternWorkflow:
                         start_to_close_timeout=timedelta(seconds=30),
                     )
                 except Exception:
-                    workflow.logger.exception(
-                        f"Compensation {compensation.__name__} failed"
-                    )
-            
+                    workflow.logger.exception(f"Compensation {compensation.__name__} failed")
+
             return Failure(OrderError(message=f"Order creation failed: {ex}"))
 
 
 # ============================================================================
 # Паттерн 2: SagaCompensations КЛАСС (Улучшенный паттерн)
 # ============================================================================
+
 
 # Activities с аргументами
 @activity.defn
@@ -220,25 +220,25 @@ async def refund_payment_with_args(payment_id: str, amount: str) -> None:
 @workflow.defn
 class CompensationsClassPatternWorkflow:
     """Паттерн 2: SagaCompensations класс.
-    
+
     Улучшенный паттерн с поддержкой:
     - Аргументов для каждой компенсации
     - Параллельного выполнения
     - Graceful error handling
-    
+
     Используй когда:
     - 5+ шагов
     - Компенсации требуют разных аргументов
     - Нужен контроль над порядком выполнения
-    
+
     Ключевой момент: comp.add() ПОСЛЕ успешного выполнения activity,
     потому что компенсируем конкретный результат!
     """
-    
+
     @workflow.run
     async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderError]:
         comp = SagaCompensations()
-        
+
         try:
             # Step 1: Create order
             order = await workflow.execute_activity(
@@ -247,7 +247,7 @@ class CompensationsClassPatternWorkflow:
                 start_to_close_timeout=timedelta(seconds=30),
             )
             comp.add(cancel_order_with_id, order["order_id"])  # С аргументом!
-            
+
             # Step 2: Reserve inventory
             reservation = await workflow.execute_activity(
                 reserve_inventory_activity,
@@ -255,7 +255,7 @@ class CompensationsClassPatternWorkflow:
                 start_to_close_timeout=timedelta(seconds=30),
             )
             comp.add(cancel_reservation_with_id, reservation["reservation_id"])
-            
+
             # Step 3: Charge payment
             payment = await workflow.execute_activity(
                 charge_payment_activity,
@@ -264,21 +264,23 @@ class CompensationsClassPatternWorkflow:
             )
             # Несколько аргументов!
             comp.add(refund_payment_with_args, payment["payment_id"], data.total_amount)
-            
+
             # Step 4: Schedule delivery (no compensation)
             delivery = await workflow.execute_activity(
                 schedule_delivery_activity,
                 order["order_id"],
                 start_to_close_timeout=timedelta(seconds=30),
             )
-            
-            return Success(OrderResult(
-                order_id=order["order_id"],
-                reservation_id=reservation["reservation_id"],
-                payment_id=payment["payment_id"],
-                delivery_id=delivery["delivery_id"],
-            ))
-            
+
+            return Success(
+                OrderResult(
+                    order_id=order["order_id"],
+                    reservation_id=reservation["reservation_id"],
+                    payment_id=payment["payment_id"],
+                    delivery_id=delivery["delivery_id"],
+                )
+            )
+
         except Exception as ex:
             await comp.run_all()  # Автоматически LIFO
             return Failure(OrderError(message=f"Order creation failed: {ex}"))
@@ -287,6 +289,7 @@ class CompensationsClassPatternWorkflow:
 # ============================================================================
 # Паттерн 3: ДЕКЛАРАТИВНЫЙ (Для сложных workflows)
 # ============================================================================
+
 
 # Activities для декларативного паттерна (принимают dict с результатами)
 @activity.defn
@@ -299,7 +302,7 @@ async def create_order_declarative(input_data: dict[str, Any]) -> dict[str, Any]
 @activity.defn
 async def cancel_order_declarative(order_result: dict[str, Any]) -> None:
     """Компенсация заказа (декларативный)."""
-    order_id = order_result.get("id")
+    _ = order_result.get("id")  # order_id for cancellation
     # Cancel order by id
     pass
 
@@ -339,21 +342,20 @@ async def schedule_delivery_declarative(input_data: dict[str, Any]) -> dict[str,
 @workflow.defn
 class DeclarativePatternWorkflow:
     """Паттерн 3: Декларативный.
-    
+
     Самый продвинутый паттерн для:
     - Сложных зависимостей между шагами
     - Динамического построения Saga
     - Полной информации о выполнении
-    
+
     Преимущества:
     - Шаги описаны как данные, легко тестировать
     - Автоматическое управление компенсациями
     - Результаты всех шагов в одном dict
     """
-    
+
     @workflow.run
     async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderError]:
-        
         saga_steps = [
             SagaStep(
                 name="order",
@@ -382,69 +384,87 @@ class DeclarativePatternWorkflow:
                 description="Schedule delivery",
             ),
         ]
-        
+
         result = await execute_saga(
             saga_steps,
             data.model_dump(),
             pass_all_results=True,  # Передаем все результаты в каждый шаг
         )
-        
+
         match result:
             case Success(saga_result):
-                return Success(OrderResult(
-                    order_id=saga_result["order"]["id"],
-                    reservation_id=saga_result["reservation"]["id"],
-                    payment_id=saga_result["payment"]["id"],
-                    delivery_id=saga_result["delivery"]["id"],
-                ))
+                return Success(
+                    OrderResult(
+                        order_id=saga_result["order"]["id"],
+                        reservation_id=saga_result["reservation"]["id"],
+                        payment_id=saga_result["payment"]["id"],
+                        delivery_id=saga_result["delivery"]["id"],
+                    )
+                )
             case Failure(error):
-                return Failure(OrderError(
-                    message=f"Order failed at {error.failed_step}: {error.cause}",
-                    code=error.code,
-                ))
+                return Failure(
+                    OrderError(
+                        message=f"Order failed at {error.failed_step}: {error.cause}",
+                        code=error.code,
+                    )
+                )
 
 
 @workflow.defn
 class DeclarativeWithBuilderWorkflow:
     """Вариант декларативного паттерна с SagaBuilder.
-    
+
     Более fluent API для создания шагов.
     """
-    
+
     @workflow.run
     async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderError]:
-        
         # Fluent builder API
         saga_steps = (
             SagaBuilder()
-            .add_step("order", create_order_declarative, cancel_order_declarative,
-                      description="Create order record")
-            .add_step("reservation", reserve_inventory_declarative, cancel_reservation_declarative,
-                      description="Reserve inventory")
-            .add_step("payment", charge_payment_declarative, refund_payment_declarative,
-                      description="Process payment")
+            .add_step(
+                "order",
+                create_order_declarative,
+                cancel_order_declarative,
+                description="Create order record",
+            )
+            .add_step(
+                "reservation",
+                reserve_inventory_declarative,
+                cancel_reservation_declarative,
+                description="Reserve inventory",
+            )
+            .add_step(
+                "payment",
+                charge_payment_declarative,
+                refund_payment_declarative,
+                description="Process payment",
+            )
             .with_timeout(60)  # Установить timeout для последнего шага
             .with_retry(maximum_attempts=3)  # И retry
-            .add_step("delivery", schedule_delivery_declarative,
-                      description="Schedule delivery")
+            .add_step("delivery", schedule_delivery_declarative, description="Schedule delivery")
             .build()
         )
-        
+
         result = await execute_saga(saga_steps, data.model_dump(), pass_all_results=True)
-        
+
         match result:
             case Success(saga_result):
-                return Success(OrderResult(
-                    order_id=saga_result["order"]["id"],
-                    reservation_id=saga_result["reservation"]["id"],
-                    payment_id=saga_result["payment"]["id"],
-                    delivery_id=saga_result["delivery"]["id"],
-                ))
+                return Success(
+                    OrderResult(
+                        order_id=saga_result["order"]["id"],
+                        reservation_id=saga_result["reservation"]["id"],
+                        payment_id=saga_result["payment"]["id"],
+                        delivery_id=saga_result["delivery"]["id"],
+                    )
+                )
             case Failure(error):
-                return Failure(OrderError(
-                    message=f"Order failed: {error.cause}",
-                    code=error.code,
-                ))
+                return Failure(
+                    OrderError(
+                        message=f"Order failed: {error.cause}",
+                        code=error.code,
+                    )
+                )
 
 
 # ============================================================================

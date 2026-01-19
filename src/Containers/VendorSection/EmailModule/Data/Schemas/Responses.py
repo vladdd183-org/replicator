@@ -11,7 +11,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class EmailResponse(EntitySchema):
     """Response DTO for email operation.
-    
+
     Attributes:
         email_id: Unique email identifier
         recipient: Email recipient
@@ -20,7 +20,7 @@ class EmailResponse(EntitySchema):
         sent_at: When email was sent
         message: Additional message
     """
-    
+
     email_id: UUID
     recipient: str
     subject: str

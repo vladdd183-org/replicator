@@ -66,5 +66,4 @@ async def get_container_context(info: strawberry.Info) -> AsyncGenerator[object,
                 # use both queries...
     """
     container = info.context["request"].state.dishka_container
-    async with container() as request_container:
-        yield request_container
+    yield container  # Уже request-scoped, не нужен вложенный context manager

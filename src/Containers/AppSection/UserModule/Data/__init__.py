@@ -1,4 +1,1 @@
 """User module data layer."""
-
-
-

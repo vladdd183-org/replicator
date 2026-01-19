@@ -1,43 +1,33 @@
 """Repository for Settings."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from src.Ship.Parents.Repository import Repository
 from src.Containers.AppSection.SettingsModule.Models.Setting import Setting
+from src.Ship.Parents.Repository import Repository
 
 
 class SettingsRepository(Repository[Setting]):
     """Repository for global settings."""
-    
+
     def __init__(self) -> None:
         super().__init__(Setting)
-    
+
     async def get_by_key(self, key: str) -> Setting | None:
         """Get setting by key."""
-        return await (
-            self.model.objects()
-            .where(self.model.key == key)
-            .first()
-        )
-    
+        return await self.model.objects().where(self.model.key == key).first()
+
     async def get_by_category(self, category: str) -> list[Setting]:
         """Get all settings in a category."""
         return await (
-            self.model.objects()
-            .where(self.model.category == category)
-            .order_by(self.model.key)
+            self.model.objects().where(self.model.category == category).order_by(self.model.key)
         )
-    
+
     async def get_all(self) -> list[Setting]:
         """Get all settings."""
-        return await (
-            self.model.objects()
-            .order_by(self.model.category)
-            .order_by(self.model.key)
-        )
-    
+        return await self.model.objects().order_by(self.model.category).order_by(self.model.key)
+
     async def set_value(
         self,
         key: str,
@@ -49,15 +39,15 @@ class SettingsRepository(Repository[Setting]):
     ) -> Setting:
         """Set a setting value (create or update)."""
         existing = await self.get_by_key(key)
-        
+
         if existing:
             existing.value = value
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(UTC)
             if description:
                 existing.description = description
             await existing.save()
             return existing
-        
+
         setting = Setting(
             key=key,
             value=value,
@@ -68,12 +58,12 @@ class SettingsRepository(Repository[Setting]):
         )
         await setting.save()
         return setting
-    
+
     def parse_value(self, setting: Setting) -> Any:
         """Parse setting value based on its type."""
         value = setting.value
         value_type = setting.value_type
-        
+
         if value_type == "int":
             return int(value)
         elif value_type == "float":
@@ -84,6 +74,3 @@ class SettingsRepository(Repository[Setting]):
             return json.loads(value)
         else:
             return value
-
-
-

@@ -12,7 +12,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class SettingResponse(EntitySchema):
     """Response DTO for a setting."""
-    
+
     id: UUID
     key: str
     value: str
@@ -23,7 +23,7 @@ class SettingResponse(EntitySchema):
     is_readonly: bool
     created_at: datetime
     updated_at: datetime
-    
+
     @classmethod
     def from_setting(cls, setting) -> "SettingResponse":
         """Create response from Setting entity with parsed value."""
@@ -43,14 +43,14 @@ class SettingResponse(EntitySchema):
 
 class SettingsListResponse(EntitySchema):
     """Response DTO for settings list."""
-    
+
     settings: list[SettingResponse]
     total: int
 
 
 class FeatureFlagResponse(EntitySchema):
     """Response DTO for a feature flag."""
-    
+
     id: UUID
     name: str
     description: str | None
@@ -61,7 +61,7 @@ class FeatureFlagResponse(EntitySchema):
     metadata: dict | None
     created_at: datetime
     updated_at: datetime
-    
+
     @field_validator("user_allowlist", "user_denylist", mode="before")
     @classmethod
     def parse_list(cls, v: Any) -> list[str] | None:
@@ -79,7 +79,7 @@ class FeatureFlagResponse(EntitySchema):
             except json.JSONDecodeError:
                 return None
         return v
-    
+
     @field_validator("metadata", mode="before")
     @classmethod
     def parse_dict(cls, v: Any) -> dict | None:
@@ -101,14 +101,14 @@ class FeatureFlagResponse(EntitySchema):
 
 class FeatureFlagsListResponse(EntitySchema):
     """Response DTO for feature flags list."""
-    
+
     flags: list[FeatureFlagResponse]
     total: int
 
 
 class FeatureFlagCheckResponse(EntitySchema):
     """Response for feature flag check."""
-    
+
     flag_name: str
     enabled: bool
     user_id: UUID | None
@@ -125,4 +125,3 @@ def _parse_setting_value(value: str, value_type: str) -> Any:
     if value_type == "json":
         return json.loads(value)
     return value
-

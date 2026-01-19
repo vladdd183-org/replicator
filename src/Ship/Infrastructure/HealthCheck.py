@@ -67,13 +67,12 @@ class HealthController(Controller):
         settings = get_settings()
         checks: dict[str, bool] = {}
         
-        # Check database connectivity
+        # Check database connectivity with generic SQL query
         try:
             engine = engine_finder()
             if engine:
-                # Simple query to verify connection
-                from src.Containers.AppSection.UserModule.Models.User import AppUser
-                await AppUser.count()
+                # Simple query to verify connection (no Container imports)
+                await engine.run("SELECT 1")
                 checks["database"] = True
             else:
                 checks["database"] = False

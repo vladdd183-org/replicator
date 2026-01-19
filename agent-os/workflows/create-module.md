@@ -112,8 +112,8 @@ APP_REGISTRY = AppRegistry(
 ### Step 6: Создать миграцию
 
 ```bash
-piccolo migrations new ${module_lower} --auto
-piccolo migrations forwards ${module_lower}
+uv run piccolo migrations new ${module_lower} --auto
+uv run piccolo migrations forwards ${module_lower}
 ```
 
 ---

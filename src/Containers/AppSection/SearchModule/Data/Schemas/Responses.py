@@ -12,7 +12,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class SearchResultItem(EntitySchema):
     """Single search result item."""
-    
+
     id: UUID
     entity_type: str
     entity_id: str
@@ -22,7 +22,7 @@ class SearchResultItem(EntitySchema):
     metadata: dict | None
     score: float  # Relevance score
     highlight: str | None  # Highlighted snippet
-    
+
     @field_validator("tags", mode="before")
     @classmethod
     def parse_tags(cls, v: Any) -> list[str] | None:
@@ -35,7 +35,7 @@ class SearchResultItem(EntitySchema):
             except json.JSONDecodeError:
                 return None
         return v
-    
+
     @field_validator("metadata", mode="before")
     @classmethod
     def parse_metadata(cls, v: Any) -> dict | None:
@@ -52,7 +52,7 @@ class SearchResultItem(EntitySchema):
 
 class SearchResponse(EntitySchema):
     """Response for search query."""
-    
+
     results: list[SearchResultItem]
     total: int
     query: str
@@ -62,7 +62,7 @@ class SearchResponse(EntitySchema):
 
 class IndexStatsResponse(EntitySchema):
     """Response for index statistics."""
-    
+
     total_documents: int
     entity_types: dict[str, int]  # Count by entity type
     last_indexed_at: datetime | None
@@ -71,9 +71,8 @@ class IndexStatsResponse(EntitySchema):
 
 class ReindexResponse(EntitySchema):
     """Response for reindex operation."""
-    
+
     status: str
     entity_type: str | None
     documents_processed: int
     duration_ms: float
-

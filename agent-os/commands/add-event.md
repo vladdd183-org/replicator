@@ -55,7 +55,7 @@
 ```python
 """Domain events for UserModule."""
 
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from uuid import UUID
 
 from src.Ship.Parents.Event import DomainEvent
@@ -252,7 +252,7 @@ async def on_user_created_send_welcome_email(event: UserCreated) -> None:
 
 ```python
 # In Ship/Parents/Event.py
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -264,7 +264,7 @@ class DomainEvent(BaseModel):
     model_config = {"frozen": True}
     
     event_id: UUID = Field(default_factory=uuid4)
-    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     @property
     def event_name(self) -> str:

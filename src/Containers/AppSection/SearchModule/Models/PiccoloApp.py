@@ -10,7 +10,6 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 # Import table classes directly
 from src.Containers.AppSection.SearchModule.Models.SearchIndex import SearchIndex
 
-
 APP_CONFIG = AppConfig(
     app_name="search",
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "migrations"),

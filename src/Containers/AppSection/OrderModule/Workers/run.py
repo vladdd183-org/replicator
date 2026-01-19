@@ -4,7 +4,7 @@ Entry point for running the Order Worker as a standalone process.
 
 Usage:
     python -m src.Containers.AppSection.OrderModule.Workers.run
-    
+
     # Or directly
     python src/Containers/AppSection/OrderModule/Workers/run.py
 
@@ -26,13 +26,12 @@ sys.path.insert(0, str(project_root))
 
 from src.Containers.AppSection.OrderModule.Workers.OrderWorker import run_order_worker
 
-
 if __name__ == "__main__":
     print("🚀 Starting OrderModule Temporal Worker...")
     print("   Task Queue: orders")
     print("   Press Ctrl+C to stop")
     print()
-    
+
     try:
         asyncio.run(run_order_worker())
     except KeyboardInterrupt:

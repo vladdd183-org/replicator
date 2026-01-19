@@ -7,6 +7,3 @@ This section contains modules for integrating with external vendors:
 All integrations are "virtual" - they simulate external services
 without actual connections for development and testing purposes.
 """
-
-
-

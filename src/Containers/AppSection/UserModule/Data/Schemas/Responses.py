@@ -8,18 +8,17 @@ from uuid import UUID
 
 from pydantic import ConfigDict
 
-from src.Ship.Core.BaseSchema import EntitySchema
-
 # Re-export TokenPair from GenerateTokenTask as the single source of truth
 from src.Containers.AppSection.UserModule.Tasks.GenerateTokenTask import TokenPair
+from src.Ship.Core.BaseSchema import EntitySchema
 
 
 class UserResponse(EntitySchema):
     """Response DTO for User entity.
-    
+
     Inherits from_entity() from EntitySchema for automatic conversion.
     Note: password_hash is excluded by not being in the schema.
-    
+
     Attributes:
         id: User UUID
         email: User's email address
@@ -28,7 +27,7 @@ class UserResponse(EntitySchema):
         created_at: Account creation timestamp
         updated_at: Last update timestamp
     """
-    
+
     id: UUID
     email: str
     name: str
@@ -39,14 +38,14 @@ class UserResponse(EntitySchema):
 
 class UserListResponse(EntitySchema):
     """Response DTO for list of users.
-    
+
     Attributes:
         users: List of user responses
         total: Total count of users
         limit: Page size
         offset: Page offset
     """
-    
+
     users: list[UserResponse]
     total: int
     limit: int
@@ -55,11 +54,11 @@ class UserListResponse(EntitySchema):
 
 class TokenRefreshResponse(TokenPair):
     """Response DTO for token refresh.
-    
+
     Inherits directly from TokenPair - no field duplication.
     Adds from_entity for result_handler compatibility.
     """
-    
+
     @classmethod
     def from_entity(cls, token_pair: TokenPair) -> "TokenRefreshResponse":
         """Create from TokenPair."""
@@ -68,9 +67,9 @@ class TokenRefreshResponse(TokenPair):
 
 class AuthResponse(EntitySchema):
     """Response DTO for authentication result.
-    
+
     Flattens TokenPair fields for API compatibility.
-    
+
     Attributes:
         access_token: JWT access token
         refresh_token: JWT refresh token
@@ -79,28 +78,28 @@ class AuthResponse(EntitySchema):
         user_id: Authenticated user ID
         email: Authenticated user email
     """
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     # Token fields (flattened from TokenPair)
     access_token: str
     refresh_token: str
     token_type: str = "Bearer"
     expires_in: int
-    
+
     # User fields
     user_id: str
     email: str
-    
+
     @classmethod
     def from_entity(cls, auth_result) -> "AuthResponse":
         """Create from AuthResult object.
-        
+
         This method is called by result_handler decorator.
-        
+
         Args:
             auth_result: AuthResult from AuthenticateAction
-            
+
         Returns:
             AuthResponse instance
         """

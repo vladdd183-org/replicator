@@ -65,13 +65,18 @@ from ....Actions.CreateUserAction import CreateUserAction
 ### 2. Action ВСЕГДА возвращает Result[T, E]
 
 ```python
-from dataclasses import dataclass
 from returns.result import Result, Success, Failure
 
-@dataclass
 class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
-    hash_password: HashPasswordTask
-    uow: UserUnitOfWork
+    """Use Case: Create new user."""
+    
+    def __init__(
+        self,
+        hash_password: HashPasswordTask,
+        uow: UserUnitOfWork,
+    ) -> None:
+        self.hash_password = hash_password
+        self.uow = uow
 
     async def run(self, data: CreateUserRequest) -> Result[AppUser, UserError]:
         existing = await self.uow.users.find_by_email(data.email)
@@ -165,9 +170,11 @@ class HashPasswordTask(SyncTask[str, str]):
 ### 7. Query для чтения (CQRS)
 
 ```python
+from dataclasses import dataclass
+
+@dataclass
 class GetUserQuery(Query[GetUserQueryInput, AppUser | None]):
-    def __init__(self, user_repository: UserRepository):
-        self.user_repository = user_repository
+    user_repository: UserRepository
     
     async def execute(self, input: GetUserQueryInput) -> AppUser | None:
         return await self.user_repository.get(input.user_id)
@@ -176,10 +183,12 @@ class GetUserQuery(Query[GetUserQueryInput, AppUser | None]):
 ### 8. UnitOfWork для транзакций + Events
 
 ```python
+from dataclasses import dataclass, field
+
 @dataclass
 class UserUnitOfWork(BaseUnitOfWork):
-    users: UserRepository = field(default=None)
-    _app: Litestar | None = None  # Для Channels
+    users: UserRepository  # Обязательный, инжектируется через DI
+    _app: Litestar | None = field(default=None)  # Для Channels
 
 # Использование
 async with self.uow:
@@ -203,7 +212,7 @@ class UserRequestProvider(Provider):
     
     @provide
     def user_uow(self, users: UserRepository, request: Request) -> UserUnitOfWork:
-        return UserUnitOfWork(users=users, _emit=request.app.emit)
+        return UserUnitOfWork(users=users, _app=request.app)
 ```
 
 ---
@@ -336,7 +345,7 @@ Repository → Model (Piccolo Table)
 | Litestar features | `docs/11-litestar-features.md` |
 | Сокращение бойлерплейта | `docs/12-reducing-boilerplate.md` |
 | Module Gateway Pattern | `docs/14-module-gateway-pattern.md` |
-| Roadmap и будущее | `docs/16-future-roadmap.md` |
+| Вынос в микросервис | `docs/16-microservice-extraction-guide.md` |
 | Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
 | Saga Patterns | `docs/15-saga-patterns.md` |
 
@@ -346,10 +355,16 @@ Repository → Model (Piccolo Table)
 
 ```python
 # 1. Создай Action в Actions/
-@dataclass
 class DoSomethingAction(Action[DoSomethingRequest, SomeResult, SomeError]):
-    some_task: SomeTask
-    uow: SomeUnitOfWork
+    """Use Case: Do something."""
+    
+    def __init__(
+        self,
+        some_task: SomeTask,
+        uow: SomeUnitOfWork,
+    ) -> None:
+        self.some_task = some_task
+        self.uow = uow
 
     async def run(self, data: DoSomethingRequest) -> Result[SomeResult, SomeError]:
         # Логика

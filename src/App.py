@@ -15,14 +15,21 @@ from litestar.openapi import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 from litestar.channels import ChannelsPlugin
 from litestar.channels.backends.memory import MemoryChannelsBackend
+import strawberry
 from strawberry.litestar import make_graphql_controller
 from rich.traceback import install as install_rich_traceback
 
 from src.Ship.Configs import get_settings
 from src.Ship.Exceptions.ProblemDetails import create_problem_details_plugin
-from src.Ship.Providers import get_all_providers
-from src.Ship.GraphQL.Schema import schema, get_graphql_context
+from src.Providers import get_all_providers
+from src.Ship.GraphQL.Schema import get_graphql_context
 from src.Ship.Auth.Middleware import AuthenticationMiddleware
+
+# Import GraphQL resolvers from Containers (allowed in App.py)
+from src.Containers.AppSection.UserModule.UI.GraphQL.Resolvers import (
+    UserQuery,
+    UserMutation,
+)
 from src.Ship.Infrastructure.Telemetry import setup_logfire
 from src.Ship.Infrastructure.Telemetry.RequestLoggingMiddleware import RequestLoggingMiddleware
 from src.Ship.Infrastructure.Cache import setup_cache
@@ -81,6 +88,11 @@ from src.Containers.AppSection.OrderModule.Listeners import (
     on_saga_completed,
     on_saga_failed,
 )
+from src.Containers.AppSection.SettingsModule.Listeners import (
+    on_setting_changed,
+    on_feature_flag_toggled,
+    on_user_setting_changed,
+)
 
 # Install Rich traceback globally for beautiful exception output
 # show_locals=True displays local variables in tracebacks
@@ -90,6 +102,42 @@ install_rich_traceback(
     locals_max_string=200,
     suppress=[],
     max_frames=50,
+)
+
+
+# =============================================================================
+# GraphQL Schema Assembly
+# =============================================================================
+# Schema is assembled here in App.py (not in Ship) to maintain proper
+# architecture layering: Ship MUST NOT import from Containers.
+
+
+@strawberry.type
+class Query(UserQuery):
+    """Root GraphQL Query.
+
+    Inherits from module-specific queries.
+    Add more module queries via multiple inheritance as needed.
+    """
+
+    pass
+
+
+@strawberry.type
+class Mutation(UserMutation):
+    """Root GraphQL Mutation.
+
+    Inherits from module-specific mutations.
+    Add more module mutations via multiple inheritance as needed.
+    """
+
+    pass
+
+
+# Create GraphQL schema
+schema = strawberry.Schema(
+    query=Query,
+    mutation=Mutation,
 )
 
 
@@ -198,6 +246,10 @@ def create_app() -> Litestar:
             on_order_cancelled,
             on_saga_completed,
             on_saga_failed,
+            # SettingsModule listeners
+            on_setting_changed,
+            on_feature_flag_toggled,
+            on_user_setting_changed,
         ],
         # Plugins
         plugins=[

@@ -6,12 +6,19 @@ Dishka automatically resolves dependencies by type hints.
 Architecture:
 - UserModuleProvider: APP scope - stateless tasks
 - UserGatewayProvider: APP scope - gateway adapters (selected by deployment_mode)
-- _BaseUserRequestProvider: Base class with common REQUEST scope dependencies  
+- _BaseUserRequestProvider: Base class with common REQUEST scope dependencies
 - UserRequestProvider: HTTP context (inherits base + adds UoW with emit)
 - UserCLIProvider: CLI context (inherits base + adds UoW without emit)
 
-Gateway Pattern:
-    Gateways are provided at APP scope because they are stateless.
+Gateway Pattern - Consumer Owns the Interface:
+    IMPORTANT: UserModule does NOT import from PaymentModule in this file!
+    This follows the "Consumer Owns the Interface" principle from docs/14-module-gateway-pattern.md
+
+    - PaymentGateway protocol is defined in UserModule/Gateways/
+    - PaymentRequest, PaymentResult, etc. are defined in UserModule/Gateways/Types.py
+    - DirectPaymentAdapter internally imports from PaymentModule (only in Adapters/)
+    - Dishka resolves PaymentModule dependencies from PaymentModule's own providers
+
     The adapter selection is based on Settings.deployment_mode:
     - "monolith" → DirectPaymentAdapter (direct Action calls)
     - "microservices" → HttpPaymentAdapter (HTTP calls to external service)
@@ -21,42 +28,42 @@ import httpx
 from dishka import Provider, Scope, provide
 from litestar import Request
 
-from src.Ship.Configs.Settings import Settings
-from src.Containers.AppSection.UserModule.Actions.CreateUserAction import CreateUserAction
-from src.Containers.AppSection.UserModule.Actions.DeleteUserAction import DeleteUserAction
-from src.Containers.AppSection.UserModule.Actions.UpdateUserAction import UpdateUserAction
 from src.Containers.AppSection.UserModule.Actions.AuthenticateAction import AuthenticateAction
 from src.Containers.AppSection.UserModule.Actions.ChangePasswordAction import ChangePasswordAction
+from src.Containers.AppSection.UserModule.Actions.CreateUserAction import CreateUserAction
+from src.Containers.AppSection.UserModule.Actions.CreateUserSubscriptionAction import (
+    CreateUserSubscriptionAction,
+)
+from src.Containers.AppSection.UserModule.Actions.DeleteUserAction import DeleteUserAction
 from src.Containers.AppSection.UserModule.Actions.RefreshTokenAction import RefreshTokenAction
-from src.Containers.AppSection.UserModule.Actions.CreateUserSubscriptionAction import CreateUserSubscriptionAction
-from src.Containers.AppSection.UserModule.Queries.ListUsersQuery import ListUsersQuery
-from src.Containers.AppSection.UserModule.Queries.GetUserQuery import GetUserQuery
+from src.Containers.AppSection.UserModule.Actions.UpdateUserAction import UpdateUserAction
 from src.Containers.AppSection.UserModule.Data.Repositories.UserRepository import UserRepository
 from src.Containers.AppSection.UserModule.Data.UnitOfWork import UserUnitOfWork
-from src.Containers.AppSection.UserModule.Tasks.HashPasswordTask import HashPasswordTask
-from src.Containers.AppSection.UserModule.Tasks.VerifyPasswordTask import VerifyPasswordTask
+# Gateway imports - ONLY from UserModule's own Gateways package
+# NOTE: Adapters import PaymentModule dependencies internally.
+# Dishka resolves those from PaymentModule's own providers.
+from src.Containers.AppSection.UserModule.Gateways import (
+    DirectPaymentAdapter,
+    HttpPaymentAdapter,
+    PaymentGateway,
+)
+from src.Containers.AppSection.UserModule.Queries.GetUserQuery import GetUserQuery
+from src.Containers.AppSection.UserModule.Queries.ListUsersQuery import ListUsersQuery
 from src.Containers.AppSection.UserModule.Tasks.GenerateTokenTask import GenerateTokenTask
+from src.Containers.AppSection.UserModule.Tasks.HashPasswordTask import HashPasswordTask
 from src.Containers.AppSection.UserModule.Tasks.SendWelcomeEmailTask import SendWelcomeEmailTask
-
-# Gateway imports
-from src.Containers.AppSection.UserModule.Gateways.PaymentGateway import PaymentGateway
-from src.Containers.AppSection.UserModule.Gateways.Adapters.DirectPaymentAdapter import DirectPaymentAdapter
-from src.Containers.AppSection.UserModule.Gateways.Adapters.HttpPaymentAdapter import HttpPaymentAdapter
-
-# PaymentModule imports (for DirectAdapter)
-from src.Containers.VendorSection.PaymentModule.Actions.CreatePaymentAction import CreatePaymentAction
-from src.Containers.VendorSection.PaymentModule.Actions.RefundPaymentAction import RefundPaymentAction
-from src.Containers.VendorSection.PaymentModule.Tasks.ProcessPaymentTask import ProcessPaymentTask
+from src.Containers.AppSection.UserModule.Tasks.VerifyPasswordTask import VerifyPasswordTask
+from src.Ship.Configs.Settings import Settings
 
 
 class UserModuleProvider(Provider):
     """Core provider for UserModule - APP scope dependencies.
-    
+
     Stateless services that can be reused across requests.
     """
-    
+
     scope = Scope.APP
-    
+
     # Tasks - stateless, reusable
     hash_password_task = provide(HashPasswordTask)
     verify_password_task = provide(VerifyPasswordTask)
@@ -66,40 +73,41 @@ class UserModuleProvider(Provider):
 
 class UserGatewayProvider(Provider):
     """Gateway provider for UserModule - APP scope.
-    
+
     Provides gateway adapters based on deployment mode.
-    
+
+    IMPORTANT: Consumer Owns the Interface principle:
+    - UserModule defines PaymentGateway protocol and its DTOs
+    - UserModule does NOT import from PaymentModule in this file
+    - DirectPaymentAdapter internally imports from PaymentModule
+    - Dishka resolves PaymentModule dependencies from PaymentModule's providers
+
     Deployment Modes:
     - monolith: Uses DirectPaymentAdapter (calls PaymentModule Actions directly)
     - microservices: Uses HttpPaymentAdapter (HTTP calls to PaymentModule service)
-    
+
     The selection is done at application startup based on Settings.deployment_mode.
     This allows the same business logic to work in both deployment scenarios.
-    
+
     Example:
         # In monolith mode
         settings.deployment_mode = "monolith"
         # PaymentGateway → DirectPaymentAdapter → CreatePaymentAction
-        
+
         # In microservices mode
         settings.deployment_mode = "microservices"
         # PaymentGateway → HttpPaymentAdapter → HTTP POST /api/v1/payments
     """
-    
+
     scope = Scope.APP
-    
-    # PaymentModule dependencies (for DirectAdapter)
-    process_payment_task = provide(ProcessPaymentTask)
-    create_payment_action = provide(CreatePaymentAction)
-    refund_payment_action = provide(RefundPaymentAction)
-    
+
     @provide
     def provide_http_client(self, settings: Settings) -> httpx.AsyncClient:
         """Provide shared HTTP client for gateway adapters.
-        
+
         Only used in microservices mode, but always available
         for flexibility.
-        
+
         Features:
         - Connection pooling
         - Keep-alive
@@ -117,38 +125,41 @@ class UserGatewayProvider(Provider):
                 max_keepalive_connections=20,
             ),
         )
-    
+
     @provide
     def provide_payment_gateway(
         self,
         settings: Settings,
-        # Direct adapter dependencies
-        create_payment_action: CreatePaymentAction,
-        refund_payment_action: RefundPaymentAction,
+        # Dishka injects DirectPaymentAdapter with its dependencies resolved
+        # from PaymentModule's providers (CreatePaymentAction, RefundPaymentAction)
+        direct_adapter: DirectPaymentAdapter,
         # HTTP adapter dependencies
         http_client: httpx.AsyncClient,
     ) -> PaymentGateway:
         """Provide PaymentGateway based on deployment mode.
-        
+
         This is the key factory method that selects the appropriate
         adapter based on configuration.
-        
+
         Args:
             settings: Application settings with deployment_mode
-            create_payment_action: For direct adapter (monolith)
-            refund_payment_action: For direct adapter (monolith)
+            direct_adapter: Pre-built DirectPaymentAdapter (for monolith)
             http_client: For HTTP adapter (microservices)
-        
+
         Returns:
             PaymentGateway implementation (DirectPaymentAdapter or HttpPaymentAdapter)
-        
-        Logs:
-            Logs the selected adapter type at startup for debugging.
+
+        Note:
+            DirectPaymentAdapter's dependencies (CreatePaymentAction, RefundPaymentAction)
+            are resolved by Dishka from PaymentModule's own providers.
+            This maintains loose coupling - UserModule doesn't need to know
+            about PaymentModule's internal structure.
         """
         if settings.is_microservices:
             # Microservices mode - use HTTP adapter
             try:
                 import logfire
+
                 logfire.info(
                     "PaymentGateway: Using HttpPaymentAdapter",
                     base_url=settings.payment_service_url,
@@ -156,43 +167,41 @@ class UserGatewayProvider(Provider):
                 )
             except ImportError:
                 print(f"PaymentGateway: Using HttpPaymentAdapter → {settings.payment_service_url}")
-            
+
             return HttpPaymentAdapter(
                 base_url=settings.payment_service_url,
                 client=http_client,
                 timeout=settings.payment_service_timeout,
                 api_key=settings.payment_service_api_key,
             )
-        
-        # Monolith mode - use direct adapter
+
+        # Monolith mode - use direct adapter (already injected by Dishka)
         try:
             import logfire
+
             logfire.info("PaymentGateway: Using DirectPaymentAdapter")
         except ImportError:
             print("PaymentGateway: Using DirectPaymentAdapter (direct Action calls)")
-        
-        return DirectPaymentAdapter(
-            create_payment_action=create_payment_action,
-            refund_payment_action=refund_payment_action,
-        )
+
+        return direct_adapter
 
 
 class _BaseUserRequestProvider(Provider):
     """Base provider with common REQUEST scope dependencies.
-    
+
     Contains all dependencies shared between HTTP and CLI contexts.
     Not exported - use UserRequestProvider or UserCLIProvider instead.
     """
-    
+
     scope = Scope.REQUEST
-    
+
     # Data Layer
     user_repository = provide(UserRepository)
-    
+
     # Queries - CQRS read side
     list_users_query = provide(ListUsersQuery)
     get_user_query = provide(GetUserQuery)
-    
+
     # Actions - CQRS write side
     create_user_action = provide(CreateUserAction)
     update_user_action = provide(UpdateUserAction)
@@ -200,17 +209,17 @@ class _BaseUserRequestProvider(Provider):
     authenticate_action = provide(AuthenticateAction)
     change_password_action = provide(ChangePasswordAction)
     refresh_token_action = provide(RefreshTokenAction)
-    
+
     # Subscription Action (uses PaymentGateway)
     create_user_subscription_action = provide(CreateUserSubscriptionAction)
 
 
 class UserRequestProvider(_BaseUserRequestProvider):
     """HTTP request-scoped provider for UserModule.
-    
+
     Extends base provider with UnitOfWork that has event emitter.
     """
-    
+
     @provide
     def provide_user_uow(self, request: Request) -> UserUnitOfWork:
         """Provide UserUnitOfWork with event emitter from request."""
@@ -219,12 +228,11 @@ class UserRequestProvider(_BaseUserRequestProvider):
 
 class UserCLIProvider(_BaseUserRequestProvider):
     """CLI-specific provider for UserModule.
-    
+
     Extends base provider with UnitOfWork without event emitter.
     """
-    
+
     @provide
     def provide_user_uow(self) -> UserUnitOfWork:
         """Provide UserUnitOfWork without event emitter for CLI."""
         return UserUnitOfWork(_emit=None, _app=None)
-

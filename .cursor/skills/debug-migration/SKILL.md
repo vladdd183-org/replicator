@@ -19,16 +19,16 @@ description: Debug Piccolo ORM migration issues in Hyper-Porto. Use when the use
 
 | Симптом | Причина | Решение |
 |---------|---------|---------|
-| `Table not found` | Migration не применена | `piccolo migrations forwards` |
+| `Table not found` | Migration не применена | `uv run piccolo migrations forwards` |
 | `Column not found` | Missing migration | Создать новую миграцию |
 | `Migration failed` | Syntax/constraint error | Проверить migration file |
-| `Duplicate column` | Migration run twice | `piccolo migrations check` |
+| `Duplicate column` | Migration run twice | `uv run piccolo migrations check` |
 | `Foreign key error` | Wrong table order | Fix migration dependencies |
 
 ## Действие
 
 1. **Загрузи** полный гайд из `agent-os/standards/backend/migrations.md`
-2. **Проверь** статус: `piccolo migrations check`
+2. **Проверь** статус: `uv run piccolo migrations check`
 3. **Определи** тип проблемы
 4. **Исправь** по инструкции
 
@@ -36,19 +36,19 @@ description: Debug Piccolo ORM migration issues in Hyper-Porto. Use when the use
 
 ```bash
 # Check status
-piccolo migrations check
+uv run piccolo migrations check
 
 # Create migration
-piccolo migrations new {app_name} --auto
+uv run piccolo migrations new {app_name} --auto
 
 # Apply migrations
-piccolo migrations forwards {app_name}
+uv run piccolo migrations forwards {app_name}
 
 # Rollback
-piccolo migrations backwards {app_name}
+uv run piccolo migrations backwards {app_name}
 
 # Mark as applied (fake)
-piccolo migrations forwards {app_name} --fake
+uv run piccolo migrations forwards {app_name} --fake
 ```
 
 ## Common Fixes
@@ -80,10 +80,10 @@ APP_CONFIG = AppConfig(
 ## Checklist
 
 ```
-- [ ] piccolo migrations check выполнен
+- [ ] uv run piccolo migrations check выполнен
 - [ ] PiccoloApp.py существует в Models/
 - [ ] PiccoloApp зарегистрирован в piccolo_conf.py
 - [ ] DB connection settings корректны
 - [ ] Migration file проверен
-- [ ] piccolo migrations forwards выполнен
+- [ ] uv run piccolo migrations forwards выполнен
 ```

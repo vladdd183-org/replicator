@@ -1,4 +1,1 @@
 """SettingsModule UI layer."""
-
-
-

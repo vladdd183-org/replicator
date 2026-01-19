@@ -10,6 +10,8 @@ from typing import Generic, TypeVar
 
 from returns.result import Result
 
+__all__ = ["Action"]
+
 InputT = TypeVar("InputT", contravariant=True)
 OutputT = TypeVar("OutputT", covariant=True)
 ErrorT = TypeVar("ErrorT", covariant=True)

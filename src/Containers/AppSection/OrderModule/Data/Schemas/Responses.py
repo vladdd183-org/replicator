@@ -4,7 +4,6 @@ All response DTOs inherit from EntitySchema for consistent serialization.
 """
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID
 
 from pydantic import Field
@@ -14,7 +13,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class OrderItemResponse(EntitySchema):
     """Response DTO for order item.
-    
+
     Attributes:
         id: Item UUID
         product_id: Product UUID
@@ -24,7 +23,7 @@ class OrderItemResponse(EntitySchema):
         unit_price: Price per unit
         subtotal: Line item total
     """
-    
+
     id: UUID
     product_id: UUID
     product_name: str
@@ -36,7 +35,7 @@ class OrderItemResponse(EntitySchema):
 
 class OrderResponse(EntitySchema):
     """Response DTO for order.
-    
+
     Attributes:
         id: Order UUID
         user_id: Customer UUID
@@ -51,7 +50,7 @@ class OrderResponse(EntitySchema):
         created_at: Creation timestamp
         updated_at: Last update timestamp
     """
-    
+
     id: UUID
     user_id: UUID
     status: str
@@ -65,7 +64,7 @@ class OrderResponse(EntitySchema):
     created_at: datetime
     updated_at: datetime
     items: list[OrderItemResponse] = Field(default_factory=list)
-    
+
     @classmethod
     def from_entity(
         cls,
@@ -73,11 +72,11 @@ class OrderResponse(EntitySchema):
         items: list | None = None,
     ) -> "OrderResponse":
         """Create response from Order entity.
-        
+
         Args:
             order: Order entity
             items: Optional list of OrderItem entities
-            
+
         Returns:
             OrderResponse instance
         """
@@ -95,7 +94,7 @@ class OrderResponse(EntitySchema):
                 )
                 for item in items
             ]
-        
+
         return cls(
             id=order.id,
             user_id=order.user_id,
@@ -115,14 +114,14 @@ class OrderResponse(EntitySchema):
 
 class OrderListResponse(EntitySchema):
     """Response DTO for order list.
-    
+
     Attributes:
         orders: List of orders
         total: Total count
         limit: Page size
         offset: Page offset
     """
-    
+
     orders: list[OrderResponse]
     total: int
     limit: int
@@ -131,9 +130,9 @@ class OrderListResponse(EntitySchema):
 
 class OrderSagaResponse(EntitySchema):
     """Response DTO for legacy saga execution result.
-    
+
     DEPRECATED: Use WorkflowResultResponse instead.
-    
+
     Attributes:
         saga_id: Saga execution UUID
         status: Execution status (completed, failed, pending)
@@ -142,7 +141,7 @@ class OrderSagaResponse(EntitySchema):
         failed_step: Step that failed (if failed)
         duration_ms: Execution duration
     """
-    
+
     saga_id: UUID
     status: str
     order_id: UUID | None = None
@@ -156,12 +155,13 @@ class OrderSagaResponse(EntitySchema):
 # Temporal Workflow Response DTOs
 # =============================================================================
 
+
 class WorkflowStartedResponse(EntitySchema):
     """Response for async workflow start (202 Accepted).
-    
+
     Returned immediately after workflow is started.
     Use workflow_id to track status.
-    
+
     Attributes:
         workflow_id: Temporal workflow ID for tracking
         run_id: Temporal run ID
@@ -169,7 +169,7 @@ class WorkflowStartedResponse(EntitySchema):
         status: Always "started" for this response
         task_queue: Temporal task queue name
     """
-    
+
     workflow_id: str
     run_id: str
     order_id: UUID
@@ -179,9 +179,9 @@ class WorkflowStartedResponse(EntitySchema):
 
 class WorkflowStatusResponse(EntitySchema):
     """Response for workflow status query.
-    
+
     Contains current state of workflow execution.
-    
+
     Attributes:
         workflow_id: Temporal workflow ID
         status: Execution status (running, completed, failed, etc.)
@@ -191,7 +191,7 @@ class WorkflowStatusResponse(EntitySchema):
         run_id: Temporal run ID
         task_queue: Temporal task queue name
     """
-    
+
     workflow_id: str
     status: str
     current_step: str | None = None
@@ -203,10 +203,10 @@ class WorkflowStatusResponse(EntitySchema):
 
 class WorkflowResultResponse(EntitySchema):
     """Response for completed workflow result.
-    
+
     Contains full result after workflow completes.
     Returned by sync execution endpoint.
-    
+
     Attributes:
         workflow_id: Temporal workflow ID
         order_id: Created order UUID
@@ -218,7 +218,7 @@ class WorkflowResultResponse(EntitySchema):
         total_amount: Total charged amount
         error: Error message if failed
     """
-    
+
     workflow_id: str
     order_id: UUID | None = None
     reservation_id: str | None = None

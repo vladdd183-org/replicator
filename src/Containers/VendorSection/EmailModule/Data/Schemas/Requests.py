@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class SendEmailRequest(BaseModel):
     """Request DTO for sending an email.
-    
+
     Attributes:
         recipient: Email recipient address
         subject: Email subject
@@ -17,9 +17,9 @@ class SendEmailRequest(BaseModel):
         is_html: Whether body is HTML
         reply_to: Optional reply-to address
     """
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     recipient: EmailStr
     subject: str = Field(..., min_length=1, max_length=200, description="Email subject")
     body: str = Field(..., min_length=1, description="Email body")

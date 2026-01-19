@@ -1,11 +1,10 @@
 """Order module routes."""
 
-from litestar import Router
+from dishka.integrations.litestar import DishkaRouter
 
 from src.Containers.AppSection.OrderModule.UI.API.Controllers.OrderController import OrderController
 
-
-order_router = Router(
+order_router = DishkaRouter(
     path="/api/v1",
     route_handlers=[OrderController],
 )

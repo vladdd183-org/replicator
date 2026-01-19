@@ -382,7 +382,6 @@ src/Containers/AppSection/NotesModule/
 ```python
 # src/Containers/AppSection/NotesModule/Actions/CreateNoteAction.py
 
-from dataclasses import dataclass
 from returns.result import Result, Success, Failure
 from uuid import UUID
 
@@ -402,11 +401,11 @@ from src.Containers.AppSection.NotesModule.Events import NoteCreated
 MAX_TITLE_LENGTH = 200
 
 
-@dataclass
 class CreateNoteAction(Action[CreateNoteRequest, Note, NoteError]):
     """Создание новой заметки."""
     
-    uow: NoteUnitOfWork
+    def __init__(self, uow: NoteUnitOfWork) -> None:
+        self.uow = uow
     
     async def run(self, data: CreateNoteRequest) -> Result[Note, NoteError]:
         # Валидация

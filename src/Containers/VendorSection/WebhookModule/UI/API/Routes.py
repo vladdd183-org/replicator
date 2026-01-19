@@ -3,8 +3,8 @@
 from dishka.integrations.litestar import DishkaRouter
 
 from src.Containers.VendorSection.WebhookModule.UI.API.Controllers.WebhookController import (
-    WebhookController,
     IncomingWebhookController,
+    WebhookController,
 )
 
 webhook_router = DishkaRouter(
@@ -14,6 +14,3 @@ webhook_router = DishkaRouter(
         IncomingWebhookController,
     ],
 )
-
-
-

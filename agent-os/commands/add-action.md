@@ -100,10 +100,15 @@ class ActivateUserRequest(BaseModel):
 `Events.py`:
 
 ```python
+from datetime import datetime, timezone
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 @dataclass
 class UserActivated(DomainEvent):
     user_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = field(default_factory=_utc_now)
 ```
 
 ### 4. Listener (если указан Event)

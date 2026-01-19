@@ -53,8 +53,10 @@ class UserAlreadyExistsError(ErrorWithTemplate, UserError):
 ### Unauthorized (401)
 
 ```python
-class InvalidCredentialsError(ErrorWithTemplate, AuthError):
-    _message_template: ClassVar[str] = "Invalid email or password"
+class InvalidCredentialsError(AuthError):
+    """Invalid email or password."""
+    
+    message: str = "Invalid email or password"
     code: str = "INVALID_CREDENTIALS"
     http_status: int = 401
 ```

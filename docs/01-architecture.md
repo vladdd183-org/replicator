@@ -328,12 +328,16 @@ async def create_user(
 ```python
 # src/Containers/AppSection/UserModule/Actions/CreateUserAction.py
 
-@dataclass
 class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
     """Use Case: Create a new user."""
     
-    hash_password: HashPasswordTask
-    uow: UserUnitOfWork
+    def __init__(
+        self,
+        hash_password: HashPasswordTask,
+        uow: UserUnitOfWork,
+    ) -> None:
+        self.hash_password = hash_password
+        self.uow = uow
 
     async def run(self, data: CreateUserRequest) -> Result[AppUser, UserError]:
         # Step 1: Check if user exists

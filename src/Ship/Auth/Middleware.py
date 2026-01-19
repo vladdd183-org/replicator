@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 from src.Ship.Auth.JWT import TokenPayload, get_jwt_service
 
 
-@dataclass
+@dataclass(frozen=True)
 class AuthUser:
     """Authenticated user context.
     

@@ -11,7 +11,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 def _parse_jsonb(value: Any) -> dict[str, Any] | None:
     """Parse JSONB value from SQLite/Piccolo.
-    
+
     SQLite may return empty strings for empty JSONB columns.
     """
     if value is None:
@@ -22,6 +22,7 @@ def _parse_jsonb(value: Any) -> dict[str, Any] | None:
         if value in ("", "{}", "[]", "null"):
             return None
         import json
+
         try:
             parsed = json.loads(value)
             return parsed if parsed else None
@@ -32,7 +33,7 @@ def _parse_jsonb(value: Any) -> dict[str, Any] | None:
 
 class AuditLogResponse(EntitySchema):
     """Response DTO for audit log entry."""
-    
+
     id: UUID
     actor_id: UUID | None = None
     actor_email: str | None = None
@@ -49,7 +50,7 @@ class AuditLogResponse(EntitySchema):
     duration_ms: str | None = None
     metadata: dict[str, Any] | None = None
     created_at: datetime
-    
+
     @field_validator("old_values", "new_values", "metadata", mode="before")
     @classmethod
     def parse_jsonb_fields(cls, v: Any) -> dict[str, Any] | None:
@@ -59,7 +60,7 @@ class AuditLogResponse(EntitySchema):
 
 class AuditLogListResponse(EntitySchema):
     """Response DTO for audit log list."""
-    
+
     logs: list[AuditLogResponse]
     total: int
     limit: int
@@ -68,10 +69,9 @@ class AuditLogListResponse(EntitySchema):
 
 class AuditStatsResponse(EntitySchema):
     """Response DTO for audit statistics."""
-    
+
     total_logs: int
     logs_today: int
     unique_actors: int
     top_actions: list[dict]
     top_entities: list[dict]
-

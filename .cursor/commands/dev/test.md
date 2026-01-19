@@ -33,19 +33,19 @@
 
 ```bash
 # Все тесты
-pytest
+uv run pytest
 
 # Конкретный модуль
-pytest tests/unit/Containers/AppSection/UserModule/
+uv run pytest tests/unit/Containers/AppSection/UserModule/
 
 # С покрытием
-pytest --cov=src --cov-report=term-missing
+uv run pytest --cov=src --cov-report=term-missing
 
 # Только упавшие
-pytest --lf
+uv run pytest --lf
 
 # Verbose
-pytest -v
+uv run pytest -v
 ```
 
 ## Структура тестов

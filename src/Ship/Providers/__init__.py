@@ -1,13 +1,15 @@
 """Ship providers module.
 
-Exports all application-level providers.
+Exports Ship-level providers only.
+Container providers are collected at the App level (src/Providers.py).
+
+ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
 """
 
 from src.Ship.Providers.AppProvider import (
     AppProvider,
-    get_all_providers,
-    get_cli_providers,
-    get_worker_providers,
+    get_ship_providers,
+    get_ship_cli_providers,
 )
 
-__all__ = ["AppProvider", "get_all_providers", "get_cli_providers", "get_worker_providers"]
+__all__ = ["AppProvider", "get_ship_providers", "get_ship_cli_providers"]

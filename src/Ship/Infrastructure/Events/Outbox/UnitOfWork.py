@@ -144,7 +144,7 @@ class OutboxAwareUnitOfWork:
     """
     
     from dataclasses import field as dataclass_field
-    from typing import Callable, Any
+    from typing import Callable
     
     # Event emitter (from Litestar)
     _emit: Any = field(default=None, repr=False)
@@ -211,7 +211,6 @@ class OutboxAwareUnitOfWork:
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Exit transaction context with outbox support."""
-        import logfire
         
         if self._transaction is None:
             self._events.clear()

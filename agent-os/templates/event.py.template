@@ -1,181 +1,39 @@
-"""${Module} domain events and listeners.
+"""${Module} domain events.
 
 Events are published through UnitOfWork after successful commit.
 Listeners handle events using @listener decorator from litestar.events.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime
 from uuid import UUID
-
-import logfire
-from litestar import Litestar
-from litestar.events import listener
-from litestar.channels import ChannelsPlugin
 
 from src.Ship.Parents.Event import DomainEvent
 
 
 # =============================================================================
-# DOMAIN EVENTS (Events.py)
+# DOMAIN EVENTS
 # =============================================================================
 
-@dataclass
+
 class ${Entity}Created(DomainEvent):
-    """Event fired when a new ${entity_lower} is created.
+    """Event emitted when ${Entity} is created.
     
     Published after UoW commit via litestar.events.
     """
     
     ${entity_lower}_id: UUID
-    email: str
-    name: str | None = None
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
-    
-    @property
-    def event_name(self) -> str:
-        return "${Entity}Created"
+    # Add other fields as needed
 
 
-@dataclass
 class ${Entity}Updated(DomainEvent):
-    """Event fired when ${entity_lower} is updated."""
+    """Event emitted when ${Entity} is updated."""
     
     ${entity_lower}_id: UUID
-    updated_fields: list[str] = field(default_factory=list)
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
-    
-    @property
-    def event_name(self) -> str:
-        return "${Entity}Updated"
 
 
-@dataclass
 class ${Entity}Deleted(DomainEvent):
-    """Event fired when ${entity_lower} is deleted."""
+    """Event emitted when ${Entity} is deleted."""
     
     ${entity_lower}_id: UUID
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
-    
-    @property
-    def event_name(self) -> str:
-        return "${Entity}Deleted"
-
-
-# =============================================================================
-# EVENT LISTENERS (Listeners.py)
-# =============================================================================
-
-@listener("${Entity}Created")
-async def on_${entity_lower}_created(
-    ${entity_lower}_id: str,
-    email: str,
-    name: str | None = None,
-    app: Litestar | None = None,
-    occurred_at: str | None = None,
-    **kwargs,
-) -> None:
-    """Handle ${Entity}Created event.
-    
-    Called automatically when ${Entity}Created event is published.
-    
-    Args:
-        ${entity_lower}_id: UUID of created ${entity_lower} (as string)
-        email: Email of created ${entity_lower}
-        name: Name of created ${entity_lower}
-        app: Litestar app instance (for accessing plugins)
-        occurred_at: Timestamp when event occurred
-        **kwargs: Additional event data
-    """
-    logfire.info(
-        "🎉 ${Entity} created",
-        ${entity_lower}_id=${entity_lower}_id,
-        email=email,
-        name=name,
-    )
-    
-    # Publish to WebSocket channel (if app available)
-    if app:
-        _publish_to_channel(app, ${entity_lower}_id, "${entity_lower}_created", {
-            "email": email,
-            "name": name,
-        })
-
-
-@listener("${Entity}Updated")
-async def on_${entity_lower}_updated(
-    ${entity_lower}_id: str,
-    updated_fields: list[str] | None = None,
-    app: Litestar | None = None,
-    **kwargs,
-) -> None:
-    """Handle ${Entity}Updated event."""
-    logfire.info(
-        "✏️ ${Entity} updated",
-        ${entity_lower}_id=${entity_lower}_id,
-        updated_fields=updated_fields,
-    )
-    
-    if app:
-        _publish_to_channel(app, ${entity_lower}_id, "${entity_lower}_updated", {
-            "updated_fields": updated_fields,
-        })
-
-
-@listener("${Entity}Deleted")
-async def on_${entity_lower}_deleted(
-    ${entity_lower}_id: str,
-    app: Litestar | None = None,
-    **kwargs,
-) -> None:
-    """Handle ${Entity}Deleted event."""
-    logfire.info(
-        "🗑️ ${Entity} deleted",
-        ${entity_lower}_id=${entity_lower}_id,
-    )
-    
-    if app:
-        _publish_to_channel(app, ${entity_lower}_id, "${entity_lower}_deleted", {})
-
-
-# Combined listener for any change
-@listener("${Entity}Created", "${Entity}Updated", "${Entity}Deleted")
-async def on_${entity_lower}_changed(
-    ${entity_lower}_id: str,
-    **kwargs,
-) -> None:
-    """Handle any ${entity_lower} change (for audit, cache invalidation, etc.)."""
-    logfire.debug("${Entity} changed", ${entity_lower}_id=${entity_lower}_id)
-    # Invalidate cache, update search index, etc.
-
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-def _publish_to_channel(
-    app: Litestar,
-    ${entity_lower}_id: str,
-    event_type: str,
-    data: dict,
-) -> None:
-    """Publish event to WebSocket channel.
-    
-    Args:
-        app: Litestar app instance
-        ${entity_lower}_id: ${Entity} ID for channel name
-        event_type: Type of event
-        data: Event data to publish
-    """
-    try:
-        channels = app.plugins.get(ChannelsPlugin)
-        if channels:
-            channels.publish(
-                data={"event": event_type, "${entity_lower}_id": ${entity_lower}_id, **data},
-                channels=[f"${entity_lower}:{${entity_lower}_id}"],
-            )
-    except Exception as e:
-        logfire.warning("Failed to publish to channel", error=str(e))
 
 
 # =============================================================================
@@ -190,8 +48,6 @@ def _publish_to_channel(
 #         # Add event to queue
 #         self.uow.add_event(${Entity}Created(
 #             ${entity_lower}_id=${entity_lower}.id,
-#             email=${entity_lower}.email,
-#             name=${entity_lower}.name,
 #         ))
 #         
 #         await self.uow.commit()
@@ -207,7 +63,6 @@ def _publish_to_channel(
 #     on_${entity_lower}_created,
 #     on_${entity_lower}_updated,
 #     on_${entity_lower}_deleted,
-#     on_${entity_lower}_changed,
 # )
 #
 # app = Litestar(
@@ -216,10 +71,6 @@ def _publish_to_channel(
 #         on_${entity_lower}_created,
 #         on_${entity_lower}_updated,
 #         on_${entity_lower}_deleted,
-#         on_${entity_lower}_changed,
 #     ],
 # )
 # =============================================================================
-
-
-

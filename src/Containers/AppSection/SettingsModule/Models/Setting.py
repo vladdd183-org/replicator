@@ -1,17 +1,17 @@
 """Global Setting model."""
 
-from piccolo.columns import UUID, Varchar, Text, Boolean, Timestamptz, JSONB
-from piccolo.columns.defaults.uuid import UUID4
+from piccolo.columns import UUID, Boolean, Text, Timestamptz, Varchar
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
+from piccolo.columns.defaults.uuid import UUID4
 
 from src.Ship.Parents.Model import Model
 
 
 class Setting(Model):
     """Global application settings.
-    
+
     Key-value store for application configuration.
-    
+
     Attributes:
         id: Unique identifier
         key: Setting key (unique, e.g., "max_file_size", "maintenance_mode")
@@ -23,7 +23,7 @@ class Setting(Model):
         created_at: When created
         updated_at: When last modified
     """
-    
+
     id = UUID(primary_key=True, default=UUID4())
     key = Varchar(length=100, required=True, unique=True, index=True)
     value = Text(required=True)
@@ -31,12 +31,9 @@ class Setting(Model):
     description = Text(null=True)
     is_readonly = Boolean(default=False)
     category = Varchar(length=50, default="general", index=True)
-    
+
     created_at = Timestamptz(default=TimestamptzNow())
     updated_at = Timestamptz(default=TimestamptzNow())
-    
+
     class Meta:
         tablename = "settings"
-
-
-

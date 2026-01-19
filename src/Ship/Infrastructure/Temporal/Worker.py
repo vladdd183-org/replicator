@@ -3,35 +3,33 @@
 Worker выполняет Workflows и Activities. Один Worker может обрабатывать
 несколько Task Queues, но обычно используется один queue на приложение.
 
+ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
+Container workflows/activities are registered at the App level (src/TemporalWorker.py).
+
 Запуск Worker:
 
-    # Как CLI команда
-    $ python -m src.Ship.Infrastructure.Temporal.Worker
+    # Как CLI команда (через App-level entry point)
+    $ python -m src.TemporalWorker
     
     # Или через entry point (добавить в pyproject.toml)
     $ temporal-worker
-    
-    # Программно
-    from src.Ship.Infrastructure.Temporal.Worker import run_temporal_worker
-    await run_temporal_worker()
 
-Регистрация Workflows и Activities:
+Регистрация Workflows и Activities (at App level - src/TemporalWorker.py):
 
-    # Все workflow и activity классы должны быть зарегистрированы
-    # в WorkerConfig или через декораторы
-    
-    from src.Containers.AppSection.OrderModule.Workflows import CreateOrderWorkflow
-    from src.Containers.AppSection.OrderModule.Activities import (
-        create_order_activity,
-        cancel_order_activity,
+    from src.Ship.Infrastructure.Temporal.Worker import (
+        TemporalWorkerConfig,
+        run_temporal_worker,
     )
+    # Container imports are allowed at App level
+    from src.Containers.AppSection.OrderModule.Workflows import CreateOrderWorkflow
+    from src.Containers.AppSection.OrderModule.Activities import create_order_activity
     
     config = TemporalWorkerConfig(
         workflows=[CreateOrderWorkflow],
-        activities=[create_order_activity, cancel_order_activity],
+        activities=[create_order_activity],
     )
     
-    await run_temporal_worker(config)
+    asyncio.run(run_temporal_worker(config))
 
 Конфигурация:
     
@@ -45,10 +43,10 @@ import asyncio
 import anyio
 import signal
 from dataclasses import dataclass, field
-from typing import Any, Callable, Sequence
+from typing import Any, Callable
 
 from temporalio.client import Client
-from temporalio.worker import Worker, SharedStateManager
+from temporalio.worker import Worker
 
 from src.Ship.Configs.Settings import Settings, get_settings
 from src.Ship.Infrastructure.Temporal.Client import (
@@ -268,48 +266,42 @@ async def run_temporal_worker(
 
 
 def get_all_workflows() -> list[type]:
-    """Discover all registered Temporal workflows.
+    """Get registered Temporal workflows (Ship-only, returns empty).
     
-    Override this function in your application to return
-    all workflow classes that should be registered.
+    ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
+    Override this at the App level (e.g., src/TemporalWorker.py).
     
     Returns:
-        List of workflow classes
+        Empty list (override at App level for Container workflows)
         
-    Example:
-        # In your app's startup
-        def get_all_workflows():
+    Example at App level (src/TemporalWorker.py):
+        def get_app_workflows():
             from src.Containers.AppSection.OrderModule.Workflows import (
                 CreateOrderWorkflow,
-                CancelOrderWorkflow,
             )
-            return [CreateOrderWorkflow, CancelOrderWorkflow]
+            return [CreateOrderWorkflow]
     """
-    # Import your workflows here
-    # from src.Containers.AppSection.OrderModule.Workflows import ...
+    # Ship-level workflows only (none by default)
     return []
 
 
 def get_all_activities() -> list[Callable[..., Any]]:
-    """Discover all registered Temporal activities.
+    """Get registered Temporal activities (Ship-only, returns empty).
     
-    Override this function in your application to return
-    all activity functions that should be registered.
+    ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
+    Override this at the App level (e.g., src/TemporalWorker.py).
     
     Returns:
-        List of activity functions
+        Empty list (override at App level for Container activities)
         
-    Example:
-        # In your app's startup
-        def get_all_activities():
+    Example at App level (src/TemporalWorker.py):
+        def get_app_activities():
             from src.Containers.AppSection.OrderModule.Activities import (
                 create_order_activity,
-                cancel_order_activity,
             )
-            return [create_order_activity, cancel_order_activity]
+            return [create_order_activity]
     """
-    # Import your activities here
-    # from src.Containers.AppSection.OrderModule.Activities import ...
+    # Ship-level activities only (none by default)
     return []
 
 

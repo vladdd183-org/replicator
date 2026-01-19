@@ -10,6 +10,3 @@
 from src.Containers.AppSection.AuditModule.UI.API.Routes import audit_router
 
 __all__ = ["audit_router"]
-
-
-

@@ -18,58 +18,60 @@ from dishka import Provider, Scope, provide
 from litestar import Request
 from temporalio.client import Client as TemporalClient
 
-from src.Containers.AppSection.OrderModule.Actions.CreateOrderAction import CreateOrderAction
 from src.Containers.AppSection.OrderModule.Actions.CancelOrderAction import CancelOrderAction
-from src.Containers.AppSection.OrderModule.Actions.StartCreateOrderWorkflowAction import (
-    StartCreateOrderWorkflowAction,
-    ExecuteCreateOrderWorkflowAction,
-)
+from src.Containers.AppSection.OrderModule.Actions.CreateOrderAction import CreateOrderAction
 from src.Containers.AppSection.OrderModule.Actions.GetOrderWorkflowStatusAction import (
     GetOrderWorkflowStatusAction,
     WaitForOrderWorkflowAction,
 )
+from src.Containers.AppSection.OrderModule.Actions.StartCreateOrderWorkflowAction import (
+    ExecuteCreateOrderWorkflowAction,
+    StartCreateOrderWorkflowAction,
+)
+from src.Containers.AppSection.OrderModule.Data.Repositories.OrderItemRepository import (
+    OrderItemRepository,
+)
+from src.Containers.AppSection.OrderModule.Data.Repositories.OrderRepository import OrderRepository
+from src.Containers.AppSection.OrderModule.Data.UnitOfWork import OrderUnitOfWork
 from src.Containers.AppSection.OrderModule.Queries.GetOrderQuery import GetOrderQuery
 from src.Containers.AppSection.OrderModule.Queries.ListUserOrdersQuery import ListUserOrdersQuery
-from src.Containers.AppSection.OrderModule.Data.Repositories.OrderRepository import OrderRepository
-from src.Containers.AppSection.OrderModule.Data.Repositories.OrderItemRepository import OrderItemRepository
-from src.Containers.AppSection.OrderModule.Data.UnitOfWork import OrderUnitOfWork
-from src.Containers.AppSection.OrderModule.Tasks.InventoryTask import InventoryTask
-from src.Containers.AppSection.OrderModule.Tasks.PaymentTask import PaymentTask
-from src.Containers.AppSection.OrderModule.Tasks.NotificationTask import NotificationTask
+from src.Containers.AppSection.OrderModule.Tasks.ReserveInventoryTask import ReserveInventoryTask
+from src.Containers.AppSection.OrderModule.Tasks.SendNotificationTask import SendNotificationTask
+from src.Containers.AppSection.OrderModule.Tasks.ProcessPaymentTask import ProcessPaymentTask
 
 
 class OrderModuleProvider(Provider):
     """Core provider for OrderModule - APP scope dependencies.
-    
+
     Stateless services that can be reused across requests.
     Includes Temporal Client as singleton.
     """
-    
+
     scope = Scope.APP
-    
+
     # Tasks - stateless, reusable
-    inventory_task = provide(InventoryTask)
-    payment_task = provide(PaymentTask)
-    notification_task = provide(NotificationTask)
+    reserve_inventory_task = provide(ReserveInventoryTask)
+    process_payment_task = provide(ProcessPaymentTask)
+    send_notification_task = provide(SendNotificationTask)
 
 
 class _BaseOrderRequestProvider(Provider):
     """Base provider with common REQUEST scope dependencies.
-    
+
     Contains all dependencies shared between HTTP and CLI contexts.
     Not exported - use OrderRequestProvider or OrderCLIProvider instead.
     """
-    
+
     scope = Scope.REQUEST
-    
+
     # Repositories (for Actions that use UoW)
     order_repository = provide(OrderRepository)
     order_item_repository = provide(OrderItemRepository)
-    
+
     # Queries - CQRS read side (direct ORM access, no dependencies)
     get_order_query = provide(GetOrderQuery)
     list_user_orders_query = provide(ListUserOrdersQuery)
-    
+
     # Actions - CQRS write side (need UoW, provided by subclass)
     @provide
     def create_order_action(
@@ -78,7 +80,7 @@ class _BaseOrderRequestProvider(Provider):
     ) -> CreateOrderAction:
         """Provide CreateOrderAction with UoW."""
         return CreateOrderAction(uow=uow)
-    
+
     @provide
     def cancel_order_action(
         self,
@@ -86,7 +88,7 @@ class _BaseOrderRequestProvider(Provider):
     ) -> CancelOrderAction:
         """Provide CancelOrderAction with UoW."""
         return CancelOrderAction(uow=uow)
-    
+
     # Temporal Workflow Actions
     @provide
     def start_create_order_workflow_action(
@@ -95,7 +97,7 @@ class _BaseOrderRequestProvider(Provider):
     ) -> StartCreateOrderWorkflowAction:
         """Provide StartCreateOrderWorkflowAction with Temporal client."""
         return StartCreateOrderWorkflowAction(temporal_client=temporal_client)
-    
+
     @provide
     def execute_create_order_workflow_action(
         self,
@@ -103,7 +105,7 @@ class _BaseOrderRequestProvider(Provider):
     ) -> ExecuteCreateOrderWorkflowAction:
         """Provide ExecuteCreateOrderWorkflowAction with Temporal client."""
         return ExecuteCreateOrderWorkflowAction(temporal_client=temporal_client)
-    
+
     @provide
     def get_order_workflow_status_action(
         self,
@@ -111,7 +113,7 @@ class _BaseOrderRequestProvider(Provider):
     ) -> GetOrderWorkflowStatusAction:
         """Provide GetOrderWorkflowStatusAction with Temporal client."""
         return GetOrderWorkflowStatusAction(temporal_client=temporal_client)
-    
+
     @provide
     def wait_for_order_workflow_action(
         self,
@@ -123,10 +125,10 @@ class _BaseOrderRequestProvider(Provider):
 
 class OrderRequestProvider(_BaseOrderRequestProvider):
     """HTTP request-scoped provider for OrderModule.
-    
+
     Extends base provider with UnitOfWork that has event emitter.
     """
-    
+
     @provide
     def provide_order_uow(self, request: Request) -> OrderUnitOfWork:
         """Provide OrderUnitOfWork with event emitter from request."""
@@ -135,10 +137,10 @@ class OrderRequestProvider(_BaseOrderRequestProvider):
 
 class OrderCLIProvider(_BaseOrderRequestProvider):
     """CLI-specific provider for OrderModule.
-    
+
     Extends base provider with UnitOfWork without event emitter.
     """
-    
+
     @provide
     def provide_order_uow(self) -> OrderUnitOfWork:
         """Provide OrderUnitOfWork without event emitter for CLI."""
@@ -146,7 +148,7 @@ class OrderCLIProvider(_BaseOrderRequestProvider):
 
 
 __all__ = [
+    "OrderCLIProvider",
     "OrderModuleProvider",
     "OrderRequestProvider",
-    "OrderCLIProvider",
 ]

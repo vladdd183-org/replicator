@@ -1,4 +1,1 @@
 """WebhookModule UI layer."""
-
-
-

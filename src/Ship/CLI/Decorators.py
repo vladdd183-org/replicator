@@ -2,6 +2,9 @@
 
 Uses dishka.integrations.click for automatic DI in Click commands.
 
+ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
+CLI providers are configured via configure_cli_providers() called from App level.
+
 Usage:
     from dishka.integrations.click import FromDishka, inject
     
@@ -14,7 +17,10 @@ Usage:
         result = await action.run(...)
 
 Setup (call once in CLI entry point):
-    from src.Ship.CLI.Decorators import setup_cli_container
+    from src.Ship.CLI.Decorators import setup_cli_container, configure_cli_providers
+    from src.Providers import get_cli_providers
+    
+    configure_cli_providers(get_cli_providers)
     setup_cli_container(click_group)
 """
 
@@ -25,9 +31,8 @@ from typing import TypeVar, Callable, Any
 import click
 from rich.console import Console
 from returns.result import Result, Success, Failure
-from dishka import make_async_container
+from dishka import Provider, make_async_container
 
-from src.Ship.Providers import get_cli_providers
 from src.Ship.Infrastructure.Telemetry import ensure_logfire_configured
 
 T = TypeVar("T")
@@ -36,16 +41,45 @@ console = Console()
 
 # Global container for CLI - initialized once
 _cli_container = None
+# Provider function - configured from App level
+_provider_fn: Callable[[], list[Provider]] | None = None
+
+
+def configure_cli_providers(provider_fn: Callable[[], list[Provider]]) -> None:
+    """Configure CLI providers function.
+    
+    Must be called before using get_cli_container().
+    Should be called from App level (not Ship) to maintain architecture.
+    
+    Args:
+        provider_fn: Function that returns list of providers
+        
+    Example:
+        from src.Ship.CLI.Decorators import configure_cli_providers
+        from src.Providers import get_cli_providers
+        
+        configure_cli_providers(get_cli_providers)
+    """
+    global _provider_fn
+    _provider_fn = provider_fn
 
 
 def get_cli_container():
     """Get or create CLI DI container.
     
     Returns singleton container for CLI commands.
+    
+    Raises:
+        RuntimeError: If configure_cli_providers() was not called
     """
     global _cli_container
     if _cli_container is None:
-        _cli_container = make_async_container(*get_cli_providers())
+        if _provider_fn is None:
+            # Fall back to ship-only providers if not configured
+            from src.Ship.Providers import get_ship_cli_providers
+            _cli_container = make_async_container(*get_ship_cli_providers())
+        else:
+            _cli_container = make_async_container(*_provider_fn())
     return _cli_container
 
 

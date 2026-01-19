@@ -5,7 +5,6 @@ They are immutable and used for decoupling between modules.
 """
 
 from datetime import datetime, timezone
-from typing import TypeVar
 
 from pydantic import BaseModel, Field
 

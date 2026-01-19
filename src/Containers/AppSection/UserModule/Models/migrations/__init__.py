@@ -1,4 +1,1 @@
 """Piccolo migrations for UserModule."""
-
-
-

@@ -53,11 +53,27 @@ async with self.uow:
 
 ```python
 # Listeners.py
-from src.Containers.[Section].[Module].Events import UserCreated
+from litestar.events import listener
 
-async def on_user_created_send_welcome_email(event: UserCreated) -> None:
+@listener("UserCreated")
+async def on_user_created_send_welcome_email(
+    user_id: str,
+    email: str,
+    name: str,
+    app: Litestar | None = None,
+    **kwargs,
+) -> None:
     """Send welcome email to new user."""
-    # Handle event
+    # Handle event - parameters come from event.model_dump()
+    pass
+
+@listener("UserCreated")
+async def on_user_created_init_settings(
+    user_id: str,
+    email: str,
+    **kwargs,
+) -> None:
+    """Initialize default settings for new user."""
     pass
 ```
 
@@ -74,14 +90,33 @@ Pattern: `on_{event_snake_case}_{action}`
 
 ```python
 # App.py
-from litestar.events import listener
+from src.Containers.AppSection.UserModule.Listeners import (
+    on_user_created_send_welcome_email,
+    on_user_created_init_settings,
+)
 
-listeners = [
-    listener(UserCreated)(on_user_created_send_welcome_email),
-    listener(UserCreated)(on_user_created_init_settings),
-]
+app = Litestar(
+    ...,
+    listeners=[
+        on_user_created_send_welcome_email,
+        on_user_created_init_settings,
+    ],
+)
+```
 
-app = Litestar(..., listeners=listeners)
+## Event Emission (from UoW)
+
+```python
+# BaseUnitOfWork emits events after commit
+async def commit(self) -> None:
+    await self.connection.commit()
+    
+    # Emit events via Litestar's EventEmitter
+    for event in self._events:
+        # Event name is class name (e.g., "UserCreated")
+        await self._emit(event.__class__.__name__, **event.model_dump())
+    
+    self._events.clear()
 ```
 
 ## Cross-Module Communication

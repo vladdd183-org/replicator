@@ -17,7 +17,6 @@ from typing import Literal
 import logfire
 
 from src.Ship.Configs.Settings import Settings
-from src.Ship.Infrastructure.Events.Backends.Base import BaseEventBus
 from src.Ship.Infrastructure.Events.Errors import BackendNotSupportedError
 from src.Ship.Infrastructure.Events.Protocol import EventBusProtocol
 

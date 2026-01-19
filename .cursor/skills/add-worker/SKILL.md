@@ -70,6 +70,6 @@ scheduler.schedule(
 ## Запуск workers
 
 ```bash
-taskiq worker src.Ship.Infrastructure.Workers.Broker:broker
-taskiq scheduler src.Ship.Infrastructure.Workers.Broker:scheduler
+uv run taskiq worker src.Ship.Infrastructure.Workers.Broker:broker
+uv run taskiq scheduler src.Ship.Infrastructure.Workers.Broker:scheduler
 ```

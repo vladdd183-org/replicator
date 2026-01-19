@@ -414,7 +414,7 @@ class UserUnitOfWork:
 # ✅ С BaseUnitOfWork — только добавляем repositories
 @dataclass
 class UserUnitOfWork(BaseUnitOfWork):
-    users: UserRepository = None  # Injected by Dishka
+    users: UserRepository = field(default_factory=UserRepository)
 ```
 
 ---

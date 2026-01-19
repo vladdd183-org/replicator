@@ -62,30 +62,30 @@ APP_REGISTRY = AppRegistry(
 
 ```bash
 # Автогенерация из изменений моделей
-litestar db make-migrations --auto
+uv run piccolo migrations new ModuleName --auto
 
 # С кастомным описанием
-litestar db make-migrations --auto --description "add user roles"
+uv run piccolo migrations new ModuleName --auto --description "add user roles"
 ```
 
 ### Применение миграций
 
 ```bash
 # Применить все pending миграции
-litestar db migrate
+uv run piccolo migrations forwards all
 
 # Проверить статус
-litestar db status
+uv run piccolo migrations check
 ```
 
 ### Откат
 
 ```bash
 # Откатить последнюю миграцию
-litestar db migrate --reverse
+uv run piccolo migrations backwards ModuleName 1
 
 # Откатить до конкретной миграции
-litestar db migrate --target {migration_id}
+uv run piccolo migrations backwards ModuleName {migration_id}
 ```
 
 ---

@@ -20,7 +20,7 @@ async def on_notification_created(
     **kwargs,
 ) -> None:
     """Handle NotificationCreated event.
-    
+
     Publishes to WebSocket channel for real-time updates.
     """
     logfire.info(
@@ -30,7 +30,7 @@ async def on_notification_created(
         notification_type=notification_type,
         title=title,
     )
-    
+
     publish_to_user_channel(
         app,
         user_id,
@@ -56,7 +56,7 @@ async def on_notification_read(
         notification_id=notification_id,
         user_id=user_id,
     )
-    
+
     publish_to_user_channel(
         app,
         user_id,
@@ -78,7 +78,7 @@ async def on_all_notifications_read(
         user_id=user_id,
         count=count,
     )
-    
+
     publish_to_user_channel(
         app,
         user_id,
@@ -88,8 +88,7 @@ async def on_all_notifications_read(
 
 
 __all__ = [
+    "on_all_notifications_read",
     "on_notification_created",
     "on_notification_read",
-    "on_all_notifications_read",
 ]
-

@@ -30,3 +30,7 @@ API Endpoints:
 - GET /orders/{id} - Get order by ID
 - DELETE /orders/{id} - Cancel order
 """
+
+from src.Containers.AppSection.OrderModule.UI.API.Routes import order_router
+
+__all__ = ["order_router"]

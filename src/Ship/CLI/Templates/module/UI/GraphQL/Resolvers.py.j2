@@ -23,7 +23,9 @@ from src.Containers.{{ section }}.{{ module_name }}.Queries.List{{ name_plural_p
 from src.Containers.{{ section }}.{{ module_name }}.Data.Schemas.Requests import Create{{ name }}Request
 from src.Containers.{{ section }}.{{ module_name }}.UI.GraphQL.Types import (
     {{ name }}Type,
+    {{ name }}ErrorType,
     Create{{ name }}Input,
+    Create{{ name }}Payload,
 )
 
 
@@ -72,7 +74,7 @@ class {{ name }}Mutation:
         self,
         info: Info,
         input: Create{{ name }}Input,
-    ) -> {{ name }}Type:
+    ) -> Create{{ name }}Payload:
         """Create a new {{ name_lower }}."""
         action = await get_dependency(info, Create{{ name }}Action)
         
@@ -85,6 +87,12 @@ class {{ name }}Mutation:
         
         match result:
             case Success(entity):
-                return {{ name }}Type.from_entity(entity)
+                return Create{{ name }}Payload(
+                    {{ name_lower }}={{ name }}Type.from_entity(entity),
+                    error=None,
+                )
             case Failure(error):
-                raise Exception(error.message)
+                return Create{{ name }}Payload(
+                    {{ name_lower }}=None,
+                    error={{ name }}ErrorType(message=error.message, code=error.code),
+                )

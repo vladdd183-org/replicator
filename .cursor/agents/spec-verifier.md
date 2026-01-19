@@ -298,10 +298,6 @@ IMPORTANT: Ensure that the spec and tasks list are ALIGNED and DO NOT CONFLICT w
 @agent-os/standards/backend/migrations.md
 @agent-os/standards/backend/models.md
 @agent-os/standards/backend/queries.md
-@agent-os/standards/frontend/accessibility.md
-@agent-os/standards/frontend/components.md
-@agent-os/standards/frontend/css.md
-@agent-os/standards/frontend/responsive.md
 @agent-os/standards/global/coding-style.md
 @agent-os/standards/global/commenting.md
 @agent-os/standards/global/conventions.md

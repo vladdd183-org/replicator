@@ -7,6 +7,8 @@ They do not modify state and bypass UnitOfWork for better performance.
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
+__all__ = ["Query", "SyncQuery"]
+
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 

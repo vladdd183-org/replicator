@@ -12,10 +12,9 @@ Features:
 """
 
 from dataclasses import dataclass, field
-from typing import Any
 
 import anyio
-from anyio import create_task_group, move_on_after
+from anyio import move_on_after
 from anyio.abc import TaskGroup
 
 import logfire
@@ -23,7 +22,6 @@ import logfire
 from src.Ship.Infrastructure.Events.Backends.Base import BaseEventBus
 from src.Ship.Infrastructure.Events.Models import (
     EventEnvelope,
-    EventPriority,
 )
 
 

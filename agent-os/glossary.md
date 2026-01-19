@@ -39,7 +39,7 @@
 | **Structured Concurrency** | anyio TaskGroups | [docs/05-concurrency.md](../docs/05-concurrency.md) |
 | **Gateway** | Protocol + Adapter для межмодульной связи | [docs/14-module-gateway-pattern.md](../docs/14-module-gateway-pattern.md) |
 | **Saga** | Распределённые транзакции (Temporal) | [docs/15-saga-patterns.md](../docs/15-saga-patterns.md) |
-| **Outbox** | Гарантированная доставка событий | [docs/18-unified-event-bus.md](../docs/18-unified-event-bus.md) |
+| **Outbox** | Гарантированная доставка событий | [docs/17-unified-event-bus.md](../docs/17-unified-event-bus.md) |
 
 ---
 
@@ -47,7 +47,7 @@
 
 | Термин | Тип | Особенности |
 |--------|-----|-------------|
-| **Request DTO** | `BaseModel` + `frozen=True` | Валидация входных данных |
+| **Request DTO** | `BaseModel` | Валидация входных данных (mutable) |
 | **Response DTO** | `EntitySchema` | `from_entity()` для конвертации |
 | **Error** | `BaseError` (frozen) | `http_status`, `code`, `message` |
 | **Model** | Piccolo `Table` | ORM сущность |

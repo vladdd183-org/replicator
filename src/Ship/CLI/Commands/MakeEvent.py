@@ -9,7 +9,7 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
-from src.Ship.CLI.Generator import generate_component, to_pascal_case
+from src.Ship.CLI.Generator import to_pascal_case
 
 console = Console()
 

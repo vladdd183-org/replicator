@@ -11,7 +11,6 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 from src.Containers.VendorSection.WebhookModule.Models.Webhook import Webhook
 from src.Containers.VendorSection.WebhookModule.Models.WebhookDelivery import WebhookDelivery
 
-
 APP_CONFIG = AppConfig(
     app_name="webhook",
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "migrations"),

@@ -7,14 +7,13 @@ Provides commands for:
 - Resetting failed events
 """
 
-import asyncio
 from uuid import UUID
 
 import click
 from rich.console import Console
 from rich.table import Table
 
-from src.Ship.CLI.Decorators import with_container, handle_cli_result
+from src.Ship.CLI.Decorators import with_container
 from src.Ship.Infrastructure.Events.Outbox.Repository import OutboxEventRepository
 from src.Ship.Infrastructure.Events.Outbox.Publisher import OutboxPublisherService
 

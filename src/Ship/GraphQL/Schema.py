@@ -1,43 +1,14 @@
-"""Root GraphQL Schema.
+"""Base GraphQL types for Ship layer.
 
-Uses manual dependency injection via get_dependency helper.
+Ship provides base types and helpers. Actual schema assembly
+with Container resolvers happens in App.py to maintain proper
+architecture layering (Ship → Containers is forbidden).
+
+Re-exports context getter for convenience.
 """
 
-import strawberry
-
-from src.Containers.AppSection.UserModule.UI.GraphQL.Resolvers import (
-    UserQuery,
-    UserMutation,
-)
 # Re-export context getter for convenience
 from src.Ship.GraphQL.Context import get_graphql_context
 
 
-@strawberry.type
-class Query(UserQuery):
-    """Root GraphQL Query.
-
-    Inherits from module-specific queries.
-    """
-
-    pass
-
-
-@strawberry.type
-class Mutation(UserMutation):
-    """Root GraphQL Mutation.
-
-    Inherits from module-specific mutations.
-    """
-
-    pass
-
-
-# Create schema
-schema = strawberry.Schema(
-    query=Query,
-    mutation=Mutation,
-)
-
-
-__all__ = ["schema", "get_graphql_context", "Query", "Mutation"]
+__all__ = ["get_graphql_context"]

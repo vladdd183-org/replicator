@@ -44,7 +44,6 @@
     - Возвращай Result[T, E] для Railway-Oriented Programming
 """
 
-from dataclasses import dataclass
 from datetime import timedelta
 from functools import wraps
 from typing import Any, Callable, ParamSpec, TypeVar

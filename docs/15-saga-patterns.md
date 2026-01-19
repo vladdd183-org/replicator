@@ -1255,7 +1255,7 @@ class CreateOrderAction(Action[CreateOrderRequest, OrderResponse, OrderError]):
 
 - [04-result-railway.md](04-result-railway.md) — Railway-Oriented Programming
 - [05-concurrency.md](05-concurrency.md) — Structured Concurrency
-- [13-temporal-integration.md](13-temporal-integration.md) — Интеграция Temporal с Porto
+- [13-cross-module-communication.md](13-cross-module-communication.md) — Интеграция Temporal с Porto
 
 ---
 

@@ -24,13 +24,12 @@
 | 13 | [Cross-Module Communication](13-cross-module-communication.md) | Event-Driven кросс-модульное взаимодействие |
 | 14 | [Module Gateway Pattern](14-module-gateway-pattern.md) | Паттерн Gateway и Репликация данных |
 | 15 | [Saga Patterns](15-saga-patterns.md) | Распределённые транзакции и SAGA паттерны |
-| 16 | [Future Roadmap](16-future-roadmap.md) | Roadmap развития архитектуры |
-| 17 | [Microservice Extraction Guide](17-microservice-extraction-guide.md) | **Полное руководство** по выносу Container в микросервис |
-| 18 | [Unified Event Bus](18-unified-event-bus.md) | **Единая система событий** с подменяемыми бэкендами |
-| 19 | [Istio Ambient Mesh](19-istio-ambient-mesh.md) | **Service Mesh без sidecar'ов** — mTLS, traffic management |
-| 21 | [Integration Patterns Guide](21-integration-patterns-guide.md) | **Когда использовать** Event Bus vs Gateway vs Temporal vs TaskIQ |
-| 23 | [Cursor AI Components](23-cursor-ai-components.md) | **Rules, Skills, Subagents, Commands** — автоматизация разработки |
-| 24 | [Self-Improving Systems](24-self-improving-systems.md) | Memory, Feedback, Standards Evolution, Training |
+| 16 | [Microservice Extraction Guide](16-microservice-extraction-guide.md) | **Полное руководство** по выносу Container в микросервис |
+| 17 | [Unified Event Bus](17-unified-event-bus.md) | **Единая система событий** с подменяемыми бэкендами |
+| 18 | [Istio Ambient Mesh](18-istio-ambient-mesh.md) | **Service Mesh без sidecar'ов** — mTLS, traffic management |
+| 19 | [Integration Patterns Guide](19-integration-patterns-guide.md) | **Когда использовать** Event Bus vs Gateway vs Temporal vs TaskIQ |
+| 20 | [Cursor AI Components](20-cursor-ai-components.md) | **Rules, Skills, Subagents, Commands** — автоматизация разработки |
+| 21 | [Self-Improving Systems](21-self-improving-systems.md) | Memory, Feedback, Standards Evolution, Training |
 
 ---
 
@@ -52,8 +51,8 @@
 
 > 🎯 **Главная команда:** `/agent-os/ask [любой запрос]` — единая точка входа, автоматически роутит к нужному агенту
 
-1. [23-cursor-ai-components.md](23-cursor-ai-components.md) — **Rules, Skills, Subagents, Commands**
-2. [24-self-improving-systems.md](24-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training**
+1. [20-cursor-ai-components.md](20-cursor-ai-components.md) — **Rules, Skills, Subagents, Commands**
+2. [21-self-improving-systems.md](21-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training**
 3. [07-spec-driven.md](07-spec-driven.md) — workflow разработки
 4. [06-metaprogramming.md](06-metaprogramming.md) — паттерны
 5. [08-libraries.md](08-libraries.md) — tech stack
@@ -65,11 +64,11 @@
 
 ### Для масштабирования к микросервисам
 
-1. [18-unified-event-bus.md](18-unified-event-bus.md) — **Unified Event Bus** (Memory → Redis → RabbitMQ)
-2. [17-microservice-extraction-guide.md](17-microservice-extraction-guide.md) — **Полный пошаговый гайд** по выносу модуля
+1. [17-unified-event-bus.md](17-unified-event-bus.md) — **Unified Event Bus** (Memory → Redis → RabbitMQ)
+2. [16-microservice-extraction-guide.md](16-microservice-extraction-guide.md) — **Полный пошаговый гайд** по выносу модуля
 3. [14-module-gateway-pattern.md](14-module-gateway-pattern.md) — Gateway Pattern для синхронных зависимостей
 4. [15-saga-patterns.md](15-saga-patterns.md) — Распределённые транзакции и SAGA
-5. [19-istio-ambient-mesh.md](19-istio-ambient-mesh.md) — **Istio Ambient Mesh** — Service Mesh без sidecar'ов
+5. [18-istio-ambient-mesh.md](18-istio-ambient-mesh.md) — **Istio Ambient Mesh** — Service Mesh без sidecar'ов
 
 ---
 

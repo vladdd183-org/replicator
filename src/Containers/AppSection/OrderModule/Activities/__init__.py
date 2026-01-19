@@ -20,36 +20,35 @@ Compensation Activities:
 - RefundPaymentActivity: Issues refund for payment
 """
 
-from src.Containers.AppSection.OrderModule.Activities.CreateOrderActivity import (
-    create_order,
-    cancel_order,
-    CreateOrderInput,
-    CreateOrderOutput,
-)
-from src.Containers.AppSection.OrderModule.Activities.ReserveInventoryActivity import (
-    reserve_inventory,
-    cancel_reservation,
-    ReserveInventoryInput,
-    ReservationOutput,
-)
 from src.Containers.AppSection.OrderModule.Activities.ChargePaymentActivity import (
-    charge_payment,
-    refund_payment,
     ChargePaymentInput,
     PaymentOutput,
+    charge_payment,
+    refund_payment,
 )
-from src.Containers.AppSection.OrderModule.Activities.ScheduleDeliveryActivity import (
-    schedule_delivery,
-    cancel_delivery,
-    ScheduleDeliveryInput,
-    DeliveryOutput,
+from src.Containers.AppSection.OrderModule.Activities.CreateOrderActivity import (
+    CreateOrderInput,
+    CreateOrderOutput,
+    cancel_order,
+    create_order,
 )
 from src.Containers.AppSection.OrderModule.Activities.NotificationActivity import (
-    send_order_confirmation,
-    send_order_cancelled,
     NotificationInput,
+    send_order_cancelled,
+    send_order_confirmation,
 )
-
+from src.Containers.AppSection.OrderModule.Activities.ReserveInventoryActivity import (
+    ReservationOutput,
+    ReserveInventoryInput,
+    cancel_reservation,
+    reserve_inventory,
+)
+from src.Containers.AppSection.OrderModule.Activities.ScheduleDeliveryActivity import (
+    DeliveryOutput,
+    ScheduleDeliveryInput,
+    cancel_delivery,
+    schedule_delivery,
+)
 
 # All activities for Worker registration
 ALL_ACTIVITIES = [

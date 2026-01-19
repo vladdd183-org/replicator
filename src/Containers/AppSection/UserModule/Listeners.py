@@ -10,7 +10,6 @@ WebSocket updates are published via Ship/Infrastructure/Channels.
 """
 
 import logfire
-
 from litestar import Litestar
 from litestar.events import listener
 
@@ -26,7 +25,7 @@ async def on_user_created(
     **kwargs,
 ) -> None:
     """Handle UserCreated event.
-    
+
     Triggered after a new user is successfully created.
     Publishes to WebSocket channel for real-time updates.
     """
@@ -36,10 +35,10 @@ async def on_user_created(
         email=email,
         occurred_at=occurred_at,
     )
-    
+
     # Publish to WebSocket channel
     publish_to_user_channel(app, user_id, "user_created", {"email": email})
-    
+
     # TODO: Send welcome email via SendWelcomeEmailTask
     # TODO: Create default user settings
 
@@ -53,7 +52,7 @@ async def on_user_deleted(
     **kwargs,
 ) -> None:
     """Handle UserDeleted event.
-    
+
     Triggered after a user is deleted.
     Publishes to WebSocket channel for real-time updates.
     """
@@ -63,7 +62,7 @@ async def on_user_deleted(
         email=email,
         occurred_at=occurred_at,
     )
-    
+
     # Publish to WebSocket channel
     publish_to_user_channel(app, user_id, "user_deleted", {"email": email})
 
@@ -77,7 +76,7 @@ async def on_user_updated(
     **kwargs,
 ) -> None:
     """Handle UserUpdated event.
-    
+
     Triggered after a user is updated.
     Publishes to WebSocket channel for real-time updates.
     """
@@ -87,7 +86,7 @@ async def on_user_updated(
         updated_fields=updated_fields,
         occurred_at=occurred_at,
     )
-    
+
     # Publish to WebSocket channel
     publish_to_user_channel(app, user_id, "user_updated", {"updated_fields": updated_fields})
 

@@ -26,6 +26,7 @@
 
 - [ ] `Errors.py` — базовые ошибки модуля
 - [ ] `Events.py` — доменные события
+- [ ] `Tasks/{TaskName}Task.py` (если нужны атомарные операции)
 - [ ] `Queries/Get{Entity}Query.py`
 - [ ] `Queries/List{Entities}Query.py`
 - [ ] `Actions/Create{Entity}Action.py`

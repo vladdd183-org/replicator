@@ -1,4 +1,4 @@
-# 24. Self-Improving Systems — Системы самообучения
+# 21. Self-Improving Systems — Системы самообучения
 
 > Архитектура систем непрерывного обучения и эволюции AI-агента в Hyper-Porto.
 
@@ -1140,7 +1140,7 @@ model: inherit
 
 ## См. также
 
-- [23-cursor-ai-components.md](23-cursor-ai-components.md) — Rules, Skills, Subagents, Commands
+- [20-cursor-ai-components.md](20-cursor-ai-components.md) — Rules, Skills, Subagents, Commands
 - [07-spec-driven.md](07-spec-driven.md) — Spec-Driven Development
 - [04-result-railway.md](04-result-railway.md) — Error handling patterns
 - [CLAUDE.md](../CLAUDE.md) — Quick Reference для AI

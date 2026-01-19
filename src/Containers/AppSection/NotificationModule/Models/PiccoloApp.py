@@ -9,7 +9,6 @@ from piccolo.conf.apps import AppConfig
 
 from src.Containers.AppSection.NotificationModule.Models.Notification import Notification
 
-
 CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -18,6 +17,3 @@ APP_CONFIG = AppConfig(
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "migrations"),
     table_classes=[Notification],
 )
-
-
-

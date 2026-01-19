@@ -24,27 +24,33 @@ Thread Safety:
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from returns.result import Result, Success, Failure
+from returns.result import Failure, Result, Success
 
-from src.Ship.Parents.Gateway import DirectAdapterBase
 from src.Containers.AppSection.UserModule.Gateways.Types import (
+    InsufficientFundsError,
+    PaymentDeclinedError,
+    PaymentGatewayError,
+    PaymentNotFoundError,
     PaymentRequest,
     PaymentResult,
     PaymentStatus,
-    PaymentGatewayError,
-    PaymentDeclinedError,
-    PaymentNotFoundError,
+    RefundNotAllowedError,
     RefundRequest,
     RefundResult,
-    RefundNotAllowedError,
-    InsufficientFundsError,
 )
 
-# PaymentModule imports - only used in Direct adapter
+# ============================================================================
+# PaymentModule imports - ONLY in Direct adapter (Consumer Owns Interface)
+# ============================================================================
+# These imports are intentionally placed ONLY in the adapter.
+# UserModule's Providers.py does NOT import from PaymentModule.
+# Dishka resolves these dependencies from PaymentModule's providers.
+
+# Actions
 from src.Containers.VendorSection.PaymentModule.Actions.CreatePaymentAction import (
     CreatePaymentAction,
 )
@@ -52,30 +58,33 @@ from src.Containers.VendorSection.PaymentModule.Actions.RefundPaymentAction impo
     RefundPaymentAction,
     RefundRequest as PaymentModuleRefundRequest,
 )
+
+# Errors - consolidated into single import
+from src.Containers.VendorSection.PaymentModule.Errors import (
+    InsufficientFundsError as PaymentModuleInsufficientFundsError,
+    InvalidPaymentAmountError,
+    PaymentError as PaymentModuleError,
+    PaymentNotFoundError as PaymentModuleNotFoundError,
+    PaymentProcessingError,
+    RefundNotAllowedError as PaymentModuleRefundNotAllowedError,
+)
+
+# DTOs - consolidated into single import
 from src.Containers.VendorSection.PaymentModule.Tasks.ProcessPaymentTask import (
     PaymentData as PaymentModulePaymentData,
     PaymentResult as PaymentModulePaymentResult,
 )
-from src.Containers.VendorSection.PaymentModule.Errors import (
-    PaymentError as PaymentModuleError,
-    PaymentProcessingError,
-    InvalidPaymentAmountError,
-    InsufficientFundsError as PaymentModuleInsufficientFundsError,
-    PaymentNotFoundError as PaymentModuleNotFoundError,
-    RefundNotAllowedError as PaymentModuleRefundNotAllowedError,
-)
+from src.Ship.Parents.Gateway import DirectAdapterBase
 
 
 @dataclass
-class DirectPaymentAdapter(
-    DirectAdapterBase[PaymentRequest, PaymentResult, PaymentGatewayError]
-):
+class DirectPaymentAdapter(DirectAdapterBase[PaymentRequest, PaymentResult, PaymentGatewayError]):
     """Direct adapter for PaymentGateway - calls PaymentModule in-process.
-    
+
     Injected Dependencies:
         create_payment_action: CreatePaymentAction from PaymentModule
         refund_payment_action: RefundPaymentAction from PaymentModule
-    
+
     Example:
         adapter = DirectPaymentAdapter(
             create_payment_action=create_payment_action,
@@ -83,16 +92,16 @@ class DirectPaymentAdapter(
         )
         result = await adapter.create_payment(PaymentRequest(...))
     """
-    
+
     create_payment_action: CreatePaymentAction
     refund_payment_action: RefundPaymentAction
-    
+
     async def create_payment(
         self,
         request: PaymentRequest,
     ) -> Result[PaymentResult, PaymentGatewayError]:
         """Create payment via direct call to PaymentModule.
-        
+
         Mapping:
             UserModule.PaymentRequest → PaymentModule.PaymentData
             PaymentModule.PaymentResult → UserModule.PaymentResult
@@ -100,14 +109,14 @@ class DirectPaymentAdapter(
         """
         # Pre-call hook (for logging, metrics)
         await self._pre_call("create_payment", request)
-        
+
         try:
             # Map UserModule DTO → PaymentModule DTO
             payment_data = self._map_to_payment_data(request)
-            
+
             # Call PaymentModule Action
             action_result = await self.create_payment_action.run(payment_data)
-            
+
             # Map result back to UserModule types
             match action_result:
                 case Success(payment_module_result):
@@ -116,51 +125,53 @@ class DirectPaymentAdapter(
                         request.user_id,
                     )
                     result = Success(user_result)
-                    
+
                 case Failure(error):
                     mapped_error = self._map_payment_error(error)
                     result = Failure(mapped_error)
-            
+
             # Post-call hook
             await self._post_call("create_payment", request, result)
-            
+
             return result
-            
+
         except Exception as e:
             error = await self._on_error("create_payment", request, e)
             return Failure(error)
-    
+
     async def get_payment_status(
         self,
         payment_id: UUID,
     ) -> Result[PaymentResult, PaymentGatewayError]:
         """Get payment status via direct call.
-        
+
         Note: PaymentModule doesn't have a dedicated status query,
         so this is a simplified implementation. In real world,
         you would call PaymentModule.GetPaymentQuery.
         """
         await self._pre_call("get_payment_status", payment_id)
-        
+
         # TODO: Implement when PaymentModule has GetPaymentQuery
         # For now, return not found as placeholder
-        return Failure(PaymentNotFoundError(
-            payment_id=payment_id,
-            service_name="payment",
-        ))
-    
+        return Failure(
+            PaymentNotFoundError(
+                payment_id=payment_id,
+                service_name="payment",
+            )
+        )
+
     async def refund_payment(
         self,
         request: RefundRequest,
     ) -> Result[RefundResult, PaymentGatewayError]:
         """Refund payment via direct call to PaymentModule.
-        
+
         Mapping:
             UserModule.RefundRequest → PaymentModule.RefundRequest
             PaymentModule.RefundResult → UserModule.RefundResult
         """
         await self._pre_call("refund_payment", request)
-        
+
         try:
             # Map UserModule DTO → PaymentModule DTO
             refund_data = PaymentModuleRefundRequest(
@@ -170,10 +181,10 @@ class DirectPaymentAdapter(
                 currency="RUB",
                 reason=request.reason,
             )
-            
+
             # Call PaymentModule Action
             action_result = await self.refund_payment_action.run(refund_data)
-            
+
             # Map result
             match action_result:
                 case Success(refund_module_result):
@@ -183,24 +194,24 @@ class DirectPaymentAdapter(
                         amount=refund_module_result.amount,
                         currency=refund_module_result.currency,
                         status=self._map_status(refund_module_result.status),
-                        created_at=datetime.now(timezone.utc),
+                        created_at=datetime.now(UTC),
                         processed_at=refund_module_result.processed_at,
                         message=refund_module_result.message,
                     )
                     result = Success(user_result)
-                    
+
                 case Failure(error):
                     mapped_error = self._map_payment_error(error)
                     result = Failure(mapped_error)
-            
+
             await self._post_call("refund_payment", request, result)
-            
+
             return result
-            
+
         except Exception as e:
             error = await self._on_error("refund_payment", request, e)
             return Failure(error)
-    
+
     async def verify_payment(
         self,
         payment_id: UUID,
@@ -209,34 +220,36 @@ class DirectPaymentAdapter(
     ) -> Result[bool, PaymentGatewayError]:
         """Verify payment exists and matches expected parameters."""
         status_result = await self.get_payment_status(payment_id)
-        
+
         match status_result:
             case Success(payment):
                 # Check amount if expected
                 if expected_amount is not None:
                     if int(payment.amount) != expected_amount:
                         return Success(False)
-                
+
                 # Check currency if expected
                 if expected_currency is not None:
                     if payment.currency != expected_currency:
                         return Success(False)
-                
+
                 return Success(True)
-                
+
             case Failure(PaymentNotFoundError()):
-                return Failure(PaymentNotFoundError(
-                    payment_id=payment_id,
-                    service_name="payment",
-                ))
-                
+                return Failure(
+                    PaymentNotFoundError(
+                        payment_id=payment_id,
+                        service_name="payment",
+                    )
+                )
+
             case Failure(error):
                 return Failure(error)
-    
+
     # =========================================================================
     # MAPPING HELPERS
     # =========================================================================
-    
+
     def _map_to_payment_data(self, request: PaymentRequest) -> PaymentModulePaymentData:
         """Map UserModule PaymentRequest to PaymentModule PaymentData."""
         return PaymentModulePaymentData(
@@ -246,7 +259,7 @@ class DirectPaymentAdapter(
             description=request.description,
             metadata=request.metadata,
         )
-    
+
     def _map_from_payment_result(
         self,
         result: PaymentModulePaymentResult,
@@ -259,12 +272,12 @@ class DirectPaymentAdapter(
             amount=result.amount,
             currency=result.currency,
             status=self._map_status(result.status),
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             processed_at=result.processed_at,
             provider_reference=result.provider_transaction_id,
             message=result.message,
         )
-    
+
     def _map_status(self, status: str) -> PaymentStatus:
         """Map PaymentModule status string to UserModule PaymentStatus enum."""
         status_mapping = {
@@ -274,13 +287,13 @@ class DirectPaymentAdapter(
             "refunded": PaymentStatus.REFUNDED,
         }
         return status_mapping.get(status, PaymentStatus.PENDING)
-    
+
     def _map_payment_error(
         self,
         error: PaymentModuleError,
     ) -> PaymentGatewayError:
         """Map PaymentModule error to UserModule PaymentGatewayError.
-        
+
         This is the key mapping function - converts provider-specific
         errors to consumer's error types.
         """
@@ -290,42 +303,42 @@ class DirectPaymentAdapter(
                     payment_id=error.payment_id,
                     service_name="payment",
                 )
-            
+
             case PaymentModuleInsufficientFundsError():
                 return InsufficientFundsError(
                     amount=error.amount,
                     currency=error.currency,
                     service_name="payment",
                 )
-            
+
             case PaymentModuleRefundNotAllowedError():
                 return RefundNotAllowedError(
                     payment_id=error.payment_id,
                     reason=error.reason,
                     service_name="payment",
                 )
-            
+
             case InvalidPaymentAmountError():
                 return PaymentDeclinedError(
                     reason=f"Invalid amount: {error.amount}",
                     decline_code="INVALID_AMOUNT",
                     service_name="payment",
                 )
-            
+
             case PaymentProcessingError():
                 return PaymentDeclinedError(
                     reason=error.reason,
                     decline_code="PROCESSING_FAILED",
                     service_name="payment",
                 )
-            
+
             case _:
                 # Generic mapping for unknown errors
                 return PaymentGatewayError(
                     message=str(error),
                     service_name="payment",
                 )
-    
+
     async def _on_error(
         self,
         method: str,
@@ -336,6 +349,7 @@ class DirectPaymentAdapter(
         # Log error for debugging
         try:
             import logfire
+
             logfire.error(
                 "DirectPaymentAdapter unexpected error",
                 method=method,
@@ -344,7 +358,7 @@ class DirectPaymentAdapter(
             )
         except ImportError:
             print(f"DirectPaymentAdapter error in {method}: {error}")
-        
+
         return PaymentGatewayError(
             message=f"Unexpected error in {method}: {error}",
             service_name="payment",

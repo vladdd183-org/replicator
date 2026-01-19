@@ -11,6 +11,3 @@
 from src.Containers.VendorSection.WebhookModule.UI.API.Routes import webhook_router
 
 __all__ = ["webhook_router"]
-
-
-

@@ -1205,10 +1205,9 @@ async def create_user(self, data):
 
 ## 📚 Связанные документы
 
-- [18-unified-event-bus.md](18-unified-event-bus.md) — Детальная реализация Event Bus
+- [17-unified-event-bus.md](17-unified-event-bus.md) — Детальная реализация Event Bus
 - [14-module-gateway-pattern.md](14-module-gateway-pattern.md) — Детальная реализация Gateway
 - [15-saga-patterns.md](15-saga-patterns.md) — Saga Patterns (Temporal + TaskIQ)
-- [GAP_ANALYSIS_PATTERNS.md](GAP_ANALYSIS_PATTERNS.md) — Temporal vs Prefect сравнение
 
 ---
 

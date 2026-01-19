@@ -6,13 +6,6 @@ Handles domain events from Order module and cross-module integrations.
 import logfire
 from litestar.events import listener
 
-from src.Containers.AppSection.OrderModule.Events import (
-    OrderCreated,
-    OrderCancelled,
-    OrderSagaCompleted,
-    OrderSagaFailed,
-)
-
 
 @listener("OrderCreated")
 async def on_order_created(
@@ -24,7 +17,7 @@ async def on_order_created(
     **kwargs,
 ) -> None:
     """Handle OrderCreated event.
-    
+
     Triggers post-order creation workflows:
     - Send confirmation email
     - Update analytics
@@ -38,7 +31,7 @@ async def on_order_created(
         currency=currency,
         item_count=item_count,
     )
-    
+
     # TODO: Send order confirmation email via NotificationModule
     # TODO: Update user purchase history
     # TODO: Notify fulfillment system
@@ -53,7 +46,7 @@ async def on_order_cancelled(
     **kwargs,
 ) -> None:
     """Handle OrderCancelled event.
-    
+
     Triggers cancellation workflows:
     - Send cancellation confirmation
     - Process refund
@@ -66,7 +59,7 @@ async def on_order_cancelled(
         reason=reason,
         refund_amount=refund_amount,
     )
-    
+
     # TODO: Send cancellation email
     # TODO: Trigger refund if not already processed
 
@@ -79,7 +72,7 @@ async def on_saga_completed(
     **kwargs,
 ) -> None:
     """Handle OrderSagaCompleted event.
-    
+
     Records saga metrics for monitoring.
     """
     logfire.info(
@@ -99,7 +92,7 @@ async def on_saga_failed(
     **kwargs,
 ) -> None:
     """Handle OrderSagaFailed event.
-    
+
     Alerts and records saga failures.
     """
     logfire.error(
@@ -109,15 +102,15 @@ async def on_saga_failed(
         error=error,
         compensations_run=compensations_run,
     )
-    
+
     # TODO: Send alert to operations team
     # TODO: Record failure metrics
 
 
 # Export listeners for registration
 __all__ = [
-    "on_order_created",
     "on_order_cancelled",
+    "on_order_created",
     "on_saga_completed",
     "on_saga_failed",
 ]

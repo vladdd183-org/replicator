@@ -242,7 +242,6 @@ class EventEnvelope(BaseModel):
         Returns:
             EventEnvelope wrapping the event
         """
-        from src.Ship.Parents.Event import DomainEvent
         
         return cls(
             event_name=event.event_name,

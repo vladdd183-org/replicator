@@ -9,7 +9,6 @@ According to Porto:
 - AuditModule listens to these Ship-level events
 """
 
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 

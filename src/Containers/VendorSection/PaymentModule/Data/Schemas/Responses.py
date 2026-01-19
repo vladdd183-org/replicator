@@ -12,7 +12,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class PaymentResponse(EntitySchema):
     """Response DTO for payment operation.
-    
+
     Attributes:
         payment_id: Unique payment identifier
         user_id: User who made the payment
@@ -23,7 +23,7 @@ class PaymentResponse(EntitySchema):
         processed_at: When payment was processed
         message: Additional message
     """
-    
+
     payment_id: UUID
     user_id: UUID
     amount: Decimal
@@ -36,7 +36,7 @@ class PaymentResponse(EntitySchema):
 
 class RefundResponse(EntitySchema):
     """Response DTO for refund operation.
-    
+
     Attributes:
         refund_id: Unique refund identifier
         payment_id: Original payment ID
@@ -47,7 +47,7 @@ class RefundResponse(EntitySchema):
         processed_at: When refund was processed
         message: Additional message
     """
-    
+
     refund_id: UUID
     payment_id: UUID
     user_id: UUID
@@ -56,6 +56,3 @@ class RefundResponse(EntitySchema):
     status: str
     processed_at: datetime | None = None
     message: str = ""
-
-
-

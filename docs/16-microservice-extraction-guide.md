@@ -942,7 +942,7 @@ class OutboxEvent(Table, tablename="outbox_events"):
 """Background worker that publishes Outbox events to broker."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 import logfire
@@ -976,7 +976,7 @@ async def publish_outbox_events(redis_url: str, batch_size: int = 100) -> None:
                 # Помечаем как опубликованное
                 await OutboxEvent.update({
                     OutboxEvent.published: True,
-                    OutboxEvent.published_at: datetime.utcnow(),
+                    OutboxEvent.published_at: datetime.now(timezone.utc),
                 }).where(
                     OutboxEvent.id == event["id"]
                 ).run()

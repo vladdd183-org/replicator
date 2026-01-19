@@ -17,6 +17,3 @@ Components:
 from src.Containers.VendorSection.PaymentModule.UI.API.Routes import payment_router
 
 __all__ = ["payment_router"]
-
-
-

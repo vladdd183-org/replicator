@@ -158,19 +158,19 @@ APP_REGISTRY = AppRegistry(
 ### Создание миграции
 
 ```bash
-litestar db make-migrations --auto
+uv run piccolo migrations new ModuleName --auto
 ```
 
 ### Применение миграций
 
 ```bash
-litestar db migrate
+uv run piccolo migrations forwards all
 ```
 
 ### Откат миграции
 
 ```bash
-litestar db migrate --reverse
+uv run piccolo migrations backwards ModuleName 1
 ```
 
 ---

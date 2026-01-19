@@ -10,6 +10,3 @@
 from src.Containers.AppSection.SettingsModule.UI.API.Routes import settings_router
 
 __all__ = ["settings_router"]
-
-
-

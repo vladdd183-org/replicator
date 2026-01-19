@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine, Self
 
 from piccolo.engine import engine_finder
 
+__all__ = ["BaseUnitOfWork"]
+
 if TYPE_CHECKING:
     from piccolo.engine.sqlite import SQLiteEngine
     from piccolo.engine.postgres import PostgresEngine

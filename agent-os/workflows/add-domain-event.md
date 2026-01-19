@@ -21,14 +21,19 @@
 **Файл:** `Events.py`
 
 ```python
-from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
+
+from pydantic import Field
 
 from src.Ship.Parents.Event import DomainEvent
 
 
-@dataclass
+def _utc_now() -> datetime:
+    """Return current UTC time with timezone info."""
+    return datetime.now(timezone.utc)
+
+
 class UserActivated(DomainEvent):
     """Event fired when user is activated.
     
@@ -38,7 +43,7 @@ class UserActivated(DomainEvent):
     user_id: UUID
     activated_by: UUID | None = None
     reason: str | None = None
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
+    occurred_at: datetime = Field(default_factory=_utc_now)
     
     @property
     def event_name(self) -> str:

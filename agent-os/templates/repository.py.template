@@ -1,14 +1,11 @@
 """${Entity}Repository - Data access layer for ${Entity}."""
 
-from uuid import UUID
-from datetime import datetime
-
 from src.Ship.Parents.Repository import Repository
 from src.Containers.${Section}.${Module}.Models.${Entity} import ${Entity}
 
 
 class ${Entity}Repository(Repository[${Entity}]):
-    """Repository for ${Entity} data access.
+    """Repository for ${Entity} aggregate.
     
     Provides CRUD operations and domain-specific queries.
     Inherits from base Repository[T].
@@ -24,7 +21,9 @@ class ${Entity}Repository(Repository[${Entity}]):
         ${entity_lower} = await repo.find_by_email("test@example.com")
     """
     
-    model = ${Entity}
+    def __init__(self) -> None:
+        """Initialize repository with model class."""
+        super().__init__(${Entity})
     
     # =========================================================================
     # DOMAIN-SPECIFIC QUERIES
@@ -69,25 +68,6 @@ class ${Entity}Repository(Repository[${Entity}]):
             True if exists
         """
         return await ${Entity}.exists().where(${Entity}.email == email)
-    
-    # =========================================================================
-    # HOOKS (optional - called by base Repository)
-    # =========================================================================
-    
-    async def _on_add(self, entity: ${Entity}) -> None:
-        """Hook called before adding entity.
-        
-        Use for setting defaults, timestamps, etc.
-        """
-        if not entity.created_at:
-            entity.created_at = datetime.utcnow()
-    
-    async def _on_update(self, entity: ${Entity}) -> None:
-        """Hook called before updating entity.
-        
-        Use for updating timestamps, audit fields, etc.
-        """
-        entity.updated_at = datetime.utcnow()
 
 
 # =============================================================================
@@ -117,6 +97,3 @@ class ${Entity}Repository(Repository[${Entity}]):
 #     scope = Scope.REQUEST
 #     ${entity_lower}_repository = provide(${Entity}Repository)
 # =============================================================================
-
-
-

@@ -1,4 +1,1 @@
 """SearchModule migrations."""
-
-
-

@@ -32,6 +32,7 @@ from functools import wraps
 from typing import TypeVar, Callable, Any
 from uuid import UUID
 
+import logfire
 from returns.result import Result, Success, Failure
 
 from src.Ship.Events.ActionEvents import ActionExecuted
@@ -191,7 +192,6 @@ def audited(
                 # Fallback: store event for manual retrieval
                 self._audit_event = event
                 # Log that we couldn't publish
-                import logfire
                 logfire.debug(
                     "Audit event stored (no emitter available)",
                     action=event.action_name,

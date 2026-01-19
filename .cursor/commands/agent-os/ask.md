@@ -114,7 +114,7 @@ Orchestrator автоматически учитывает:
 
 ## Инструкция для Orchestrator
 
-@agents/orchestrator.md
+@.cursor/agents/orchestrator.md
 
 ---
 

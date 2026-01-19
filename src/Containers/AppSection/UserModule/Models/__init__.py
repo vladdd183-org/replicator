@@ -2,5 +2,4 @@
 
 from src.Containers.AppSection.UserModule.Models.User import AppUser
 
-__all__ = ["User"]
-
+__all__ = ["AppUser"]

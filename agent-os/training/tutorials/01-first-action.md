@@ -39,15 +39,19 @@ Controller → Action → Task/Repository/UoW
 Action в Hyper-Porto имеет фиксированную структуру:
 
 ```python
-from dataclasses import dataclass
 from returns.result import Result, Success, Failure
 from src.Ship.Parents.Action import Action
 
-@dataclass
 class MyAction(Action[TInput, TOutput, TError]):
-    # Зависимости через dataclass fields
-    some_task: SomeTask
-    repository: SomeRepository
+    """Use Case: описание."""
+    
+    def __init__(
+        self,
+        some_task: SomeTask,
+        repository: SomeRepository,
+    ) -> None:
+        self.some_task = some_task
+        self.repository = repository
     
     async def run(self, data: TInput) -> Result[TOutput, TError]:
         # Бизнес-логика
@@ -57,7 +61,7 @@ class MyAction(Action[TInput, TOutput, TError]):
 **Важно:**
 - `Action[TInput, TOutput, TError]` — дженерик с тремя типами
 - Метод `run()` — точка входа, всегда возвращает `Result`
-- Зависимости инжектятся через конструктор (dataclass)
+- Зависимости инжектятся через `__init__` конструктор
 
 ---
 
@@ -65,13 +69,12 @@ class MyAction(Action[TInput, TOutput, TError]):
 
 Начнём с создания входного и выходного DTO.
 
-### Создай файл: `src/Containers/AppSection/TrainingModule/Data/Schemas.py`
+### Создай файл: `src/Containers/AppSection/TrainingModule/Data/Schemas/Requests.py`
 
 ```python
-"""DTO для TrainingModule."""
+"""Request DTO для TrainingModule."""
 
 from pydantic import BaseModel, Field
-from src.Ship.Core.BaseSchema import EntitySchema
 
 
 class GreetUserRequest(BaseModel):
@@ -79,6 +82,14 @@ class GreetUserRequest(BaseModel):
     
     name: str = Field(..., min_length=1, max_length=100, description="Имя пользователя")
     language: str = Field(default="ru", pattern="^(ru|en)$", description="Язык приветствия")
+```
+
+### Создай файл: `src/Containers/AppSection/TrainingModule/Data/Schemas/Responses.py`
+
+```python
+"""Response DTO для TrainingModule."""
+
+from src.Ship.Core.BaseSchema import EntitySchema
 
 
 class GreetUserResponse(EntitySchema):
@@ -94,8 +105,7 @@ class GreetUserResponse(EntitySchema):
 - **Request DTO** — наследует `BaseModel`, содержит валидацию
 - **Response DTO** — наследует `EntitySchema` (расширение BaseModel)
 - **Field(...)** — обязательное поле с валидацией
-
----
+- Разделение по файлам — `Requests.py` и `Responses.py`
 
 ## Шаг 3: Создаём ошибки
 
@@ -142,12 +152,13 @@ class InvalidLanguageError(ErrorWithTemplate, TrainingError):
 ```python
 """Action для приветствия пользователя."""
 
-from dataclasses import dataclass
 from returns.result import Result, Success, Failure
 
 from src.Ship.Parents.Action import Action
-from src.Containers.AppSection.TrainingModule.Data.Schemas import (
+from src.Containers.AppSection.TrainingModule.Data.Schemas.Requests import (
     GreetUserRequest,
+)
+from src.Containers.AppSection.TrainingModule.Data.Schemas.Responses import (
     GreetUserResponse,
 )
 from src.Containers.AppSection.TrainingModule.Errors import (
@@ -163,12 +174,10 @@ GREETINGS = {
 }
 
 
-@dataclass
 class GreetUserAction(Action[GreetUserRequest, GreetUserResponse, TrainingError]):
-    """
-    Генерирует приветствие для пользователя.
+    """Use Case: Генерирует приветствие для пользователя.
     
-    Use Case:
+    Steps:
         - Получает имя и язык
         - Возвращает локализованное приветствие
         
@@ -200,8 +209,8 @@ class GreetUserAction(Action[GreetUserRequest, GreetUserResponse, TrainingError]
 
 ### Разбор кода:
 
-1. **`@dataclass`** — позволяет инжектить зависимости (пока их нет)
-2. **`Action[TInput, TOutput, TError]`** — типизация
+1. **`Action[TInput, TOutput, TError]`** — типизация с тремя типами
+2. **`__init__()`** — позволяет инжектить зависимости через DI (пока их нет)
 3. **`async def run()`** — основной метод
 4. **`Failure(error)`** — возврат ошибки
 5. **`Success(result)`** — возврат успеха
@@ -280,7 +289,7 @@ from returns.result import Success, Failure
 from src.Containers.AppSection.TrainingModule.Actions.GreetUserAction import (
     GreetUserAction,
 )
-from src.Containers.AppSection.TrainingModule.Data.Schemas import GreetUserRequest
+from src.Containers.AppSection.TrainingModule.Data.Schemas.Requests import GreetUserRequest
 from src.Containers.AppSection.TrainingModule.Errors import InvalidLanguageError
 
 
@@ -325,7 +334,7 @@ async def test_greet_user_invalid_language():
 ### Запуск тестов:
 
 ```bash
-pytest tests/unit/test_greet_user_action.py -v
+uv run pytest tests/unit/test_greet_user_action.py -v
 ```
 
 ---
@@ -373,7 +382,7 @@ pytest tests/unit/test_greet_user_action.py -v
 | Компонент | Что делает | Где находится |
 |-----------|------------|---------------|
 | Action | Бизнес-логика, возвращает Result | `Actions/` |
-| Request DTO | Входные данные с валидацией | `Data/Schemas.py` |
-| Response DTO | Выходные данные | `Data/Schemas.py` |
+| Request DTO | Входные данные с валидацией | `Data/Schemas/` |
+| Response DTO | Выходные данные | `Data/Schemas/` |
 | Error | Типизированная ошибка | `Errors.py` |
 | Provider | DI регистрация | `Providers.py` |

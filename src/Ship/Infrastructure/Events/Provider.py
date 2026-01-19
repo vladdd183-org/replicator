@@ -23,7 +23,6 @@ Usage in Providers.py:
         ]
 """
 
-from typing import AsyncIterator
 
 from dishka import Provider, Scope, provide
 

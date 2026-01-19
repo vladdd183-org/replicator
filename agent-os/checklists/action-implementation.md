@@ -19,7 +19,7 @@
 ## 📝 Реализация
 
 ```python
-@audited(action="verb", entity_type="Entity")
+@audited(action="verb", entity_type="Entity")  # Опционально
 class VerbEntityAction(Action[VerbEntityRequest, Entity, ModuleError]):
     def __init__(self, task: SomeTask, uow: ModuleUnitOfWork) -> None:
         self.task = task
@@ -35,7 +35,7 @@ class VerbEntityAction(Action[VerbEntityRequest, Entity, ModuleError]):
 
 ## ✅ Обязательные элементы
 
-- [ ] `@audited` декоратор
+- [ ] (Опционально) `@audited` декоратор для аудит-логирования
 - [ ] Docstring с описанием Use Case
 - [ ] Type hints везде
 - [ ] Проверка бизнес-правил → `return Failure(Error)`
@@ -83,7 +83,7 @@ from src.Containers.Section.Module.Events import EntityVerbed
 from src.Containers.Section.Module.Models.Entity import Entity
 
 
-@audited(action="verb", entity_type="Entity")
+@audited(action="verb", entity_type="Entity")  # Опционально
 class VerbEntityAction(Action[VerbEntityRequest, Entity, ModuleError]):
     """Use Case: Verb an entity.
     

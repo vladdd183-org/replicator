@@ -102,6 +102,30 @@ async def create_user(
     return await action.run(data)  # Декоратор сам обработает Success/Failure
 ```
 
+## 📖 GET endpoints с Query (DomainException)
+
+Для GET endpoints, где Query возвращает `T | None`, используй `DomainException`:
+
+```python
+from src.Ship.Core.Errors import DomainException
+
+@get("/{user_id:uuid}")
+async def get_user(
+    self,
+    user_id: UUID,
+    query: FromDishka[GetUserQuery],
+) -> UserResponse:
+    user = await query.execute(GetUserQueryInput(user_id=user_id))
+    if user is None:
+        raise DomainException(UserNotFoundError(user_id=user_id))
+    return UserResponse.from_entity(user)
+```
+
+> **Почему raise, а не Failure?**
+> Query возвращает простое значение (не Result), поэтому для "not found" случаев
+> используем `DomainException` — она автоматически преобразуется в HTTP response
+> с правильным `http_status` из ошибки.
+
 ## 🔗 Цепочки операций (Railway composition)
 
 ```python

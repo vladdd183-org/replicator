@@ -6,16 +6,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from src.Ship.Parents.Query import Query
 from src.Containers.AppSection.AuditModule.Data.Repositories.AuditRepository import AuditRepository
 from src.Containers.AppSection.AuditModule.Models.AuditLog import AuditLog
+from src.Ship.Parents.Query import Query
 
 
 class SearchAuditLogsInput(BaseModel):
     """Input for audit logs search."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     actor_id: UUID | None = None
     entity_type: str | None = None
     entity_id: str | None = None
@@ -30,7 +30,7 @@ class SearchAuditLogsInput(BaseModel):
 @dataclass(frozen=True)
 class SearchAuditLogsOutput:
     """Output for audit logs search."""
-    
+
     logs: list[AuditLog]
     total: int
     limit: int
@@ -39,10 +39,10 @@ class SearchAuditLogsOutput:
 
 class SearchAuditLogsQuery(Query[SearchAuditLogsInput, SearchAuditLogsOutput]):
     """Query for searching audit logs with filters."""
-    
+
     def __init__(self, repository: AuditRepository) -> None:
         self.repository = repository
-    
+
     async def execute(self, params: SearchAuditLogsInput) -> SearchAuditLogsOutput:
         """Execute search with given filters."""
         logs, total = await self.repository.search(
@@ -56,13 +56,10 @@ class SearchAuditLogsQuery(Query[SearchAuditLogsInput, SearchAuditLogsOutput]):
             limit=params.limit,
             offset=params.offset,
         )
-        
+
         return SearchAuditLogsOutput(
             logs=logs,
             total=total,
             limit=params.limit,
             offset=params.offset,
         )
-
-
-

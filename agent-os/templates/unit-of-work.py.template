@@ -1,14 +1,12 @@
 """${Module}UnitOfWork - Transaction management for ${Module}."""
 
-from collections.abc import Callable, Coroutine
-from typing import Any
-
-from litestar import Litestar
+from dataclasses import dataclass, field
 
 from src.Ship.Parents.UnitOfWork import BaseUnitOfWork
 from src.Containers.${Section}.${Module}.Data.Repositories.${Entity}Repository import ${Entity}Repository
 
 
+@dataclass
 class ${Module}UnitOfWork(BaseUnitOfWork):
     """Unit of Work for ${Module} module.
     
@@ -17,7 +15,7 @@ class ${Module}UnitOfWork(BaseUnitOfWork):
     Features:
     - Transaction management (commit/rollback)
     - Domain event collection and publishing
-    - Repository access through properties
+    - Repository access through dataclass fields
     
     Example:
         async with uow:
@@ -28,42 +26,10 @@ class ${Module}UnitOfWork(BaseUnitOfWork):
         # Transaction committed, events published
     """
     
-    def __init__(
-        self,
-        _emit: Callable[..., Coroutine[Any, Any, None]] | None = None,
-        _app: Litestar | None = None,
-    ) -> None:
-        """Initialize UnitOfWork.
-        
-        Args:
-            _emit: Event emitter function (app.emit from Litestar)
-            _app: Litestar app instance (for accessing plugins like Channels)
-        """
-        super().__init__(_emit=_emit, _app=_app)
-        
-        # Initialize repositories
-        self._${entities_lower}: ${Entity}Repository | None = None
-    
-    # =========================================================================
-    # REPOSITORY PROPERTIES (lazy initialization)
-    # =========================================================================
-    
-    @property
-    def ${entities_lower}(self) -> ${Entity}Repository:
-        """Get ${Entity}Repository.
-        
-        Lazily initialized on first access.
-        """
-        if self._${entities_lower} is None:
-            self._${entities_lower} = ${Entity}Repository()
-        return self._${entities_lower}
+    ${entities_lower}: ${Entity}Repository = field(default_factory=${Entity}Repository)
     
     # Add more repositories as needed:
-    # @property
-    # def other_entities(self) -> OtherRepository:
-    #     if self._other_entities is None:
-    #         self._other_entities = OtherRepository()
-    #     return self._other_entities
+    # other_entities: OtherRepository = field(default_factory=OtherRepository)
 
 
 # =============================================================================
@@ -121,6 +87,3 @@ class ${Module}UnitOfWork(BaseUnitOfWork):
 #     def provide_${module_lower}_uow(self) -> ${Module}UnitOfWork:
 #         return ${Module}UnitOfWork(_emit=None, _app=None)
 # =============================================================================
-
-
-

@@ -10,6 +10,3 @@
 from src.Containers.AppSection.SearchModule.UI.API.Routes import search_router
 
 __all__ = ["search_router"]
-
-
-

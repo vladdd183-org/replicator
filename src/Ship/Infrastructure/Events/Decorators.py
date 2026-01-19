@@ -321,7 +321,6 @@ async def auto_register_subscriptions(
             count = await auto_register_subscriptions(event_bus)
             logfire.info(f"Registered {count} event handlers")
     """
-    from src.Ship.Infrastructure.Events.Protocol import EventBusProtocol
     
     registered = 0
     

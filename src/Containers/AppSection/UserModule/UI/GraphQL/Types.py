@@ -5,15 +5,16 @@ This eliminates duplication between Pydantic responses and GraphQL types.
 """
 
 import strawberry
-from strawberry.experimental.pydantic import type as pydantic_type, input as pydantic_input
+from strawberry.experimental.pydantic import input as pydantic_input
+from strawberry.experimental.pydantic import type as pydantic_type
 
-from src.Containers.AppSection.UserModule.Data.Schemas.Responses import (
-    UserResponse,
-    UserListResponse,
-)
 from src.Containers.AppSection.UserModule.Data.Schemas.Requests import (
     CreateUserRequest,
     UpdateUserRequest,
+)
+from src.Containers.AppSection.UserModule.Data.Schemas.Responses import (
+    UserListResponse,
+    UserResponse,
 )
 
 
@@ -21,12 +22,14 @@ from src.Containers.AppSection.UserModule.Data.Schemas.Requests import (
 @pydantic_type(model=UserResponse, all_fields=True)
 class UserType:
     """GraphQL type for User - auto-generated from UserResponse."""
+
     pass
 
 
 @pydantic_type(model=UserListResponse, all_fields=True)
 class UserListType:
     """GraphQL type for paginated user list - auto-generated from UserListResponse."""
+
     pass
 
 
@@ -34,12 +37,14 @@ class UserListType:
 @pydantic_input(model=CreateUserRequest, all_fields=True)
 class CreateUserInput:
     """Input for creating a user - auto-generated from CreateUserRequest."""
+
     pass
 
 
 @pydantic_input(model=UpdateUserRequest, all_fields=True)
 class UpdateUserInput:
     """Input for updating a user - auto-generated from UpdateUserRequest."""
+
     pass
 
 
@@ -47,6 +52,7 @@ class UpdateUserInput:
 @strawberry.type
 class UserError:
     """GraphQL error type."""
+
     message: str
     code: str
 
@@ -54,6 +60,7 @@ class UserError:
 @strawberry.type
 class CreateUserPayload:
     """Payload for createUser mutation."""
+
     user: UserType | None = None
     error: UserError | None = None
 
@@ -61,5 +68,6 @@ class CreateUserPayload:
 @strawberry.type
 class DeleteUserPayload:
     """Payload for deleteUser mutation."""
+
     success: bool
     error: UserError | None = None

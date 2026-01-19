@@ -55,17 +55,17 @@
 
 ```bash
 # Создать автомиграцию
-piccolo migrations new user --auto
+uv run piccolo migrations new user --auto
 
 # Применить миграции
-piccolo migrations forwards all
-piccolo migrations forwards user
+uv run piccolo migrations forwards all
+uv run piccolo migrations forwards user
 
 # Проверить статус
-piccolo migrations check
+uv run piccolo migrations check
 
 # Откатить
-piccolo migrations backwards user
+uv run piccolo migrations backwards user
 ```
 
 ## Workflow изменения модели

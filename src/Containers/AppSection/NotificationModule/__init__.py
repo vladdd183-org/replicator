@@ -15,6 +15,3 @@ Components:
 from src.Containers.AppSection.NotificationModule.UI.API.Routes import notification_router
 
 __all__ = ["notification_router"]
-
-
-

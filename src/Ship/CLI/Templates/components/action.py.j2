@@ -9,6 +9,7 @@ This Action:
 from returns.result import Result, Success, Failure
 
 from src.Ship.Parents.Action import Action
+from src.Ship.Decorators.audited import audited
 from src.Containers.{{ section }}.{{ module_name }}.Data.UnitOfWork import {{ name }}UnitOfWork
 from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Error
 
@@ -24,6 +25,7 @@ from src.Containers.{{ section }}.{{ module_name }}.Errors import {{ name }}Erro
 # from src.Containers.{{ section }}.{{ module_name }}.Models.{{ name }} import {{ name }}
 
 
+@audited(action="{{ component_name_snake.split('_')[0] }}", entity_type="{{ name }}")
 class {{ component_name }}Action(Action[object, object, {{ name }}Error]):
     """Use Case: {{ component_name }}.
     
@@ -39,15 +41,7 @@ class {{ component_name }}Action(Action[object, object, {{ name }}Error]):
         result = await action.run(data)
     """
     
-    def __init__(
-        self,
-        uow: {{ name }}UnitOfWork,
-    ) -> None:
-        """Initialize action with dependencies.
-        
-        Args:
-            uow: Unit of Work for data operations
-        """
+    def __init__(self, uow: {{ name }}UnitOfWork) -> None:
         self.uow = uow
     
     async def run(self, data: object) -> Result[object, {{ name }}Error]:

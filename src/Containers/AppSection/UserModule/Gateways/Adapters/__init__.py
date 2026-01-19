@@ -9,7 +9,7 @@ Available Adapters:
 Adapter Selection:
     Adapters are selected at DI configuration time based on
     deployment mode (settings.deployment_mode).
-    
+
     # In Providers.py
     @provide
     def payment_gateway(self, settings: Settings) -> PaymentGateway:
@@ -21,7 +21,7 @@ Adding New Adapters:
     1. Create adapter class implementing PaymentGateway
     2. Add to __init__.py exports
     3. Add selection logic in Providers.py
-    
+
     Examples: GrpcPaymentAdapter, AmqpPaymentAdapter, etc.
 """
 

@@ -20,26 +20,20 @@ Requirements:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
 import json
 
 import anyio
-from anyio import create_task_group, move_on_after
-from anyio.abc import TaskGroup
 
 import logfire
 
 from src.Ship.Infrastructure.Events.Backends.Base import BaseEventBus
 from src.Ship.Infrastructure.Events.Errors import (
     EventBusConnectionError,
-    EventBusDisconnectedError,
     EventPublishError,
 )
 from src.Ship.Infrastructure.Events.Models import (
-    DeadLetterEvent,
     EventEnvelope,
-    EventMetadata,
     EventPriority,
 )
 

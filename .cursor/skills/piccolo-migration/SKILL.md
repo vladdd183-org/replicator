@@ -19,24 +19,24 @@ description: Create and manage Piccolo ORM database migrations in Hyper-Porto ar
 
 ```bash
 # Create migration (auto-detect changes)
-piccolo migrations new {app_name} --auto
+uv run piccolo migrations new {app_name} --auto
 
 # Apply migrations
-piccolo migrations forwards {app_name}
+uv run piccolo migrations forwards {app_name}
 
 # Rollback
-piccolo migrations backwards {app_name}
+uv run piccolo migrations backwards {app_name}
 
 # Check status
-piccolo migrations check
+uv run piccolo migrations check
 ```
 
 ## Workflow: Change Model
 
 1. **Измени** model в `Models/{Entity}.py`
-2. **Создай** migration: `piccolo migrations new {app_name} --auto`
+2. **Создай** migration: `uv run piccolo migrations new {app_name} --auto`
 3. **Проверь** generated file в `Models/migrations/`
-4. **Применяй**: `piccolo migrations forwards {app_name}`
+4. **Применяй**: `uv run piccolo migrations forwards {app_name}`
 
 ## Действие
 
@@ -62,6 +62,6 @@ piccolo migrations check
 - [ ] Model file Models/{Entity}.py
 - [ ] Models/PiccoloApp.py created
 - [ ] Registered in piccolo_conf.py
-- [ ] piccolo migrations new --auto
-- [ ] piccolo migrations forwards
+- [ ] uv run piccolo migrations new --auto
+- [ ] uv run piccolo migrations forwards
 ```

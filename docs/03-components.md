@@ -16,6 +16,7 @@
 | **Query** | Business | CQRS Queries (Read) | `GetUserQuery`, `ListUsersQuery` |
 | **Repository** | Data | Абстракция над ORM | `UserRepository` |
 | **UnitOfWork** | Data | Транзакции + события | `UserUnitOfWork` |
+| **Gateway** | Infrastructure | Межмодульное взаимодействие | `PaymentGateway`, `DirectPaymentAdapter` |
 | **Model** | Data | ORM Entity (Piccolo Table) | `AppUser` |
 | **Event** | Domain | Domain Events | `UserCreated`, `UserUpdated`, `UserDeleted` |
 | **Schema** | Data | Pydantic DTOs | `CreateUserRequest`, `UserResponse`, `AuthResponse` |
@@ -40,7 +41,7 @@
 3. **Transport-agnostic** — не знает о HTTP/GraphQL/CLI
 4. **Orchestration** — координирует Tasks и Repositories
 5. **Транзакционность** — через UnitOfWork
-6. **DI через конструктор** — зависимости инъектируются через `__init__`
+6. **DI через __init__** — зависимости инъектируются через Dishka
 
 ### Базовый класс
 
@@ -114,7 +115,6 @@ class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
     5. Publish UserCreated event
     
     Example:
-        action = CreateUserAction(hash_password, uow)
         result = await action.run(CreateUserRequest(
             email="user@example.com",
             password="password123",
@@ -127,7 +127,6 @@ class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
         hash_password: HashPasswordTask,
         uow: UserUnitOfWork,
     ) -> None:
-        """Initialize action with dependencies (injected via Dishka)."""
         self.hash_password = hash_password
         self.uow = uow
     
@@ -181,7 +180,6 @@ class DeleteUserAction(Action[UUID, None, UserError]):
     Returns Result[None, UserError] for compatibility with @result_handler.
     
     Example:
-        action = DeleteUserAction(uow)
         result = await action.run(user_id)
         
         match result:
@@ -319,7 +317,6 @@ class AuthenticateAction(Action[LoginRequest, AuthResult, UserError]):
     """Use Case: Authenticate user and return JWT tokens.
     
     Example:
-        action = AuthenticateAction(uow, verify_task, token_task)
         result = await action.run(LoginRequest(
             email="user@example.com",
             password="password123",
@@ -1268,6 +1265,382 @@ class UserCLIProvider(Provider):
         return UserUnitOfWork(_emit=None, _app=None)
 ```
 
+### Transactional Outbox
+
+BaseUnitOfWork поддерживает Transactional Outbox pattern для гарантированной доставки событий:
+
+```python
+# Отслеживание агрегата
+self.uow.set_aggregate_info("User", str(user.id))
+
+# События сохраняются в outbox таблицу при commit
+self.uow.add_event(UserCreated(user_id=user.id))
+await self.uow.commit()
+```
+
+Методы:
+- `set_aggregate_info(type, id)` — привязка событий к агрегату
+- `_is_outbox_enabled()` — проверка включён ли Outbox
+- `_save_events_to_outbox()` — сохранение событий в таблицу
+
+См. также: `docs/17-unified-event-bus.md`
+
+---
+
+## 🌉 Gateway (Module Gateway Pattern)
+
+**Назначение:** Абстракция для межмодульного взаимодействия. Позволяет модулям общаться без прямых импортов.
+
+### Принципы:
+
+1. **Ports & Adapters** — Gateway = Port (интерфейс), Adapter = реализация
+2. **Consumer defines contract** — потребитель определяет, что ему нужно
+3. **Transport-agnostic** — бизнес-логика не знает о способе доставки
+4. **Swappable adapters** — смена адаптера = смена deployment mode
+5. **Result[T, E]** — все методы возвращают Result
+
+### Когда использовать Gateway vs Events
+
+| Сценарий | Используй |
+|----------|-----------|
+| Fire-and-forget (уведомления) | **Events** |
+| Нужен ответ (проверка статуса) | **Gateway** |
+| Async workflow | **Events** |
+| Sync операция с результатом | **Gateway** |
+
+### Базовый протокол
+
+```python
+# src/Ship/Parents/Gateway.py
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class GatewayProtocol(Protocol):
+    """Base protocol marker for all gateways.
+    
+    All gateway protocols should be runtime_checkable to allow
+    isinstance() checks for debugging and validation.
+    """
+    pass
+```
+
+### Базовый класс Gateway
+
+```python
+from abc import ABC
+from typing import Generic, TypeVar
+from returns.result import Result
+
+RequestT = TypeVar("RequestT", contravariant=True)
+ResponseT = TypeVar("ResponseT", covariant=True)
+ErrorT = TypeVar("ErrorT", covariant=True)
+
+
+class BaseGateway(ABC, Generic[RequestT, ResponseT, ErrorT]):
+    """Abstract base class for gateway implementations.
+    
+    Provides hooks for logging, metrics, error mapping.
+    """
+    
+    async def _pre_call(self, method: str, request: RequestT) -> None:
+        """Hook before gateway operation (logging, metrics)."""
+        pass
+    
+    async def _post_call(
+        self,
+        method: str,
+        request: RequestT,
+        result: Result[ResponseT, ErrorT],
+    ) -> None:
+        """Hook after gateway operation."""
+        pass
+    
+    async def _on_error(self, method: str, request: RequestT, error: Exception) -> ErrorT:
+        """Map transport errors to domain errors."""
+        raise error
+```
+
+### Адаптеры
+
+| Адаптер | Deployment | Описание |
+|---------|------------|----------|
+| **DirectAdapterBase** | Монолит | Прямые вызовы Actions |
+| **HttpAdapterBase** | Микросервисы | HTTP вызовы через httpx |
+| **GrpcAdapterBase** | High-performance | gRPC (placeholder) |
+
+### Реальный пример: PaymentGateway
+
+#### 1. Определение Gateway Protocol (в OrderModule — потребитель)
+
+```python
+# src/Containers/AppSection/OrderModule/Gateways/PaymentGateway.py
+from typing import Protocol
+from returns.result import Result
+from pydantic import BaseModel
+from uuid import UUID
+from decimal import Decimal
+
+
+class CreatePaymentRequest(BaseModel):
+    """Request DTO для создания платежа."""
+    model_config = {"frozen": True}
+    
+    user_id: UUID
+    order_id: UUID
+    amount: Decimal
+    currency: str = "RUB"
+
+
+class PaymentResult(BaseModel):
+    """Response DTO с результатом платежа."""
+    model_config = {"frozen": True}
+    
+    payment_id: UUID
+    status: str  # "pending", "completed", "failed"
+    transaction_id: str | None = None
+
+
+class PaymentError(BaseModel):
+    """Ошибки платежного шлюза."""
+    model_config = {"frozen": True}
+    
+    message: str
+    code: str = "PAYMENT_ERROR"
+
+
+class PaymentGateway(Protocol):
+    """Gateway для взаимодействия с PaymentModule."""
+    
+    async def create_payment(
+        self, request: CreatePaymentRequest
+    ) -> Result[PaymentResult, PaymentError]:
+        """Создать платёж."""
+        ...
+    
+    async def check_status(self, payment_id: UUID) -> Result[PaymentResult, PaymentError]:
+        """Проверить статус платежа."""
+        ...
+```
+
+#### 2. DirectAdapter (для монолита)
+
+```python
+# src/Containers/AppSection/OrderModule/Gateways/Adapters/DirectPaymentAdapter.py
+from dataclasses import dataclass
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Gateway import DirectAdapterBase
+from src.Containers.AppSection.PaymentModule.Actions.CreatePaymentAction import (
+    CreatePaymentAction,
+)
+from src.Containers.AppSection.PaymentModule.Data.Schemas.Requests import (
+    CreatePaymentRequest as ProviderRequest,
+)
+from ..PaymentGateway import (
+    CreatePaymentRequest,
+    PaymentResult,
+    PaymentError,
+    PaymentGateway,
+)
+
+
+@dataclass
+class DirectPaymentAdapter(DirectAdapterBase[CreatePaymentRequest, PaymentResult, PaymentError]):
+    """Direct adapter — вызывает PaymentModule Actions напрямую."""
+    
+    create_payment_action: CreatePaymentAction
+    
+    async def create_payment(
+        self, request: CreatePaymentRequest
+    ) -> Result[PaymentResult, PaymentError]:
+        # Map consumer DTO → provider DTO
+        provider_request = ProviderRequest(
+            user_id=request.user_id,
+            order_id=request.order_id,
+            amount=request.amount,
+            currency=request.currency,
+        )
+        
+        # Call provider Action
+        result = await self.create_payment_action.run(provider_request)
+        
+        # Map provider result → consumer DTO
+        return result.map(
+            lambda p: PaymentResult(
+                payment_id=p.id,
+                status=p.status,
+                transaction_id=p.transaction_id,
+            )
+        ).map_failure(
+            lambda e: PaymentError(message=e.message, code=e.code)
+        )
+```
+
+#### 3. HttpAdapter (для микросервисов)
+
+```python
+# src/Containers/AppSection/OrderModule/Gateways/Adapters/HttpPaymentAdapter.py
+from dataclasses import dataclass
+import httpx
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Gateway import HttpAdapterBase
+from ..PaymentGateway import (
+    CreatePaymentRequest,
+    PaymentResult,
+    PaymentError,
+)
+
+
+@dataclass
+class HttpPaymentAdapter(HttpAdapterBase[CreatePaymentRequest, PaymentResult, PaymentError]):
+    """HTTP adapter — вызывает Payment Service через HTTP."""
+    
+    base_url: str
+    client: httpx.AsyncClient
+    
+    def _get_base_url(self) -> str:
+        return self.base_url
+    
+    async def create_payment(
+        self, request: CreatePaymentRequest
+    ) -> Result[PaymentResult, PaymentError]:
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/api/v1/payments",
+                json=request.model_dump(mode="json"),
+                headers=self._get_default_headers(),
+                timeout=self._get_timeout(),
+            )
+            response.raise_for_status()
+            return Success(PaymentResult.model_validate(response.json()))
+        except httpx.HTTPStatusError as e:
+            error_data = e.response.json()
+            return Failure(PaymentError(
+                message=error_data.get("message", str(e)),
+                code=error_data.get("code", "HTTP_ERROR"),
+            ))
+        except httpx.RequestError as e:
+            return Failure(PaymentError(
+                message=f"Connection error: {e}",
+                code="CONNECTION_ERROR",
+            ))
+```
+
+#### 4. DI регистрация (выбор адаптера)
+
+```python
+# src/Containers/AppSection/OrderModule/Providers.py
+from dishka import Provider, Scope, provide
+import httpx
+
+from src.Ship.Configs import Settings
+from .Gateways.PaymentGateway import PaymentGateway
+from .Gateways.Adapters.DirectPaymentAdapter import DirectPaymentAdapter
+from .Gateways.Adapters.HttpPaymentAdapter import HttpPaymentAdapter
+
+
+class OrderGatewayProvider(Provider):
+    """Provider для Gateway зависимостей."""
+    
+    scope = Scope.REQUEST
+    
+    @provide
+    async def payment_gateway(
+        self,
+        settings: Settings,
+        # DirectAdapter dependencies (only for monolith)
+        create_payment_action: CreatePaymentAction | None = None,
+    ) -> PaymentGateway:
+        """Provide PaymentGateway based on deployment mode."""
+        if settings.deployment_mode == "microservices":
+            async with httpx.AsyncClient() as client:
+                return HttpPaymentAdapter(
+                    base_url=settings.payment_service_url,
+                    client=client,
+                )
+        
+        # Monolith mode — direct calls
+        assert create_payment_action is not None
+        return DirectPaymentAdapter(
+            create_payment_action=create_payment_action,
+        )
+```
+
+#### 5. Использование в Action
+
+```python
+# src/Containers/AppSection/OrderModule/Actions/CreateOrderAction.py
+from dataclasses import dataclass
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Action import Action
+from ..Gateways.PaymentGateway import PaymentGateway, CreatePaymentRequest
+from ..Errors import OrderError, OrderPaymentFailedError
+
+
+@dataclass
+class CreateOrderAction(Action[CreateOrderInput, Order, OrderError]):
+    """Use Case: Create order with payment."""
+    
+    payment_gateway: PaymentGateway  # Injected — не знает о реализации
+    uow: OrderUnitOfWork
+    
+    async def run(self, data: CreateOrderInput) -> Result[Order, OrderError]:
+        # Create order
+        order = Order(user_id=data.user_id, items=data.items)
+        
+        # Call payment gateway
+        payment_result = await self.payment_gateway.create_payment(
+            CreatePaymentRequest(
+                user_id=data.user_id,
+                order_id=order.id,
+                amount=order.total,
+            )
+        )
+        
+        # Handle result
+        match payment_result:
+            case Success(payment):
+                order.payment_id = payment.payment_id
+                order.status = "paid"
+            case Failure(error):
+                return Failure(OrderPaymentFailedError(
+                    order_id=order.id,
+                    reason=error.message,
+                ))
+        
+        # Save order
+        async with self.uow:
+            await self.uow.orders.add(order)
+            await self.uow.commit()
+        
+        return Success(order)
+```
+
+### Структура папок Gateway
+
+```
+OrderModule/
+├── Gateways/
+│   ├── __init__.py
+│   ├── PaymentGateway.py      # Protocol + DTOs
+│   └── Adapters/
+│       ├── __init__.py
+│       ├── DirectPaymentAdapter.py
+│       └── HttpPaymentAdapter.py
+```
+
+### Best Practices
+
+1. **Consumer defines contract** — Gateway Protocol и DTOs определяются в модуле-потребителе
+2. **DTO mapping** — адаптеры маппят между consumer и provider DTOs
+3. **Error mapping** — транспортные ошибки маппятся в domain errors
+4. **Timeout & Retry** — HttpAdapter должен использовать timeout и tenacity для retry
+5. **Circuit Breaker** — для microservices используйте circuit breaker pattern
+
+> 📚 **См. также:** `docs/14-module-gateway-pattern.md` — полное руководство по Gateway Pattern
+
 ---
 
 ## 🏷️ Model (Piccolo Table)
@@ -1483,8 +1856,12 @@ class EntitySchema(BaseModel):
         # Usage:
         user_response = UserResponse.from_entity(user)
         
-        # Для списков используйте list comprehension:
+        # Для списков:
+        # Способ 1: list comprehension
         responses = [UserResponse.from_entity(u) for u in users]
+        
+        # Способ 2: from_entities (рекомендуется)
+        responses = UserResponse.from_entities(users)
     """
     
     model_config = ConfigDict(
@@ -1936,9 +2313,13 @@ class UserResponse(EntitySchema):
 user = await query.execute(GetUserQueryInput(user_id=user_id))
 return UserResponse.from_entity(user)  # Автоматическая конвертация!
 
-# Для списков
+# Для списков:
+# Способ 1: list comprehension
 users = result.users
 return [UserResponse.from_entity(u) for u in users]
+
+# Способ 2: from_entities (рекомендуется)
+return UserResponse.from_entities(result.users)
 ```
 
 ### Кастомизация конвертации

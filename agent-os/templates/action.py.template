@@ -1,6 +1,5 @@
 """${ActionName} - Use case for ${description}."""
 
-import anyio
 from returns.result import Result, Success, Failure
 
 from src.Ship.Parents.Action import Action
@@ -27,15 +26,7 @@ class ${ActionName}(Action[${ActionName}Request, ${Entity}, ${Module}Error]):
         result = await action.run(${ActionName}Request(...))
     """
     
-    def __init__(
-        self,
-        uow: ${Module}UnitOfWork,
-    ) -> None:
-        """Initialize action with dependencies.
-        
-        Args:
-            uow: Unit of Work for data operations
-        """
+    def __init__(self, uow: ${Module}UnitOfWork) -> None:
         self.uow = uow
     
     async def run(self, data: ${ActionName}Request) -> Result[${Entity}, ${Module}Error]:

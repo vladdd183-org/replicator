@@ -26,6 +26,8 @@ class TokenPayload(BaseModel):
         type: Token type (access/refresh)
     """
     
+    model_config = {"frozen": True}
+    
     sub: UUID
     email: str
     exp: datetime

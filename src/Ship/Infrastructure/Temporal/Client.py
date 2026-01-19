@@ -44,9 +44,7 @@
     TEMPORAL_CLIENT_KEY_PATH=/path/to/key.pem
 """
 
-import ssl
-from dataclasses import dataclass, field
-from functools import lru_cache
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 

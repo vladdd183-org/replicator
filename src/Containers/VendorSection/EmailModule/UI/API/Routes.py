@@ -9,7 +9,6 @@ from src.Containers.VendorSection.EmailModule.UI.API.Controllers.EmailController
     EmailController,
 )
 
-
 # Email router - groups all email-related endpoints under /api/v1
 email_router = DishkaRouter(
     path="/api/v1",
@@ -17,6 +16,3 @@ email_router = DishkaRouter(
         EmailController,
     ],
 )
-
-
-

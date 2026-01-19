@@ -11,7 +11,7 @@ description: Guide for extracting Hyper-Porto Container into a separate microser
 
 | Тип | Путь |
 |-----|------|
-| **Docs** | `docs/14-microservice-extraction-guide.md` |
+| **Docs** | `docs/16-microservice-extraction-guide.md` |
 
 ## Phases
 

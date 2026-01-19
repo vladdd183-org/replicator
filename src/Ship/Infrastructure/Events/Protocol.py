@@ -8,6 +8,7 @@ from abc import abstractmethod
 from typing import Any, Awaitable, Callable, Protocol, TypeVar, runtime_checkable
 
 from src.Ship.Infrastructure.Events.Models import (
+    DeadLetterEvent,
     EventBusStats,
     EventEnvelope,
     EventMetadata,
@@ -379,10 +380,6 @@ class EventBusWithRetryProtocol(EventBusProtocol, Protocol):
             True if replayed successfully
         """
         ...
-
-
-# Import for type hints
-from src.Ship.Infrastructure.Events.Models import DeadLetterEvent
 
 
 __all__ = [

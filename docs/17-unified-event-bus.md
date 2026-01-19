@@ -1220,7 +1220,7 @@ class OutboxEvent(Table, tablename="outbox_events"):
 
 import anyio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logfire
 
@@ -1313,7 +1313,7 @@ class OutboxPublisher:
                 # Помечаем как опубликованное
                 await OutboxEvent.update({
                     OutboxEvent.published: True,
-                    OutboxEvent.published_at: datetime.utcnow(),
+                    OutboxEvent.published_at: datetime.now(timezone.utc),
                 }).where(
                     OutboxEvent.id == event_row["id"]
                 ).run()
@@ -1564,8 +1564,8 @@ async def handle_payment(payment_id: str, **kwargs):
 ## 📚 Связанная документация
 
 - [13-cross-module-communication.md](13-cross-module-communication.md) — Event-Driven архитектура
-- [14-future-roadmap-and-patterns.md](14-future-roadmap-and-patterns.md) — Outbox, Idempotency
-- [17-microservice-extraction-guide.md](17-microservice-extraction-guide.md) — Вынос в микросервисы
+- [14-module-gateway-pattern.md](14-module-gateway-pattern.md) — Outbox, Idempotency
+- [16-microservice-extraction-guide.md](16-microservice-extraction-guide.md) — Вынос в микросервисы
 
 ---
 

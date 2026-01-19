@@ -27,21 +27,21 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
+from src.Ship.Core.Errors import ErrorWithTemplate
 from src.Ship.Core.GatewayErrors import GatewayError
-
 
 # ============================================================================
 # ENUMS
 # ============================================================================
 
+
 class PaymentStatus(StrEnum):
     """Payment status enum.
-    
+
     Represents the state of a payment from UserModule's perspective.
     Simplified compared to PaymentModule's internal statuses.
     """
-    
+
     PENDING = "pending"
     SUCCESS = "success"
     FAILED = "failed"
@@ -51,10 +51,10 @@ class PaymentStatus(StrEnum):
 
 class Currency(StrEnum):
     """Supported currencies.
-    
+
     ISO 4217 currency codes that UserModule works with.
     """
-    
+
     RUB = "RUB"
     USD = "USD"
     EUR = "EUR"
@@ -64,12 +64,13 @@ class Currency(StrEnum):
 # REQUEST DTOs
 # ============================================================================
 
+
 class PaymentRequest(BaseModel):
     """Request DTO for creating a payment.
-    
+
     UserModule's view of payment creation request.
     Adapter maps this to PaymentModule's internal format.
-    
+
     Attributes:
         user_id: User making the payment
         amount: Payment amount in minor units (kopecks/cents)
@@ -77,7 +78,7 @@ class PaymentRequest(BaseModel):
         description: Optional payment description
         idempotency_key: Optional key for idempotent requests
         metadata: Optional additional data
-    
+
     Example:
         request = PaymentRequest(
             user_id=user_id,
@@ -86,9 +87,9 @@ class PaymentRequest(BaseModel):
             description="Premium subscription",
         )
     """
-    
+
     model_config = {"frozen": True}
-    
+
     user_id: UUID
     amount: Decimal = Field(..., gt=0, description="Payment amount (positive)")
     currency: str = Field(
@@ -108,28 +109,28 @@ class PaymentRequest(BaseModel):
 
 class PaymentStatusRequest(BaseModel):
     """Request DTO for getting payment status.
-    
+
     Attributes:
         payment_id: ID of the payment to check
     """
-    
+
     model_config = {"frozen": True}
-    
+
     payment_id: UUID
 
 
 class RefundRequest(BaseModel):
     """Request DTO for refunding a payment.
-    
+
     Attributes:
         payment_id: Original payment to refund
         amount: Refund amount (None = full refund)
         reason: Reason for refund
         idempotency_key: Optional key for idempotent requests
     """
-    
+
     model_config = {"frozen": True}
-    
+
     payment_id: UUID
     amount: Decimal | None = Field(
         default=None,
@@ -147,12 +148,13 @@ class RefundRequest(BaseModel):
 # RESPONSE DTOs
 # ============================================================================
 
+
 class PaymentResult(BaseModel):
     """Result DTO for payment operations.
-    
+
     UserModule's view of payment result.
     Adapter maps PaymentModule's internal result to this format.
-    
+
     Attributes:
         payment_id: Unique payment identifier
         user_id: User who made the payment
@@ -164,9 +166,9 @@ class PaymentResult(BaseModel):
         provider_reference: External payment provider reference
         message: Optional status message
     """
-    
+
     model_config = {"frozen": True}
-    
+
     payment_id: UUID
     user_id: UUID
     amount: Decimal
@@ -180,7 +182,7 @@ class PaymentResult(BaseModel):
 
 class RefundResult(BaseModel):
     """Result DTO for refund operations.
-    
+
     Attributes:
         refund_id: Unique refund identifier
         payment_id: Original payment that was refunded
@@ -191,9 +193,9 @@ class RefundResult(BaseModel):
         processed_at: When refund was processed
         message: Optional status message
     """
-    
+
     model_config = {"frozen": True}
-    
+
     refund_id: UUID
     payment_id: UUID
     amount: Decimal
@@ -208,23 +210,22 @@ class RefundResult(BaseModel):
 # ERRORS
 # ============================================================================
 
+
 class PaymentGatewayError(GatewayError):
     """Base error for PaymentGateway operations.
-    
+
     All payment gateway errors inherit from this.
     service_name is always "payment" for these errors.
     """
-    
+
     service_name: str = "payment"
     code: str = "PAYMENT_GATEWAY_ERROR"
 
 
 class PaymentGatewayConnectionError(ErrorWithTemplate, PaymentGatewayError):
     """Error when cannot connect to payment service."""
-    
-    _message_template: ClassVar[str] = (
-        "Cannot connect to payment service: {details}"
-    )
+
+    _message_template: ClassVar[str] = "Cannot connect to payment service: {details}"
     code: str = "PAYMENT_GATEWAY_CONNECTION"
     http_status: int = 503
     details: str = "Connection failed"
@@ -232,10 +233,8 @@ class PaymentGatewayConnectionError(ErrorWithTemplate, PaymentGatewayError):
 
 class PaymentGatewayTimeoutError(ErrorWithTemplate, PaymentGatewayError):
     """Error when payment request times out."""
-    
-    _message_template: ClassVar[str] = (
-        "Payment request timed out after {timeout_seconds}s"
-    )
+
+    _message_template: ClassVar[str] = "Payment request timed out after {timeout_seconds}s"
     code: str = "PAYMENT_GATEWAY_TIMEOUT"
     http_status: int = 504
     timeout_seconds: float = 30.0
@@ -243,14 +242,12 @@ class PaymentGatewayTimeoutError(ErrorWithTemplate, PaymentGatewayError):
 
 class PaymentDeclinedError(ErrorWithTemplate, PaymentGatewayError):
     """Error when payment is declined.
-    
+
     This is a domain-specific error (not transport error).
     The payment request reached the service but was rejected.
     """
-    
-    _message_template: ClassVar[str] = (
-        "Payment declined: {reason}"
-    )
+
+    _message_template: ClassVar[str] = "Payment declined: {reason}"
     code: str = "PAYMENT_DECLINED"
     http_status: int = 402  # Payment Required
     reason: str
@@ -259,10 +256,8 @@ class PaymentDeclinedError(ErrorWithTemplate, PaymentGatewayError):
 
 class PaymentNotFoundError(ErrorWithTemplate, PaymentGatewayError):
     """Error when payment is not found."""
-    
-    _message_template: ClassVar[str] = (
-        "Payment with id {payment_id} not found"
-    )
+
+    _message_template: ClassVar[str] = "Payment with id {payment_id} not found"
     code: str = "PAYMENT_NOT_FOUND"
     http_status: int = 404
     payment_id: UUID
@@ -270,16 +265,14 @@ class PaymentNotFoundError(ErrorWithTemplate, PaymentGatewayError):
 
 class RefundNotAllowedError(ErrorWithTemplate, PaymentGatewayError):
     """Error when refund is not allowed.
-    
+
     Reasons:
     - Payment not in refundable state
     - Refund window expired
     - Amount exceeds original payment
     """
-    
-    _message_template: ClassVar[str] = (
-        "Refund not allowed for payment {payment_id}: {reason}"
-    )
+
+    _message_template: ClassVar[str] = "Refund not allowed for payment {payment_id}: {reason}"
     code: str = "REFUND_NOT_ALLOWED"
     http_status: int = 400
     payment_id: UUID
@@ -288,10 +281,8 @@ class RefundNotAllowedError(ErrorWithTemplate, PaymentGatewayError):
 
 class InsufficientFundsError(ErrorWithTemplate, PaymentGatewayError):
     """Error when user has insufficient funds."""
-    
-    _message_template: ClassVar[str] = (
-        "Insufficient funds: required {amount} {currency}"
-    )
+
+    _message_template: ClassVar[str] = "Insufficient funds: required {amount} {currency}"
     code: str = "INSUFFICIENT_FUNDS"
     http_status: int = 402
     amount: Decimal

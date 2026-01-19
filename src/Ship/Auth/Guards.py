@@ -3,7 +3,6 @@
 Provides dependency injection for authenticated user and route guards.
 """
 
-from uuid import UUID
 from typing import Annotated
 
 from litestar import Request

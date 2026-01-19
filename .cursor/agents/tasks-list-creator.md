@@ -102,49 +102,41 @@ Total Tasks: [count]
 - Proper authorization enforced
 - Consistent response format
 
-### Frontend Components
+### Business Logic Layer
 
-#### Task Group 3: UI Design
+#### Task Group 3: Actions and Events
 **Dependencies:** Task Group 2
 
-- [ ] 3.0 Complete UI components
-  - [ ] 3.1 Write 2-8 focused tests for UI components
+- [ ] 3.0 Complete business logic layer
+  - [ ] 3.1 Write 2-8 focused tests for Actions
     - Limit to 2-8 highly focused tests maximum
-    - Test only critical component behaviors (e.g., primary user interaction, key form submission, main rendering case)
-    - Skip exhaustive testing of all component states and interactions
-  - [ ] 3.2 Create [Component] component
-    - Reuse: [existing component] as base
-    - Props: [list]
-    - State: [list]
-  - [ ] 3.3 Implement [Feature] form
-    - Fields: [list]
-    - Validation: client-side
-    - Submit handling
-  - [ ] 3.4 Build [View] page
-    - Layout: [description]
-    - Components: [list]
-    - Match mockup: `planning/visuals/[file]`
-  - [ ] 3.5 Apply base styles
-    - Follow existing design system
-    - Use variables from: [style file]
-  - [ ] 3.6 Implement responsive design
-    - Mobile: 320px - 768px
-    - Tablet: 768px - 1024px
-    - Desktop: 1024px+
-  - [ ] 3.7 Add interactions and animations
-    - Hover states
-    - Transitions
-    - Loading states
-  - [ ] 3.8 Ensure UI component tests pass
+    - Test only critical Action behaviors (e.g., happy path, main validation, key error case)
+    - Skip exhaustive testing of all edge cases
+  - [ ] 3.2 Create [Feature]Action with Result[T, E]
+    - Inject: [dependencies via DI]
+    - Validate: [business rules]
+    - Return: Success/Failure
+  - [ ] 3.3 Implement [Feature]Task for atomic operations
+    - Stateless operation
+    - Single responsibility
+    - Reuse pattern from: [existing task if applicable]
+  - [ ] 3.4 Create domain events
+    - Event: [EntityCreated/Updated/Deleted]
+    - Payload: [required fields]
+    - Register in UnitOfWork
+  - [ ] 3.5 Implement event listeners
+    - Handle: [event type]
+    - Side effects: [notifications, audit, etc.]
+  - [ ] 3.6 Ensure business logic tests pass
     - Run ONLY the 2-8 tests written in 3.1
-    - Verify critical component behaviors work
+    - Verify Actions return correct Result types
     - Do NOT run the entire test suite at this stage
 
 **Acceptance Criteria:**
 - The 2-8 tests written in 3.1 pass
-- Components render correctly
-- Forms validate and submit
-- Matches visual design
+- Actions return proper Result[T, E]
+- Events are published correctly
+- Listeners handle events as expected
 
 ### Testing
 
@@ -153,9 +145,9 @@ Total Tasks: [count]
 
 - [ ] 4.0 Review existing tests and fill critical gaps only
   - [ ] 4.1 Review tests from Task Groups 1-3
-    - Review the 2-8 tests written by database-engineer (Task 1.1)
-    - Review the 2-8 tests written by api-engineer (Task 2.1)
-    - Review the 2-8 tests written by ui-designer (Task 3.1)
+    - Review the 2-8 tests written for database layer (Task 1.1)
+    - Review the 2-8 tests written for API layer (Task 2.1)
+    - Review the 2-8 tests written for business logic (Task 3.1)
     - Total existing tests: approximately 6-24 tests
   - [ ] 4.2 Analyze test coverage gaps for THIS feature only
     - Identify critical user workflows that lack test coverage
@@ -184,7 +176,7 @@ Total Tasks: [count]
 Recommended implementation sequence:
 1. Database Layer (Task Group 1)
 2. API Layer (Task Group 2)
-3. Frontend Design (Task Group 3)
+3. Business Logic Layer (Task Group 3)
 4. Test Review & Gap Analysis (Task Group 4)
 ```
 
@@ -196,7 +188,7 @@ Recommended implementation sequence:
 ## Important Constraints
 
 - **Create tasks that are specific and verifiable**
-- **Group related tasks:** For example, group back-end engineering tasks together and front-end UI tasks together.
+- **Group related tasks:** For example, group database tasks together and API/business logic tasks together.
 - **Limit test writing during development**:
   - Each task group (1-3) should write 2-8 focused tests maximum
   - Tests should cover only critical behaviors, not exhaustive coverage
@@ -215,10 +207,6 @@ IMPORTANT: Ensure that the tasks list you create IS ALIGNED and DOES NOT CONFLIC
 @agent-os/standards/backend/migrations.md
 @agent-os/standards/backend/models.md
 @agent-os/standards/backend/queries.md
-@agent-os/standards/frontend/accessibility.md
-@agent-os/standards/frontend/components.md
-@agent-os/standards/frontend/css.md
-@agent-os/standards/frontend/responsive.md
 @agent-os/standards/global/coding-style.md
 @agent-os/standards/global/commenting.md
 @agent-os/standards/global/conventions.md

@@ -1,4 +1,1 @@
 """EmailModule UI layer."""
-
-
-

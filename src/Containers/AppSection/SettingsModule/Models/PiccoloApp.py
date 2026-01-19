@@ -8,10 +8,9 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 
 # Import table classes directly
-from src.Containers.AppSection.SettingsModule.Models.Setting import Setting
 from src.Containers.AppSection.SettingsModule.Models.FeatureFlag import FeatureFlag
+from src.Containers.AppSection.SettingsModule.Models.Setting import Setting
 from src.Containers.AppSection.SettingsModule.Models.UserSetting import UserSetting
-
 
 APP_CONFIG = AppConfig(
     app_name="settings",

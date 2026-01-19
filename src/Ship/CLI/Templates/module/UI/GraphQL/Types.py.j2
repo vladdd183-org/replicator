@@ -54,3 +54,45 @@ class Update{{ name }}Input:
     # TODO: Add optional update fields
     # name: str | None = None
     # description: str | None = None
+
+
+@strawberry.type
+class {{ name }}ErrorType:
+    """GraphQL error type for {{ name }} operations."""
+    
+    message: str
+    code: str
+
+
+@strawberry.type
+class Create{{ name }}Payload:
+    """GraphQL payload for create {{ name_lower }} mutation."""
+    
+    {{ name_lower }}: {{ name }}Type | None = None
+    error: {{ name }}ErrorType | None = None
+    
+    @property
+    def success(self) -> bool:
+        """Check if operation was successful."""
+        return self.error is None
+
+
+@strawberry.type
+class Update{{ name }}Payload:
+    """GraphQL payload for update {{ name_lower }} mutation."""
+    
+    {{ name_lower }}: {{ name }}Type | None = None
+    error: {{ name }}ErrorType | None = None
+    
+    @property
+    def success(self) -> bool:
+        """Check if operation was successful."""
+        return self.error is None
+
+
+@strawberry.type
+class Delete{{ name }}Payload:
+    """GraphQL payload for delete {{ name_lower }} mutation."""
+    
+    success: bool
+    error: {{ name }}ErrorType | None = None

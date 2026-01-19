@@ -11,7 +11,7 @@ from src.Ship.Core.BaseSchema import EntitySchema
 
 class NotificationResponse(EntitySchema):
     """Response DTO for Notification entity.
-    
+
     Attributes:
         id: Notification UUID
         user_id: User who owns the notification
@@ -23,7 +23,7 @@ class NotificationResponse(EntitySchema):
         created_at: When notification was created
         read_at: When notification was read (null if unread)
     """
-    
+
     id: UUID
     user_id: UUID
     notification_type: str
@@ -37,7 +37,7 @@ class NotificationResponse(EntitySchema):
 
 class NotificationListResponse(EntitySchema):
     """Response DTO for list of notifications.
-    
+
     Attributes:
         notifications: List of notification responses
         total: Total count of notifications
@@ -45,7 +45,7 @@ class NotificationListResponse(EntitySchema):
         limit: Page size
         offset: Page offset
     """
-    
+
     notifications: list[NotificationResponse]
     total: int
     unread_count: int
@@ -55,12 +55,9 @@ class NotificationListResponse(EntitySchema):
 
 class UnreadCountResponse(EntitySchema):
     """Response DTO for unread notification count.
-    
+
     Attributes:
         count: Number of unread notifications
     """
-    
+
     count: int
-
-
-

@@ -14,6 +14,8 @@ For CPU-heavy operations in async context, wrap with anyio.to_thread.run_sync().
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
+__all__ = ["Task", "SyncTask"]
+
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
 

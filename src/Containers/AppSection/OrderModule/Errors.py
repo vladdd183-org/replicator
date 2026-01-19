@@ -4,7 +4,6 @@ All errors are Pydantic frozen models with explicit http_status.
 Uses ErrorWithTemplate for automatic message generation.
 """
 
-from decimal import Decimal
 from typing import ClassVar
 from uuid import UUID
 
@@ -13,13 +12,13 @@ from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
 
 class OrderError(BaseError):
     """Base error for OrderModule."""
-    
+
     code: str = "ORDER_ERROR"
 
 
 class OrderNotFoundError(ErrorWithTemplate, OrderError):
     """Error raised when order is not found."""
-    
+
     _message_template: ClassVar[str] = "Order with id {order_id} not found"
     code: str = "ORDER_NOT_FOUND"
     http_status: int = 404
@@ -28,7 +27,7 @@ class OrderNotFoundError(ErrorWithTemplate, OrderError):
 
 class OrderItemNotFoundError(ErrorWithTemplate, OrderError):
     """Error raised when order item is not found."""
-    
+
     _message_template: ClassVar[str] = "Order item with id {item_id} not found"
     code: str = "ORDER_ITEM_NOT_FOUND"
     http_status: int = 404
@@ -37,7 +36,7 @@ class OrderItemNotFoundError(ErrorWithTemplate, OrderError):
 
 class OrderAlreadyExistsError(ErrorWithTemplate, OrderError):
     """Error raised when duplicate order is detected."""
-    
+
     _message_template: ClassVar[str] = "Order already exists for this transaction"
     code: str = "ORDER_ALREADY_EXISTS"
     http_status: int = 409
@@ -45,8 +44,10 @@ class OrderAlreadyExistsError(ErrorWithTemplate, OrderError):
 
 class InvalidOrderStatusError(ErrorWithTemplate, OrderError):
     """Error raised when order status transition is invalid."""
-    
-    _message_template: ClassVar[str] = "Cannot transition order {order_id} from '{current_status}' to '{target_status}'"
+
+    _message_template: ClassVar[str] = (
+        "Cannot transition order {order_id} from '{current_status}' to '{target_status}'"
+    )
     code: str = "INVALID_ORDER_STATUS"
     http_status: int = 409
     order_id: UUID
@@ -56,7 +57,7 @@ class InvalidOrderStatusError(ErrorWithTemplate, OrderError):
 
 class OrderCancellationError(ErrorWithTemplate, OrderError):
     """Error raised when order cannot be cancelled."""
-    
+
     _message_template: ClassVar[str] = "Order {order_id} cannot be cancelled in '{status}' status"
     code: str = "ORDER_CANCELLATION_ERROR"
     http_status: int = 409
@@ -66,7 +67,7 @@ class OrderCancellationError(ErrorWithTemplate, OrderError):
 
 class EmptyOrderError(OrderError):
     """Error raised when trying to create order with no items."""
-    
+
     code: str = "EMPTY_ORDER"
     http_status: int = 422
     message: str = "Order must contain at least one item"
@@ -74,7 +75,7 @@ class EmptyOrderError(OrderError):
 
 class InvalidOrderAmountError(ErrorWithTemplate, OrderError):
     """Error raised when order amount is invalid."""
-    
+
     _message_template: ClassVar[str] = "Invalid order amount: {amount}"
     code: str = "INVALID_ORDER_AMOUNT"
     http_status: int = 422
@@ -83,16 +84,19 @@ class InvalidOrderAmountError(ErrorWithTemplate, OrderError):
 
 # External service errors for saga steps
 
+
 class InventoryError(BaseError):
     """Base error for inventory operations."""
-    
+
     code: str = "INVENTORY_ERROR"
 
 
 class InsufficientInventoryError(ErrorWithTemplate, InventoryError):
     """Error raised when insufficient inventory available."""
-    
-    _message_template: ClassVar[str] = "Insufficient inventory for product {product_id}: requested {requested}, available {available}"
+
+    _message_template: ClassVar[str] = (
+        "Insufficient inventory for product {product_id}: requested {requested}, available {available}"
+    )
     code: str = "INSUFFICIENT_INVENTORY"
     http_status: int = 422
     product_id: UUID
@@ -102,7 +106,7 @@ class InsufficientInventoryError(ErrorWithTemplate, InventoryError):
 
 class InventoryReservationFailedError(ErrorWithTemplate, InventoryError):
     """Error raised when inventory reservation fails."""
-    
+
     _message_template: ClassVar[str] = "Failed to reserve inventory: {reason}"
     code: str = "INVENTORY_RESERVATION_FAILED"
     http_status: int = 500
@@ -111,7 +115,7 @@ class InventoryReservationFailedError(ErrorWithTemplate, InventoryError):
 
 class InventoryServiceUnavailableError(InventoryError):
     """Error raised when inventory service is unavailable."""
-    
+
     code: str = "INVENTORY_SERVICE_UNAVAILABLE"
     http_status: int = 503
     message: str = "Inventory service is temporarily unavailable"
@@ -119,13 +123,13 @@ class InventoryServiceUnavailableError(InventoryError):
 
 class PaymentError(BaseError):
     """Base error for payment operations."""
-    
+
     code: str = "PAYMENT_ERROR"
 
 
 class PaymentDeclinedError(ErrorWithTemplate, PaymentError):
     """Error raised when payment is declined."""
-    
+
     _message_template: ClassVar[str] = "Payment declined: {reason}"
     code: str = "PAYMENT_DECLINED"
     http_status: int = 402
@@ -135,7 +139,7 @@ class PaymentDeclinedError(ErrorWithTemplate, PaymentError):
 
 class PaymentProcessingError(ErrorWithTemplate, PaymentError):
     """Error raised when payment processing fails."""
-    
+
     _message_template: ClassVar[str] = "Payment processing failed: {reason}"
     code: str = "PAYMENT_PROCESSING_ERROR"
     http_status: int = 500
@@ -144,7 +148,7 @@ class PaymentProcessingError(ErrorWithTemplate, PaymentError):
 
 class PaymentGatewayUnavailableError(PaymentError):
     """Error raised when payment gateway is unavailable."""
-    
+
     code: str = "PAYMENT_GATEWAY_UNAVAILABLE"
     http_status: int = 503
     message: str = "Payment gateway is temporarily unavailable"
@@ -152,8 +156,10 @@ class PaymentGatewayUnavailableError(PaymentError):
 
 class InsufficientFundsError(ErrorWithTemplate, PaymentError):
     """Error raised when customer has insufficient funds."""
-    
-    _message_template: ClassVar[str] = "Insufficient funds: required {required}, available {available}"
+
+    _message_template: ClassVar[str] = (
+        "Insufficient funds: required {required}, available {available}"
+    )
     code: str = "INSUFFICIENT_FUNDS"
     http_status: int = 402
     required: str
@@ -162,15 +168,16 @@ class InsufficientFundsError(ErrorWithTemplate, PaymentError):
 
 # Temporal Workflow errors
 
+
 class WorkflowError(OrderError):
     """Base error for Temporal Workflow operations."""
-    
+
     code: str = "WORKFLOW_ERROR"
 
 
 class WorkflowStartError(ErrorWithTemplate, WorkflowError):
     """Error raised when workflow cannot be started."""
-    
+
     _message_template: ClassVar[str] = "Failed to start workflow for user {user_id}: {reason}"
     code: str = "WORKFLOW_START_FAILED"
     http_status: int = 500
@@ -180,7 +187,7 @@ class WorkflowStartError(ErrorWithTemplate, WorkflowError):
 
 class WorkflowNotFoundError(ErrorWithTemplate, WorkflowError):
     """Error raised when workflow is not found."""
-    
+
     _message_template: ClassVar[str] = "Workflow {workflow_id} not found"
     code: str = "WORKFLOW_NOT_FOUND"
     http_status: int = 404
@@ -189,7 +196,7 @@ class WorkflowNotFoundError(ErrorWithTemplate, WorkflowError):
 
 class WorkflowQueryError(ErrorWithTemplate, WorkflowError):
     """Error raised when workflow query fails."""
-    
+
     _message_template: ClassVar[str] = "Failed to query workflow {workflow_id}: {reason}"
     code: str = "WORKFLOW_QUERY_FAILED"
     http_status: int = 500
@@ -199,7 +206,7 @@ class WorkflowQueryError(ErrorWithTemplate, WorkflowError):
 
 class WorkflowTimeoutError(ErrorWithTemplate, WorkflowError):
     """Error raised when workflow times out."""
-    
+
     _message_template: ClassVar[str] = "Workflow {workflow_id} timed out after {timeout_seconds}s"
     code: str = "WORKFLOW_TIMEOUT"
     http_status: int = 504
@@ -209,7 +216,7 @@ class WorkflowTimeoutError(ErrorWithTemplate, WorkflowError):
 
 class WorkflowCancelledError(ErrorWithTemplate, WorkflowError):
     """Error raised when workflow is cancelled."""
-    
+
     _message_template: ClassVar[str] = "Workflow {workflow_id} was cancelled: {reason}"
     code: str = "WORKFLOW_CANCELLED"
     http_status: int = 409

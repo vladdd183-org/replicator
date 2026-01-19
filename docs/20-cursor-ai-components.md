@@ -1,4 +1,4 @@
-# 23. Cursor AI Components — Rules, Skills, Subagents, Commands
+# 20. Cursor AI Components — Rules, Skills, Subagents, Commands
 
 > Архитектура компонентов Cursor AI для автоматизации разработки в Hyper-Porto.
 
@@ -647,5 +647,5 @@ task_groups:
 
 - [02-project-structure.md](02-project-structure.md) — Структура проекта
 - [07-spec-driven.md](07-spec-driven.md) — Spec-Driven Development
-- [24-self-improving-systems.md](24-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training**
+- [21-self-improving-systems.md](21-self-improving-systems.md) — **Memory, Feedback, Standards Evolution, Training**
 - [CLAUDE.md](../CLAUDE.md) — Quick Reference для AI

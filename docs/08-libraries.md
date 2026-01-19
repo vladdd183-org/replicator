@@ -48,6 +48,7 @@
 | **taskiq** | ≥0.11 | Task queue |
 | **taskiq-redis** | ≥1.0 | Redis backend |
 | **taskiq-litestar** | ≥0.2 | Litestar интеграция |
+| **temporalio** | ≥1.9.0 | Durable Execution, Saga Workflows |
 
 **Почему TaskIQ:**
 - Современный async task queue

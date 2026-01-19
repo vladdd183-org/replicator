@@ -1,12 +1,8 @@
 from piccolo.apps.migrations.auto.migration_manager import MigrationManager
-from piccolo.columns.column_types import Boolean
-from piccolo.columns.column_types import Timestamptz
-from piccolo.columns.column_types import UUID
-from piccolo.columns.column_types import Varchar
+from piccolo.columns.column_types import UUID, Boolean, Timestamptz, Varchar
 from piccolo.columns.defaults.timestamptz import TimestamptzNow
 from piccolo.columns.defaults.uuid import UUID4
 from piccolo.columns.indexes import IndexMethod
-
 
 ID = "2026-01-06T18:26:49:171359"
 VERSION = "1.30.0"
@@ -14,13 +10,9 @@ DESCRIPTION = ""
 
 
 async def forwards():
-    manager = MigrationManager(
-        migration_id=ID, app_name="user", description=DESCRIPTION
-    )
+    manager = MigrationManager(migration_id=ID, app_name="user", description=DESCRIPTION)
 
-    manager.add_table(
-        class_name="AppUser", tablename="app_user", schema=None, columns=None
-    )
+    manager.add_table(class_name="AppUser", tablename="app_user", schema=None, columns=None)
 
     manager.add_column(
         table_class_name="AppUser",

@@ -11,9 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class AuditSearchRequest(BaseModel):
     """Request for searching audit logs."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     actor_id: UUID | None = Field(None, description="Filter by actor ID")
     entity_type: str | None = Field(None, description="Filter by entity type")
     entity_id: str | None = Field(None, description="Filter by entity ID")
@@ -27,15 +27,12 @@ class AuditSearchRequest(BaseModel):
 
 class CreateAuditLogRequest(BaseModel):
     """Request for manually creating audit log entry."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     action: str = Field(..., min_length=1, max_length=50)
     entity_type: str | None = Field(None, max_length=100)
     entity_id: str | None = Field(None, max_length=255)
     old_values: dict | None = None
     new_values: dict | None = None
     metadata: dict | None = None
-
-
-

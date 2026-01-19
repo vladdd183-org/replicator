@@ -1,12 +1,9 @@
 """EmailModule tasks."""
 
 from src.Containers.VendorSection.EmailModule.Tasks.SendEmailTask import (
-    SendEmailTask,
     EmailData,
     EmailResult,
+    SendEmailTask,
 )
 
-__all__ = ["SendEmailTask", "EmailData", "EmailResult"]
-
-
-
+__all__ = ["EmailData", "EmailResult", "SendEmailTask"]

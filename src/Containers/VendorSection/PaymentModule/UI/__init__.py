@@ -1,4 +1,1 @@
 """PaymentModule UI layer."""
-
-
-

@@ -5,6 +5,3 @@ from src.Containers.AppSection.NotificationModule.UI.API.Controllers.Notificatio
 )
 
 __all__ = ["NotificationController"]
-
-
-

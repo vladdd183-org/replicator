@@ -1,20 +1,17 @@
 """NotificationModule queries."""
 
-from src.Containers.AppSection.NotificationModule.Queries.GetUserNotificationsQuery import (
-    GetUserNotificationsQuery,
-    GetUserNotificationsInput,
-    GetUserNotificationsOutput,
-)
 from src.Containers.AppSection.NotificationModule.Queries.CountUnreadQuery import (
     CountUnreadQuery,
 )
+from src.Containers.AppSection.NotificationModule.Queries.GetUserNotificationsQuery import (
+    GetUserNotificationsInput,
+    GetUserNotificationsOutput,
+    GetUserNotificationsQuery,
+)
 
 __all__ = [
-    "GetUserNotificationsQuery",
+    "CountUnreadQuery",
     "GetUserNotificationsInput",
     "GetUserNotificationsOutput",
-    "CountUnreadQuery",
+    "GetUserNotificationsQuery",
 ]
-
-
-

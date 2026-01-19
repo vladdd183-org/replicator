@@ -1,27 +1,27 @@
 """Order module tasks."""
 
-from src.Containers.AppSection.OrderModule.Tasks.InventoryTask import (
-    InventoryTask,
-    ReserveInventoryInput,
+from src.Containers.AppSection.OrderModule.Tasks.ReserveInventoryTask import (
+    ReserveInventoryTask,
     ReservationResult,
+    ReserveInventoryInput,
 )
-from src.Containers.AppSection.OrderModule.Tasks.PaymentTask import (
-    PaymentTask,
-    ProcessPaymentInput,
-    PaymentResult,
-)
-from src.Containers.AppSection.OrderModule.Tasks.NotificationTask import (
-    NotificationTask,
+from src.Containers.AppSection.OrderModule.Tasks.SendNotificationTask import (
+    SendNotificationTask,
     OrderNotificationInput,
+)
+from src.Containers.AppSection.OrderModule.Tasks.ProcessPaymentTask import (
+    PaymentResult,
+    ProcessPaymentTask,
+    ProcessPaymentInput,
 )
 
 __all__ = [
-    "InventoryTask",
-    "ReserveInventoryInput",
-    "ReservationResult",
-    "PaymentTask",
-    "ProcessPaymentInput",
-    "PaymentResult",
-    "NotificationTask",
+    "ReserveInventoryTask",
+    "SendNotificationTask",
     "OrderNotificationInput",
+    "PaymentResult",
+    "ProcessPaymentTask",
+    "ProcessPaymentInput",
+    "ReservationResult",
+    "ReserveInventoryInput",
 ]

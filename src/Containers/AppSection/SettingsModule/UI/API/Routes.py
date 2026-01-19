@@ -3,8 +3,8 @@
 from dishka.integrations.litestar import DishkaRouter
 
 from src.Containers.AppSection.SettingsModule.UI.API.Controllers.SettingsController import (
-    SettingsController,
     FeatureFlagsController,
+    SettingsController,
 )
 
 settings_router = DishkaRouter(
@@ -14,6 +14,3 @@ settings_router = DishkaRouter(
         FeatureFlagsController,
     ],
 )
-
-
-

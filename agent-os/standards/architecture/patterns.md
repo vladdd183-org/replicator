@@ -122,13 +122,15 @@ class UserRepository(Repository[AppUser]):
 
 ### Hooks (расширение)
 ```python
+from datetime import datetime, timezone
+
 async def _on_add(self, entity: AppUser) -> None:
     """Hook called before adding entity."""
-    entity.created_at = datetime.utcnow()
+    entity.created_at = datetime.now(timezone.utc)
 
 async def _on_update(self, entity: AppUser) -> None:
     """Hook called before updating entity."""
-    entity.updated_at = datetime.utcnow()
+    entity.updated_at = datetime.now(timezone.utc)
 ```
 
 ---

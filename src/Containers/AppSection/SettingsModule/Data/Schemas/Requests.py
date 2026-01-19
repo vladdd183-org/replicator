@@ -10,9 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class SetSettingRequest(BaseModel):
     """Request for setting a configuration value."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     key: str = Field(..., min_length=1, max_length=100)
     value: str = Field(..., max_length=10000)
     value_type: str = Field("string", pattern="^(string|int|float|bool|json)$")
@@ -22,9 +22,9 @@ class SetSettingRequest(BaseModel):
 
 class CreateFeatureFlagRequest(BaseModel):
     """Request for creating a feature flag."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(None, max_length=500)
     enabled: bool = False
@@ -33,9 +33,9 @@ class CreateFeatureFlagRequest(BaseModel):
 
 class UpdateFeatureFlagRequest(BaseModel):
     """Request for updating a feature flag."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     enabled: bool | None = None
     rollout_percentage: int | None = Field(None, ge=0, le=100)
     description: str | None = None
@@ -45,11 +45,8 @@ class UpdateFeatureFlagRequest(BaseModel):
 
 class CheckFeatureFlagRequest(BaseModel):
     """Request for checking if feature flag is enabled."""
-    
+
     model_config = ConfigDict(frozen=True)
-    
+
     flag_name: str = Field(..., min_length=1, max_length=100)
     user_id: UUID | None = None
-
-
-

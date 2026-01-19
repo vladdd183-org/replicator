@@ -54,25 +54,29 @@
 /deps add pytest --dev
 ```
 
-## Poetry команды
+## UV команды
 
 ```bash
 # Проверить устаревшие
-poetry show --outdated
+# UV не имеет встроенного --outdated, используй pip-audit или вручную:
+uv pip list  # Показать установленные версии
+uv run pip list --outdated  # Через pip внутри venv
 
-# Обновить все
-poetry update
+# Обновить все зависимости
+uv lock --upgrade && uv sync
 
-# Обновить конкретный
-poetry update litestar
+# Обновить конкретный пакет
+uv lock --upgrade-package litestar && uv sync
 
-# Добавить
-poetry add httpx
-poetry add --group dev pytest
+# Добавить зависимость
+uv add httpx
+
+# Добавить dev зависимость
+uv add --dev pytest
 
 # Security scan
-pip-audit
-safety check
+uv run pip-audit
+uv run safety check
 ```
 
 ## Hyper-Porto Core Dependencies

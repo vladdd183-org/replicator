@@ -12,6 +12,3 @@ search_router = DishkaRouter(
         SearchController,
     ],
 )
-
-
-

@@ -6,6 +6,7 @@ from uuid import UUID
 # Re-export DomainEvent from Ship/Parents/Event.py for backward compatibility
 from src.Ship.Parents.Event import DomainEvent
 
+__all__ = ["Entity", "Identifiable", "DomainEvent", "T"]
 
 T = TypeVar("T")
 

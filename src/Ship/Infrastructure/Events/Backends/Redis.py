@@ -21,7 +21,6 @@ from typing import Any
 import json
 
 import anyio
-from anyio import create_task_group, move_on_after
 from anyio.abc import TaskGroup
 
 import logfire
@@ -32,10 +31,7 @@ from src.Ship.Infrastructure.Events.Errors import (
     EventPublishError,
 )
 from src.Ship.Infrastructure.Events.Models import (
-    DeadLetterEvent,
     EventEnvelope,
-    EventMetadata,
-    EventPriority,
 )
 
 

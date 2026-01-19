@@ -3,38 +3,47 @@
 from uuid import UUID
 
 from dishka.integrations.litestar import FromDishka
-from litestar import Controller, get, post, patch, delete, Request
+from litestar import Controller, Request, delete, get, patch, post
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from returns.result import Result
 
-from src.Ship.Core.Errors import DomainException
-from src.Ship.Decorators.result_handler import result_handler
+from src.Containers.VendorSection.WebhookModule.Actions.DeleteWebhookAction import (
+    DeleteWebhookAction,
+    DeleteWebhookInput,
+)
 from src.Containers.VendorSection.WebhookModule.Actions.RegisterWebhookAction import (
     RegisterWebhookAction,
     RegisterWebhookInput,
-)
-from src.Containers.VendorSection.WebhookModule.Actions.TriggerWebhookAction import (
-    TriggerWebhookAction,
-)
-from src.Containers.VendorSection.WebhookModule.Actions.ToggleWebhookAction import (
-    ToggleWebhookAction,
-    ToggleWebhookInput,
 )
 from src.Containers.VendorSection.WebhookModule.Actions.ResetWebhookAction import (
     ResetWebhookAction,
     ResetWebhookInput,
 )
-from src.Containers.VendorSection.WebhookModule.Actions.DeleteWebhookAction import (
-    DeleteWebhookAction,
-    DeleteWebhookInput,
+from src.Containers.VendorSection.WebhookModule.Actions.ToggleWebhookAction import (
+    ToggleWebhookAction,
+    ToggleWebhookInput,
 )
-from src.Containers.VendorSection.WebhookModule.Tasks.DeliverWebhookTask import (
-    DeliveryResult,
+from src.Containers.VendorSection.WebhookModule.Actions.TriggerWebhookAction import (
+    TriggerWebhookAction,
 )
-from src.Containers.VendorSection.WebhookModule.Queries.ListWebhooksQuery import (
-    ListWebhooksQuery,
-    ListWebhooksQueryInput,
+from src.Containers.VendorSection.WebhookModule.Data.Schemas.Requests import (
+    IncomingWebhookPayload,
+    RegisterWebhookRequest,
+    TriggerWebhookRequest,
 )
+from src.Containers.VendorSection.WebhookModule.Data.Schemas.Responses import (
+    TriggerWebhookResponse,
+    WebhookDeliveriesListResponse,
+    WebhookDeliveryResponse,
+    WebhookResponse,
+    WebhooksListResponse,
+    WebhookWithSecretResponse,
+)
+from src.Containers.VendorSection.WebhookModule.Errors import (
+    WebhookError,
+    WebhookNotFoundError,
+)
+from src.Containers.VendorSection.WebhookModule.Models.Webhook import Webhook
 from src.Containers.VendorSection.WebhookModule.Queries.GetWebhookQuery import (
     GetWebhookQuery,
     GetWebhookQueryInput,
@@ -43,32 +52,23 @@ from src.Containers.VendorSection.WebhookModule.Queries.ListWebhookDeliveriesQue
     ListWebhookDeliveriesQuery,
     ListWebhookDeliveriesQueryInput,
 )
-from src.Containers.VendorSection.WebhookModule.Data.Schemas.Requests import (
-    RegisterWebhookRequest,
-    TriggerWebhookRequest,
-    IncomingWebhookPayload,
+from src.Containers.VendorSection.WebhookModule.Queries.ListWebhooksQuery import (
+    ListWebhooksQuery,
+    ListWebhooksQueryInput,
 )
-from src.Containers.VendorSection.WebhookModule.Data.Schemas.Responses import (
-    WebhookResponse,
-    WebhookWithSecretResponse,
-    WebhooksListResponse,
-    WebhookDeliveryResponse,
-    WebhookDeliveriesListResponse,
-    TriggerWebhookResponse,
+from src.Containers.VendorSection.WebhookModule.Tasks.DeliverWebhookTask import (
+    DeliveryResult,
 )
-from src.Containers.VendorSection.WebhookModule.Errors import (
-    WebhookError,
-    WebhookNotFoundError,
-)
-from src.Containers.VendorSection.WebhookModule.Models.Webhook import Webhook
+from src.Ship.Core.Errors import DomainException
+from src.Ship.Decorators.result_handler import result_handler
 
 
 class WebhookController(Controller):
     """Controller for outgoing webhook management."""
-    
+
     path = "/webhooks"
     tags = ["Webhooks"]
-    
+
     @get("/")
     async def list_webhooks(
         self,
@@ -77,7 +77,7 @@ class WebhookController(Controller):
     ) -> WebhooksListResponse:
         """List registered webhooks."""
         result = await query.execute(ListWebhooksQueryInput(user_id=user_id))
-        
+
         return WebhooksListResponse(
             webhooks=[
                 WebhookResponse(
@@ -96,7 +96,7 @@ class WebhookController(Controller):
             ],
             total=result.total,
         )
-    
+
     @post("/")
     @result_handler(WebhookWithSecretResponse, success_status=HTTP_201_CREATED)
     async def register_webhook(
@@ -105,12 +105,12 @@ class WebhookController(Controller):
         action: FromDishka[RegisterWebhookAction],
     ) -> Result[Webhook, WebhookError]:
         """Register a new webhook.
-        
+
         The secret is only returned once during registration.
         Store it securely for verifying webhook signatures.
         """
         return await action.run(RegisterWebhookInput(request=data))
-    
+
     @get("/{webhook_id:uuid}")
     async def get_webhook(
         self,
@@ -121,7 +121,7 @@ class WebhookController(Controller):
         webhook = await query.execute(GetWebhookQueryInput(webhook_id=webhook_id))
         if not webhook:
             raise DomainException(WebhookNotFoundError(webhook_id=webhook_id))
-        
+
         return WebhookResponse(
             id=webhook.id,
             user_id=webhook.user_id,
@@ -134,7 +134,7 @@ class WebhookController(Controller):
             created_at=webhook.created_at,
             updated_at=webhook.updated_at,
         )
-    
+
     @patch("/{webhook_id:uuid}/toggle")
     @result_handler(WebhookResponse, success_status=HTTP_200_OK)
     async def toggle_webhook(
@@ -144,11 +144,13 @@ class WebhookController(Controller):
         is_active: bool = True,
     ) -> Result[Webhook, WebhookError]:
         """Enable or disable a webhook."""
-        return await action.run(ToggleWebhookInput(
-            webhook_id=webhook_id,
-            is_active=is_active,
-        ))
-    
+        return await action.run(
+            ToggleWebhookInput(
+                webhook_id=webhook_id,
+                is_active=is_active,
+            )
+        )
+
     @post("/{webhook_id:uuid}/reset")
     @result_handler(WebhookResponse, success_status=HTTP_200_OK)
     async def reset_webhook(
@@ -158,7 +160,7 @@ class WebhookController(Controller):
     ) -> Result[Webhook, WebhookError]:
         """Reset webhook failure count and re-enable."""
         return await action.run(ResetWebhookInput(webhook_id=webhook_id))
-    
+
     @delete("/{webhook_id:uuid}", status_code=HTTP_200_OK)
     @result_handler(None, success_status=HTTP_204_NO_CONTENT)
     async def delete_webhook(
@@ -168,7 +170,7 @@ class WebhookController(Controller):
     ) -> Result[None, WebhookError]:
         """Delete a webhook."""
         return await action.run(DeleteWebhookInput(webhook_id=webhook_id))
-    
+
     @post("/trigger")
     @result_handler(TriggerWebhookResponse, success_status=HTTP_200_OK)
     async def trigger_webhook(
@@ -178,7 +180,7 @@ class WebhookController(Controller):
     ) -> Result[DeliveryResult, WebhookError]:
         """Manually trigger a webhook delivery."""
         return await action.run(data)
-    
+
     @get("/{webhook_id:uuid}/deliveries")
     async def get_deliveries(
         self,
@@ -188,12 +190,14 @@ class WebhookController(Controller):
         offset: int = 0,
     ) -> WebhookDeliveriesListResponse:
         """Get delivery history for a webhook."""
-        result = await query.execute(ListWebhookDeliveriesQueryInput(
-            webhook_id=webhook_id,
-            limit=min(limit, 100),
-            offset=offset,
-        ))
-        
+        result = await query.execute(
+            ListWebhookDeliveriesQueryInput(
+                webhook_id=webhook_id,
+                limit=min(limit, 100),
+                offset=offset,
+            )
+        )
+
         return WebhookDeliveriesListResponse(
             deliveries=[
                 WebhookDeliveryResponse(
@@ -215,55 +219,57 @@ class WebhookController(Controller):
 
 class IncomingWebhookController(Controller):
     """Controller for receiving incoming webhooks from external services."""
-    
+
     path = "/webhooks/incoming"
     tags = ["Webhooks"]
-    
+
     @post("/stripe")
     async def stripe_webhook(
         self,
         request: Request,
     ) -> dict:
         """Receive Stripe webhook (virtual).
-        
+
         In production, verify signature using Stripe SDK.
         """
         body = await request.body()
         signature = request.headers.get("stripe-signature", "")
-        
+
         import logfire
+
         logfire.info(
             "📥 Received Stripe webhook",
             signature=signature[:20] + "..." if signature else "none",
             body_size=len(body),
         )
-        
+
         # Virtual: always acknowledge
         return {"received": True}
-    
+
     @post("/github")
     async def github_webhook(
         self,
         request: Request,
     ) -> dict:
         """Receive GitHub webhook (virtual).
-        
+
         In production, verify X-Hub-Signature-256 header.
         """
         body = await request.body()
         signature = request.headers.get("x-hub-signature-256", "")
         event_type = request.headers.get("x-github-event", "unknown")
-        
+
         import logfire
+
         logfire.info(
             "📥 Received GitHub webhook",
             event_type=event_type,
             signature=signature[:20] + "..." if signature else "none",
             body_size=len(body),
         )
-        
+
         return {"received": True, "event": event_type}
-    
+
     @post("/custom/{provider:str}")
     async def custom_webhook(
         self,
@@ -272,23 +278,23 @@ class IncomingWebhookController(Controller):
         request: Request,
     ) -> dict:
         """Receive custom webhook from any provider.
-        
+
         Signature can be verified using the X-Webhook-Signature header.
         """
         signature = request.headers.get("x-webhook-signature", "")
-        
+
         import logfire
+
         logfire.info(
             "📥 Received custom webhook",
             provider=provider,
             event_type=data.event_type,
             has_signature=bool(signature),
         )
-        
+
         # In production, verify signature and process event
         return {
             "received": True,
             "provider": provider,
             "event_type": data.event_type,
         }
-

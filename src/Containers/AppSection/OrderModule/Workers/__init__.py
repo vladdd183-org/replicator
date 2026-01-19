@@ -14,14 +14,13 @@ Or via CLI:
 """
 
 from src.Containers.AppSection.OrderModule.Workers.OrderWorker import (
+    ORDER_TASK_QUEUE,
     create_order_worker,
     run_order_worker,
-    ORDER_TASK_QUEUE,
 )
 
-
 __all__ = [
+    "ORDER_TASK_QUEUE",
     "create_order_worker",
     "run_order_worker",
-    "ORDER_TASK_QUEUE",
 ]

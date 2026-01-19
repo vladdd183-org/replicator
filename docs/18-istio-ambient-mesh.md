@@ -164,7 +164,7 @@
 
 ### 2.2 Эволюция от монолита к микросервисам с Ambient Mesh
 
-Согласно вашей документации (`docs/17-microservice-extraction-guide.md`), система эволюционирует в три этапа:
+Согласно вашей документации (`docs/16-microservice-extraction-guide.md`), система эволюционирует в три этапа:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -3111,8 +3111,8 @@ spec:
 ## 📚 Связанная документация
 
 - [00-philosophy.md](00-philosophy.md) — Философия Hyper-Porto
-- [17-microservice-extraction-guide.md](17-microservice-extraction-guide.md) — Вынос модулей
-- [17-microservice-extraction-guide.md](17-microservice-extraction-guide.md) — Практическое руководство
+- [16-microservice-extraction-guide.md](16-microservice-extraction-guide.md) — Вынос модулей
+- [16-microservice-extraction-guide.md](16-microservice-extraction-guide.md) — Практическое руководство
 - [13-cross-module-communication.md](13-cross-module-communication.md) — Кросс-модульное взаимодействие
 
 ### Внешние ресурсы

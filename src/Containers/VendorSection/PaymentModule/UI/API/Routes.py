@@ -9,7 +9,6 @@ from src.Containers.VendorSection.PaymentModule.UI.API.Controllers.PaymentContro
     PaymentController,
 )
 
-
 # Payment router - groups all payment-related endpoints under /api/v1
 payment_router = DishkaRouter(
     path="/api/v1",
@@ -17,6 +16,3 @@ payment_router = DishkaRouter(
         PaymentController,
     ],
 )
-
-
-

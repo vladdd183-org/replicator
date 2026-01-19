@@ -21,6 +21,7 @@ APP_REGISTRY = AppRegistry(
         "src.Containers.AppSection.AuditModule.Models.PiccoloApp",
         "src.Containers.AppSection.SearchModule.Models.PiccoloApp",
         "src.Containers.AppSection.SettingsModule.Models.PiccoloApp",
+        "src.Containers.AppSection.OrderModule.Models.PiccoloApp",
         # VendorSection
         "src.Containers.VendorSection.WebhookModule.Models.PiccoloApp",
     ]

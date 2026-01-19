@@ -5,6 +5,3 @@ from src.Containers.AppSection.NotificationModule.Data.Repositories.Notification
 )
 
 __all__ = ["NotificationRepository"]
-
-
-

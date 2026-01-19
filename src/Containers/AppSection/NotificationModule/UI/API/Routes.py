@@ -9,7 +9,6 @@ from src.Containers.AppSection.NotificationModule.UI.API.Controllers.Notificatio
     NotificationController,
 )
 
-
 # Notification router - groups all notification-related endpoints under /api/v1
 notification_router = DishkaRouter(
     path="/api/v1",
@@ -17,6 +16,3 @@ notification_router = DishkaRouter(
         NotificationController,
     ],
 )
-
-
-

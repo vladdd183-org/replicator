@@ -12,6 +12,3 @@ audit_router = DishkaRouter(
         AuditController,
     ],
 )
-
-
-

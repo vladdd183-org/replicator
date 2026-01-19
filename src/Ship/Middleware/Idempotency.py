@@ -45,14 +45,12 @@ Usage:
 import base64
 import hashlib
 import json
-import logging
-from collections.abc import Callable
+import logfire
+import re
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
-from litestar.datastructures import MutableScopeHeaders
 from litestar.middleware import DefineMiddleware, MiddlewareProtocol
-from litestar.status_codes import HTTP_409_CONFLICT
 
 from src.Ship.Infrastructure.Cache import cache, ensure_cache_initialized
 from src.Ship.Middleware.Errors import (
@@ -71,7 +69,6 @@ from src.Ship.Middleware.Models import (
 if TYPE_CHECKING:
     from litestar.types import ASGIApp, Message, Receive, Scope, Send
 
-logger = logging.getLogger(__name__)
 
 
 class IdempotencyMiddleware(MiddlewareProtocol):
@@ -244,7 +241,7 @@ class IdempotencyMiddleware(MiddlewareProtocol):
         try:
             existing_record = await self._get_record(cache_key)
         except Exception as e:
-            logger.warning(
+            logfire.warn(
                 f"Idempotency cache read failed, processing normally: {e}"
             )
             # Graceful degradation - process without idempotency
@@ -296,7 +293,7 @@ class IdempotencyMiddleware(MiddlewareProtocol):
             )
             await self._set_record(cache_key, record, ttl=self.LOCK_TIMEOUT_SECONDS)
         except Exception as e:
-            logger.warning(f"Idempotency cache write failed: {e}")
+            logfire.warn(f"Idempotency cache write failed: {e}")
             # Continue processing without idempotency
             await self._process_with_body(scope, body, send)
             return
@@ -314,7 +311,7 @@ class IdempotencyMiddleware(MiddlewareProtocol):
             )
             await self._set_record(cache_key, completed_record, ttl=self.ttl_seconds)
         except Exception as e:
-            logger.warning(f"Idempotency cache update failed: {e}")
+            logfire.warn(f"Idempotency cache update failed: {e}")
             # Response already sent, just log the error
     
     def _should_skip_path(self, path: str) -> bool:
@@ -369,7 +366,6 @@ class IdempotencyMiddleware(MiddlewareProtocol):
             )
         
         # Check for valid characters
-        import re
         if not re.match(r'^[a-zA-Z0-9_\-]+$', key):
             return IdempotencyKeyInvalidError(key=key[:50])  # Truncate for safety
         
@@ -609,7 +605,7 @@ class IdempotencyMiddleware(MiddlewareProtocol):
             "more_body": False,
         })
         
-        logger.debug(f"Replayed cached response for idempotency key: {idempotency_key}")
+        logfire.debug(f"Replayed cached response for idempotency key: {idempotency_key}")
     
     async def _send_error_response(
         self,

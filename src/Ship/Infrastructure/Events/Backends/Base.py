@@ -18,7 +18,6 @@ import logfire
 
 from src.Ship.Infrastructure.Events.Errors import (
     EventBusNotInitializedError,
-    EventHandlerError,
     EventPublishError,
     EventSerializationError,
     MaxRetriesExceededError,
@@ -32,7 +31,6 @@ from src.Ship.Infrastructure.Events.Models import (
 )
 from src.Ship.Infrastructure.Events.Protocol import (
     EnvelopeHandler,
-    EventBusWithRetryProtocol,
     EventHandler,
 )
 

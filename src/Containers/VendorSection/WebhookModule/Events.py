@@ -7,7 +7,7 @@ from src.Ship.Parents.Event import DomainEvent
 
 class WebhookRegistered(DomainEvent):
     """Emitted when a new webhook is registered."""
-    
+
     webhook_id: UUID
     url: str
     events: list[str]
@@ -15,7 +15,7 @@ class WebhookRegistered(DomainEvent):
 
 class WebhookDelivered(DomainEvent):
     """Emitted when a webhook is successfully delivered."""
-    
+
     webhook_id: UUID
     delivery_id: UUID
     url: str
@@ -25,7 +25,7 @@ class WebhookDelivered(DomainEvent):
 
 class WebhookDeliveryFailed(DomainEvent):
     """Emitted when a webhook delivery fails."""
-    
+
     webhook_id: UUID
     delivery_id: UUID
     url: str
@@ -37,18 +37,15 @@ class WebhookDeliveryFailed(DomainEvent):
 
 class IncomingWebhookReceived(DomainEvent):
     """Emitted when an incoming webhook is received."""
-    
+
     provider: str
     event_type: str
     payload_hash: str
 
 
 __all__ = [
-    "WebhookRegistered",
+    "IncomingWebhookReceived",
     "WebhookDelivered",
     "WebhookDeliveryFailed",
-    "IncomingWebhookReceived",
+    "WebhookRegistered",
 ]
-
-
-

@@ -5,18 +5,15 @@ from src.Containers.AppSection.NotificationModule.Data.Schemas.Requests import (
     MarkAsReadRequest,
 )
 from src.Containers.AppSection.NotificationModule.Data.Schemas.Responses import (
-    NotificationResponse,
     NotificationListResponse,
+    NotificationResponse,
     UnreadCountResponse,
 )
 
 __all__ = [
     "CreateNotificationRequest",
     "MarkAsReadRequest",
-    "NotificationResponse",
     "NotificationListResponse",
+    "NotificationResponse",
     "UnreadCountResponse",
 ]
-
-
-

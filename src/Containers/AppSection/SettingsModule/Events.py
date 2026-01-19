@@ -7,7 +7,7 @@ from src.Ship.Parents.Event import DomainEvent
 
 class SettingChanged(DomainEvent):
     """Emitted when a setting is changed."""
-    
+
     key: str
     old_value: str | None
     new_value: str
@@ -16,7 +16,7 @@ class SettingChanged(DomainEvent):
 
 class FeatureFlagToggled(DomainEvent):
     """Emitted when a feature flag is toggled."""
-    
+
     flag_name: str
     enabled: bool
     changed_by: UUID | None
@@ -24,14 +24,11 @@ class FeatureFlagToggled(DomainEvent):
 
 class UserSettingChanged(DomainEvent):
     """Emitted when a user-specific setting is changed."""
-    
+
     user_id: UUID
     key: str
     old_value: str | None
     new_value: str
 
 
-__all__ = ["SettingChanged", "FeatureFlagToggled", "UserSettingChanged"]
-
-
-
+__all__ = ["FeatureFlagToggled", "SettingChanged", "UserSettingChanged"]

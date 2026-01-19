@@ -3,14 +3,16 @@
 Domain model representing ${entity_lower} entity in the database.
 """
 
-from uuid import uuid4
 from datetime import datetime
 
-from piccolo.table import Table
 from piccolo.columns import UUID, Varchar, Boolean, Timestamptz, Text
+from piccolo.columns.defaults.uuid import UUID4
+from piccolo.columns.defaults.timestamptz import TimestamptzNow
+
+from src.Ship.Parents.Model import Model
 
 
-class ${Entity}(Table, tablename="${entities_lower}"):
+class ${Entity}(Model, tablename="${entities_lower}"):
     """${Entity} domain model.
     
     Represents ${entity_lower} entity in the database.
@@ -28,7 +30,7 @@ class ${Entity}(Table, tablename="${entities_lower}"):
     # Primary key
     id = UUID(
         primary_key=True,
-        default=uuid4,
+        default=UUID4(),
         help_text="Unique identifier",
     )
     
@@ -57,7 +59,7 @@ class ${Entity}(Table, tablename="${entities_lower}"):
     
     # Timestamps
     created_at = Timestamptz(
-        default=datetime.utcnow,
+        default=TimestamptzNow(),
         help_text="Creation timestamp",
     )
     
@@ -138,6 +140,3 @@ class ${Entity}(Table, tablename="${entities_lower}"):
 #     async def execute(self, input: Get${Entity}QueryInput) -> ${Entity} | None:
 #         return await ${Entity}.objects().where(${Entity}.id == input.${entity_lower}_id).first()
 # =============================================================================
-
-
-

@@ -61,12 +61,16 @@ result = divide(10, 0)   # Failure("Division by zero")
 ```python
 # src/Containers/AppSection/UserModule/Actions/CreateUserAction.py
 
-@dataclass
 class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
     """Use Case: Create a new user."""
     
-    hash_password: HashPasswordTask
-    uow: UserUnitOfWork
+    def __init__(
+        self,
+        hash_password: HashPasswordTask,
+        uow: UserUnitOfWork,
+    ) -> None:
+        self.hash_password = hash_password
+        self.uow = uow
 
     async def run(self, data: CreateUserRequest) -> Result[AppUser, UserError]:
         # Step 1: Check if email exists → Failure track if exists
@@ -111,7 +115,7 @@ class AuthenticateAction(Action[LoginRequest, AuthResult, UserError]):
         self.uow = uow
         self.verify_password_task = verify_password_task
         self.generate_token_task = generate_token_task
-    
+
     async def run(self, data: LoginRequest) -> Result[AuthResult, UserError]:
         # Step 1: Find user by email
         user = await self.uow.users.find_by_email(data.email)

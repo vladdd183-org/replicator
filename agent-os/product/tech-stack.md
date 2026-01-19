@@ -9,7 +9,7 @@
 - **Architecture:** Hyper-Porto
 
 ## Infrastructure
-- **Event Bus:** Unified Event Bus (InMemory/Redis/RabbitMQ)
+- **Event Bus:** litestar.events + Transactional Outbox Pattern
 - **Saga:** Temporal.io
 - **Background Tasks:** TaskIQ
 

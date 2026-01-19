@@ -5,6 +5,3 @@ from src.Containers.VendorSection.EmailModule.UI.API.Controllers.EmailController
 )
 
 __all__ = ["EmailController"]
-
-
-

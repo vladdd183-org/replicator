@@ -11,6 +11,8 @@ from uuid import UUID
 from piccolo.table import Table
 from piccolo.columns import Column
 
+__all__ = ["Repository"]
+
 ModelT = TypeVar("ModelT", bound=Table)
 
 

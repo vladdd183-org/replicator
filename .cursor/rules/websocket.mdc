@@ -104,9 +104,52 @@ class WSMessage(BaseModel):
     data: dict | None = None
 ```
 
+## TaskGroup Pattern for Bidirectional Communication
+
+```python
+import anyio
+from litestar import WebSocket
+from litestar.handlers import websocket
+
+@websocket("/ws/chat/{room_id:uuid}")
+async def chat_handler(
+    socket: WebSocket,
+    room_id: UUID,
+    channels: ChannelsPlugin,
+) -> None:
+    """Bidirectional chat using structured concurrency."""
+    await socket.accept()
+    
+    async def receive_messages() -> None:
+        """Handle incoming messages from client."""
+        try:
+            async for message in socket.iter_json():
+                # Process and broadcast to room
+                await channels.publish(
+                    {"user": socket.client, "data": message},
+                    channels=[f"room:{room_id}"],
+                )
+        except Exception:
+            pass  # Connection closed
+
+    async def send_messages() -> None:
+        """Send channel messages to client."""
+        async with channels.start_subscription([f"room:{room_id}"]) as sub:
+            async for event in sub.iter_events():
+                await socket.send_json(event)
+
+    try:
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(receive_messages)
+            tg.start_soon(send_messages)
+    finally:
+        await socket.close()
+```
+
 ## Don'ts
 
 - Don't forget `socket.accept()`
 - Don't forget `finally: socket.close()`
 - Don't block the event loop
 - Don't skip authentication on protected routes
+- Don't use `asyncio.create_task()` — use `anyio.create_task_group()` for structured concurrency

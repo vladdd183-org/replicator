@@ -3,6 +3,11 @@
 This module provides the root CLI group that integrates with Litestar CLIPlugin.
 Commands from containers are registered via entry points in pyproject.toml.
 
+ARCHITECTURE NOTE: Ship MUST NOT import from Containers.
+Container CLI commands should be registered through:
+1. Entry points in pyproject.toml (preferred)
+2. Registration in a Container-aware location (e.g., App.py level)
+
 Usage:
     # Built-in Litestar commands
     litestar --help
@@ -40,14 +45,25 @@ def cli(ctx: click.Context) -> None:
     setup_cli_container(ctx)
 
 
-# Import and register container command groups
-from src.Containers.AppSection.UserModule.UI.CLI.Commands import users_group
+# Register Ship-level command groups only (no Container imports!)
 from src.Ship.CLI.MigrationCommands import db_group
 from src.Ship.Infrastructure.Events.Outbox.CLI import outbox_cli
 
-cli.add_command(users_group)
 cli.add_command(db_group)
 cli.add_command(outbox_cli)
+
+
+def register_container_commands() -> None:
+    """Register Container CLI commands.
+    
+    This function is called from App-level code to maintain
+    proper architecture layering (App can import Containers).
+    
+    Usage in main entry point:
+        from src.Ship.CLI.Main import cli, register_container_commands
+        # Then import and pass container commands
+    """
+    pass  # Container commands are registered externally
 
 
 if __name__ == "__main__":

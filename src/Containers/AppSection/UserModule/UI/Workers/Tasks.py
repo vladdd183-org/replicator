@@ -8,18 +8,16 @@ Defines TaskIQ tasks for asynchronous operations like:
 - User data cleanup
 """
 
-from uuid import UUID
-
 from dishka.integrations.taskiq import FromDishka, inject
-from returns.result import Success, Failure
+from returns.result import Failure, Success
 
-from src.Ship.Infrastructure.Workers.Broker import broker
 from src.Containers.AppSection.UserModule.Actions.CreateUserAction import CreateUserAction
+from src.Containers.AppSection.UserModule.Data.Schemas.Requests import CreateUserRequest
 from src.Containers.AppSection.UserModule.Tasks.SendWelcomeEmailTask import (
     SendWelcomeEmailTask,
     WelcomeEmailData,
 )
-from src.Containers.AppSection.UserModule.Data.Schemas.Requests import CreateUserRequest
+from src.Ship.Infrastructure.Workers.Broker import broker
 
 
 @broker.task
@@ -30,17 +28,17 @@ async def send_welcome_email_task(
     task: FromDishka[SendWelcomeEmailTask],
 ) -> dict:
     """Background task: Send welcome email to new user.
-    
+
     Args:
         email: User's email address
         name: User's name
         task: Injected SendWelcomeEmailTask
-        
+
     Returns:
         Status dict with result
     """
     result = await task.run(WelcomeEmailData(email=email, name=name))
-    
+
     return {
         "status": "sent" if result else "failed",
         "email": email,
@@ -58,16 +56,16 @@ async def create_user_async_task(
     action: FromDishka[CreateUserAction],
 ) -> dict:
     """Background task: Create user asynchronously.
-    
+
     Useful for bulk imports or delayed user creation.
     Uses Dishka DI for automatic dependency injection.
-    
+
     Args:
         email: User's email
         password: User's password
         name: User's name
         action: Injected CreateUserAction
-        
+
     Returns:
         Status dict with user_id or error
     """
@@ -94,10 +92,10 @@ async def create_user_async_task(
 @broker.task
 async def bulk_create_users_task(users_data: list[dict]) -> dict:
     """Background task: Create multiple users in bulk.
-    
+
     Args:
         users_data: List of user dicts with email, password, name
-        
+
     Returns:
         Summary of created/failed users
     """
@@ -114,10 +112,12 @@ async def bulk_create_users_task(users_data: list[dict]) -> dict:
             name=user_data["name"],
         )
         # Track scheduled task
-        results["created"].append({
-            "email": user_data["email"],
-            "task_id": str(task.task_id),
-        })
+        results["created"].append(
+            {
+                "email": user_data["email"],
+                "task_id": str(task.task_id),
+            }
+        )
 
     return {
         "status": "scheduled",
@@ -129,15 +129,16 @@ async def bulk_create_users_task(users_data: list[dict]) -> dict:
 @broker.task
 async def cleanup_inactive_users_task(days_inactive: int = 30) -> dict:
     """Background task: Mark inactive users for cleanup.
-    
+
     Args:
         days_inactive: Number of days of inactivity
-        
+
     Returns:
         Summary of affected users
     """
     # TODO: Implement actual cleanup logic with injected repository
     import logfire
+
     logfire.info(
         "🧹 Cleanup task running",
         days_inactive=days_inactive,

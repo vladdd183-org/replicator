@@ -7,27 +7,62 @@ globs: ["src/**/*.py"]
 
 ## Authentication
 
-### JWT Validation
+### JWT Validation with Dependencies
 
 ```python
-# ✅ CORRECT: Validate token
-from src.Ship.Auth.Guards import auth_guard
+# ✅ CORRECT: Use dependency for current user
+from litestar.di import Provide
+from src.Ship.Auth.Dependencies import get_current_user
+from src.Ship.Auth.Schemas import AuthenticatedUser
 
-@get("/protected", guards=[auth_guard])
-async def protected_endpoint(...):
-    ...
+@get("/me", dependencies={"current_user": Provide(get_current_user)})
+async def get_me(current_user: AuthenticatedUser) -> UserResponse:
+    """Get current authenticated user."""
+    return UserResponse.model_validate(current_user)
 ```
 
 ### Protected Routes
 
 ```python
-# ❌ WRONG: No guard
+# ❌ WRONG: No authentication
 @get("/admin/users")
 async def admin_users(): ...
 
-# ✅ CORRECT: With guard
-@get("/admin/users", guards=[admin_guard])
-async def admin_users(): ...
+# ✅ CORRECT: With dependency injection for auth
+from litestar.di import Provide
+from src.Ship.Auth.Dependencies import get_current_user, require_admin
+
+@get(
+    "/admin/users",
+    dependencies={
+        "current_user": Provide(get_current_user),
+        "_admin": Provide(require_admin),
+    },
+)
+async def admin_users(current_user: AuthenticatedUser) -> list[UserResponse]:
+    ...
+```
+
+### Auth Dependencies Pattern
+
+```python
+# src/Ship/Auth/Dependencies.py
+from litestar import Request
+from litestar.exceptions import NotAuthorizedException
+
+async def get_current_user(request: Request) -> AuthenticatedUser:
+    """Extract and validate JWT from Authorization header."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise NotAuthorizedException("Missing or invalid Authorization header")
+    
+    token = auth_header.removeprefix("Bearer ")
+    return decode_and_validate_jwt(token)
+
+async def require_admin(current_user: AuthenticatedUser) -> None:
+    """Raise if user is not admin."""
+    if not current_user.is_admin:
+        raise NotAuthorizedException("Admin access required")
 ```
 
 ## Input Validation

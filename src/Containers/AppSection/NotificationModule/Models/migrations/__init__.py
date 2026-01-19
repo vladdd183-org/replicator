@@ -1,4 +1,1 @@
 """Notification migrations."""
-
-
-
