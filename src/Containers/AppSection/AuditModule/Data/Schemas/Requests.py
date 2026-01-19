@@ -1,13 +1,18 @@
-"""AuditModule request DTOs."""
+"""AuditModule request DTOs.
+
+All Request DTOs are frozen (immutable) for safety.
+"""
 
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuditSearchRequest(BaseModel):
     """Request for searching audit logs."""
+    
+    model_config = ConfigDict(frozen=True)
     
     actor_id: UUID | None = Field(None, description="Filter by actor ID")
     entity_type: str | None = Field(None, description="Filter by entity type")
@@ -22,6 +27,8 @@ class AuditSearchRequest(BaseModel):
 
 class CreateAuditLogRequest(BaseModel):
     """Request for manually creating audit log entry."""
+    
+    model_config = ConfigDict(frozen=True)
     
     action: str = Field(..., min_length=1, max_length=50)
     entity_type: str | None = Field(None, max_length=100)

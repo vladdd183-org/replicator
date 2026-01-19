@@ -1,12 +1,13 @@
 """PaymentModule request DTOs.
 
 Request DTOs use Pydantic for validation.
+All Request DTOs are frozen (immutable) for safety.
 """
 
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CreatePaymentRequest(BaseModel):
@@ -18,6 +19,8 @@ class CreatePaymentRequest(BaseModel):
         currency: Payment currency code
         description: Payment description
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     user_id: UUID
     amount: Decimal = Field(..., gt=0, description="Payment amount (positive)")
@@ -35,6 +38,8 @@ class RefundPaymentRequest(BaseModel):
         currency: Currency code
         reason: Reason for refund
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     payment_id: UUID
     user_id: UUID

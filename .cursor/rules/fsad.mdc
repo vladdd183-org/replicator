@@ -376,7 +376,7 @@ Repository → Model (Piccolo Table)
 | Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
 | Roadmap и будущее | `docs/16-future-roadmap.md` |
 | Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
-| Temporal Saga Patterns | `docs/22-temporal-saga-patterns.md` |
+| Saga Patterns | `docs/15-saga-patterns.md` |
 
 ---
 

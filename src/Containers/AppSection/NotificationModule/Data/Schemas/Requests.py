@@ -1,12 +1,13 @@
 """NotificationModule request DTOs.
 
 Request DTOs use Pydantic for validation.
+All Request DTOs are frozen (immutable) for safety.
 """
 
 from uuid import UUID
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 NotificationType = Literal["info", "warning", "success", "error", "payment", "system"]
@@ -23,6 +24,8 @@ class CreateNotificationRequest(BaseModel):
         link: Optional link related to the notification
     """
     
+    model_config = ConfigDict(frozen=True)
+    
     user_id: UUID
     notification_type: NotificationType = Field(default="info")
     title: str = Field(..., min_length=1, max_length=255, description="Notification title")
@@ -36,6 +39,8 @@ class MarkAsReadRequest(BaseModel):
     Attributes:
         notification_id: ID of notification to mark as read
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     notification_id: UUID
 

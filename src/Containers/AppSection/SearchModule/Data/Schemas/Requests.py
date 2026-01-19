@@ -1,10 +1,15 @@
-"""SearchModule request DTOs."""
+"""SearchModule request DTOs.
 
-from pydantic import BaseModel, Field
+All Request DTOs are frozen (immutable) for safety.
+"""
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SearchRequest(BaseModel):
     """Request for full-text search."""
+    
+    model_config = ConfigDict(frozen=True)
     
     query: str = Field(..., min_length=1, max_length=500, description="Search query")
     entity_types: list[str] | None = Field(
@@ -22,6 +27,8 @@ class SearchRequest(BaseModel):
 class IndexEntityRequest(BaseModel):
     """Request for manually indexing an entity."""
     
+    model_config = ConfigDict(frozen=True)
+    
     entity_type: str = Field(..., min_length=1, max_length=100)
     entity_id: str = Field(..., min_length=1, max_length=255)
     title: str = Field(..., min_length=1, max_length=500)
@@ -33,6 +40,8 @@ class IndexEntityRequest(BaseModel):
 
 class ReindexRequest(BaseModel):
     """Request for reindexing entities."""
+    
+    model_config = ConfigDict(frozen=True)
     
     entity_type: str | None = Field(
         None,

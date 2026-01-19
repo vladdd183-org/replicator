@@ -80,7 +80,7 @@ Temporal обеспечивает:
                 return Failure(OrderCreationFailed(reason=str(ex)))
 
 Документация:
-- docs/22-temporal-saga-patterns.md — паттерны компенсаций
+- docs/15-saga-patterns.md — паттерны компенсаций
 - docs/21-integration-patterns-guide.md — когда Temporal vs TaskIQ
 """
 

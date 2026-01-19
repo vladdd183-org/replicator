@@ -1,9 +1,10 @@
 """EmailModule request DTOs.
 
 Request DTOs use Pydantic for validation.
+All Request DTOs are frozen (immutable) for safety.
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class SendEmailRequest(BaseModel):
@@ -16,6 +17,8 @@ class SendEmailRequest(BaseModel):
         is_html: Whether body is HTML
         reply_to: Optional reply-to address
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     recipient: EmailStr
     subject: str = Field(..., min_length=1, max_length=200, description="Email subject")

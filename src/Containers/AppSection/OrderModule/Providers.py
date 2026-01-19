@@ -62,30 +62,13 @@ class _BaseOrderRequestProvider(Provider):
     
     scope = Scope.REQUEST
     
-    # Repositories
+    # Repositories (for Actions that use UoW)
     order_repository = provide(OrderRepository)
     order_item_repository = provide(OrderItemRepository)
     
-    # Queries - CQRS read side
-    @provide
-    def get_order_query(
-        self,
-        order_repo: OrderRepository,
-        item_repo: OrderItemRepository,
-    ) -> GetOrderQuery:
-        """Provide GetOrderQuery with repositories."""
-        return GetOrderQuery(
-            order_repository=order_repo,
-            item_repository=item_repo,
-        )
-    
-    @provide
-    def list_user_orders_query(
-        self,
-        order_repo: OrderRepository,
-    ) -> ListUserOrdersQuery:
-        """Provide ListUserOrdersQuery with repository."""
-        return ListUserOrdersQuery(order_repository=order_repo)
+    # Queries - CQRS read side (direct ORM access, no dependencies)
+    get_order_query = provide(GetOrderQuery)
+    list_user_orders_query = provide(ListUserOrdersQuery)
     
     # Actions - CQRS write side (need UoW, provided by subclass)
     @provide

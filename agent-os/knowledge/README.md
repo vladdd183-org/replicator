@@ -290,7 +290,7 @@ Query: "Piccolo migration syntax for adding column"
 Query: "Best practices for saga pattern in Python"
 
 1. Internal Theory
-   └─ docs/20-saga-pattern.md, docs/22-temporal-*.md
+   └─ docs/15-saga-patterns.md
 
 2. External Papers
    └─ arXiv: "saga pattern distributed transactions"
@@ -409,7 +409,7 @@ Query: "Best practices for saga pattern in Python"
 
 ## Sources
 
-- Internal: docs/22-temporal-saga-patterns.md
+- Internal: docs/15-saga-patterns.md
 - Context7: Temporal Python SDK
 - arXiv: Saga pattern formal analysis
 ```

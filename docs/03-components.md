@@ -1797,6 +1797,194 @@ class UserInactiveError(ErrorWithTemplate, UserError):
 
 ---
 
+## 🎯 @audited — Декоратор аудита
+
+**Назначение:** Автоматическое логирование и аудит выполнения Actions.
+
+### Принципы:
+
+1. **Декоратор класса** — применяется к Action классам
+2. **Event-driven** — публикует `ActionExecuted` события
+3. **Redaction** — автоматически скрывает чувствительные данные (passwords, tokens)
+4. **Loose coupling** — живёт в Ship, не зависит от AuditModule
+
+### Использование
+
+```python
+# src/Containers/AppSection/UserModule/Actions/CreateUserAction.py
+from src.Ship.Decorators.audited import audited
+
+@audited(action="create", entity_type="User")
+class CreateUserAction(Action[CreateUserRequest, AppUser, UserError]):
+    """Use Case: Create a new user.
+    
+    @audited automatically:
+    - Logs action start/end with timing
+    - Publishes ActionExecuted event
+    - Redacts sensitive fields (password, token, etc.)
+    - Captures actor info if available
+    """
+    
+    async def run(self, data: CreateUserRequest) -> Result[AppUser, UserError]:
+        # ... action logic ...
+        return Success(user)
+```
+
+### Параметры
+
+```python
+@audited(
+    action="create",           # Действие (create, update, delete, etc.)
+    entity_type="User",        # Тип сущности (опционально)
+    capture_input=True,        # Логировать входные данные (default: True)
+    capture_output=False,      # Логировать выходные данные (default: False)
+)
+```
+
+### Что происходит под капотом
+
+1. **Перед выполнением:** Записывает начало, извлекает actor info из `self.current_user`
+2. **После выполнения:** Вычисляет duration, статус (success/failure)
+3. **Публикация события:** `ActionExecuted` через UoW._emit
+4. **Redaction:** Поля `password`, `token`, `secret`, `api_key` заменяются на `***REDACTED***`
+
+### Архитектура
+
+```
+@audited (Ship/Decorators)
+       │
+       ▼ publishes
+ActionExecuted event
+       │
+       ▼ listened by
+AuditModule/Listeners.py
+       │
+       ▼ creates
+AuditLog entry in DB
+```
+
+---
+
+## 📦 EntitySchema — Response DTO Base Class
+
+**Назначение:** Базовый класс для Response DTOs с автоматической конвертацией из ORM entities.
+
+### Принципы:
+
+1. **from_attributes** — автоматический маппинг из ORM объектов
+2. **from_entity()** — единый метод конвертации
+3. **Type safety** — сохраняет типизацию при конвертации
+4. **No boilerplate** — не нужно писать ручной маппинг
+
+### Базовый класс
+
+```python
+# src/Ship/Core/BaseSchema.py
+from typing import TypeVar, Type
+from pydantic import BaseModel, ConfigDict
+
+T = TypeVar("T", bound="EntitySchema")
+
+
+class EntitySchema(BaseModel):
+    """Base class for Response DTOs with automatic conversion from Entity.
+    
+    Uses Pydantic V2 from_attributes for automatic mapping from ORM objects.
+    """
+    
+    model_config = ConfigDict(
+        from_attributes=True,  # Enable ORM mode
+        populate_by_name=True,  # Allow field aliases
+    )
+    
+    @classmethod
+    def from_entity(cls: Type[T], entity: object) -> T:
+        """Create DTO from Entity (ORM model)."""
+        return cls.model_validate(entity)
+    
+    @classmethod
+    def from_entities(cls: Type[T], entities: list[object]) -> list[T]:
+        """Create list of DTOs from list of Entities."""
+        return [cls.model_validate(e) for e in entities]
+```
+
+### Использование в Response DTOs
+
+```python
+# src/Containers/AppSection/UserModule/Data/Schemas/Responses.py
+from datetime import datetime
+from uuid import UUID
+from src.Ship.Core.BaseSchema import EntitySchema
+
+
+class UserResponse(EntitySchema):
+    """Response DTO for User entity.
+    
+    Inherits from_entity() from EntitySchema — no manual mapping needed!
+    Note: password_hash excluded by not being in schema.
+    """
+    
+    id: UUID
+    email: str
+    name: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+# Использование в Controller
+user = await query.execute(GetUserQueryInput(user_id=user_id))
+return UserResponse.from_entity(user)  # Автоматическая конвертация!
+
+# Для списков
+users = result.users
+return [UserResponse.from_entity(u) for u in users]
+```
+
+### Кастомизация конвертации
+
+```python
+class AuthResponse(EntitySchema):
+    """Response with custom from_entity for complex mapping."""
+    
+    access_token: str
+    refresh_token: str
+    user_id: str
+    email: str
+    
+    @classmethod
+    def from_entity(cls, auth_result) -> "AuthResponse":
+        """Custom conversion for flattened token fields."""
+        return cls(
+            access_token=auth_result.tokens.access_token,
+            refresh_token=auth_result.tokens.refresh_token,
+            user_id=auth_result.user_id,
+            email=auth_result.email,
+        )
+```
+
+### Сравнение
+
+```python
+# ❌ БЕЗ EntitySchema — ручной маппинг
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    
+    @classmethod
+    def from_user(cls, user: AppUser) -> "UserResponse":
+        return cls(id=user.id, email=user.email)  # Дублирование!
+
+
+# ✅ С EntitySchema — автоматический маппинг
+class UserResponse(EntitySchema):
+    id: UUID
+    email: str
+    # from_entity() уже есть и работает автоматически!
+```
+
+---
+
 ## 🎮 Controller
 
 **Назначение:** HTTP endpoint. Маршрутизация и преобразование Request/Response.

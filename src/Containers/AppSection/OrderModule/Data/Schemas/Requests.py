@@ -1,12 +1,13 @@
 """Order module request DTOs.
 
 All request DTOs are Pydantic models with validation.
+All Request DTOs are frozen (immutable) for safety.
 """
 
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CreateOrderItemRequest(BaseModel):
@@ -19,6 +20,8 @@ class CreateOrderItemRequest(BaseModel):
         quantity: Number of units
         unit_price: Price per unit
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     product_id: UUID
     product_name: str = Field(..., min_length=1, max_length=255)
@@ -45,6 +48,8 @@ class CreateOrderRequest(BaseModel):
         currency: Payment currency
         notes: Optional order notes
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     user_id: UUID
     items: list[CreateOrderItemRequest] = Field(..., min_length=1)
@@ -83,6 +88,8 @@ class UpdateOrderStatusRequest(BaseModel):
         reason: Optional reason for status change
     """
     
+    model_config = ConfigDict(frozen=True)
+    
     status: str = Field(..., max_length=50)
     reason: str | None = Field(default=None, max_length=500)
     
@@ -107,6 +114,8 @@ class CancelOrderRequest(BaseModel):
         reason: Cancellation reason
         request_refund: Whether to process a refund
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     reason: str = Field(..., min_length=5, max_length=500)
     request_refund: bool = Field(default=True)

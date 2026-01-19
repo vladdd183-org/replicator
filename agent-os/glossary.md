@@ -1,141 +1,63 @@
 # 📚 Glossary — Словарь терминов Hyper-Porto
 
-> Определения ключевых терминов архитектуры.
+> Краткий справочник терминов. **Полные определения:** [`docs/00-philosophy.md`](../docs/00-philosophy.md), [`docs/01-architecture.md`](../docs/01-architecture.md)
 
 ---
 
-## 🏗️ Архитектурные термины
+## 🏗️ Архитектура Porto
 
-### Container
-**Изолированный бизнес-модуль.** Содержит всю логику одной функциональной области (Users, Orders, Payments). Containers не могут импортировать друг друга.
-
-### Ship
-**Общая инфраструктура.** Содержит базовые классы (Parents), конфигурации, декораторы, общие сервисы. Все Containers могут импортировать из Ship.
-
-### Section
-**Группа Containers.** Логическая организация модулей (AppSection — основные, VendorSection — внешние интеграции).
+| Термин | Определение | Подробнее |
+|--------|-------------|-----------|
+| **Container** | Изолированный бизнес-модуль (Users, Orders) | [docs/01-architecture.md](../docs/01-architecture.md) |
+| **Ship** | Общая инфраструктура (Parents, Configs, Decorators) | [docs/02-project-structure.md](../docs/02-project-structure.md) |
+| **Section** | Группа Containers (AppSection, VendorSection) | [docs/02-project-structure.md](../docs/02-project-structure.md) |
 
 ---
 
 ## 🎯 Компоненты
 
-### Action
-**Use Case / Command.** Выполняет одну бизнес-операцию. Всегда возвращает `Result[T, E]`. Оркестрирует Tasks и работает с UoW.
-
-```python
-class CreateUserAction(Action[CreateUserRequest, User, UserError]):
-    async def run(self, data) -> Result[User, UserError]: ...
-```
-
-### Task
-**Атомарная операция.** Выполняет одно техническое действие (хеширование, отправка email). Возвращает plain value, не Result. Переиспользуется между Actions.
-
-```python
-class HashPasswordTask(SyncTask[str, str]):
-    def run(self, password: str) -> str: ...
-```
-
-### Query
-**CQRS Read операция.** Только чтение данных, без модификации. Не использует UoW, не публикует события. Прямой доступ к ORM.
-
-```python
-class GetUserQuery(Query[GetUserQueryInput, User | None]):
-    async def execute(self, input) -> User | None: ...
-```
-
-### Repository
-**Абстракция над ORM.** Предоставляет CRUD + доменные запросы. Управляется через UoW.
-
-### UnitOfWork (UoW)
-**Паттерн транзакций.** Управляет транзакциями БД и публикацией событий. События публикуются только после успешного commit.
-
-### Controller
-**HTTP endpoint.** Принимает запросы, вызывает Actions/Queries, возвращает Responses.
-
-### Event
-**Доменное событие.** Факт произошедшего в системе (UserCreated, OrderPaid). Публикуется через UoW, обрабатывается Listeners.
-
-### Listener
-**Обработчик событий.** Реагирует на Domain Events. Регистрируется в App.py.
-
-### Provider
-**DI регистрация.** Определяет как создавать зависимости. APP scope для stateless, REQUEST scope для per-request.
+| Термин | Назначение | Return | Подробнее |
+|--------|------------|--------|-----------|
+| **Action** | Use Case, оркестрация | `Result[T, E]` | [docs/03-components.md](../docs/03-components.md#action-use-case) |
+| **Task** | Атомарная операция | `T` (plain value) | [docs/03-components.md](../docs/03-components.md#task-atomic-operation) |
+| **Query** | CQRS Read (прямой ORM) | `T \| None` | [docs/03-components.md](../docs/03-components.md#query-cqrs-read) |
+| **Repository** | CRUD + domain queries | `ModelT` | [docs/03-components.md](../docs/03-components.md#repository) |
+| **UnitOfWork** | Транзакции + Events | Context manager | [docs/03-components.md](../docs/03-components.md#unitofwork) |
+| **Controller** | HTTP endpoint | Response | [docs/03-components.md](../docs/03-components.md#controller) |
+| **Event** | Domain Event | Published via emit() | [docs/03-components.md](../docs/03-components.md#event-domain-event) |
+| **Listener** | Обработчик событий | Side effects | [docs/03-components.md](../docs/03-components.md#listener-event-handler) |
+| **Provider** | DI регистрация | Dependencies | [docs/03-components.md](../docs/03-components.md#provider-dependency-injection) |
 
 ---
 
 ## 🔄 Паттерны
 
-### Result Pattern
-**Явная обработка ошибок.** Вместо exceptions используется `Result[T, E]` — `Success(value)` или `Failure(error)`.
-
-### Railway-Oriented Programming
-**Парадигма Result.** Код разделён на Success track и Failure track. Переключение между ними — явное.
-
-### CQRS
-**Command Query Responsibility Segregation.** Разделение операций записи (Actions) и чтения (Queries).
-
-### Domain Events
-**События предметной области.** Уведомления о произошедших фактах. Обеспечивают слабую связанность модулей.
-
-### Structured Concurrency
-**Паттерн anyio.** Все параллельные задачи управляются через TaskGroup. Нет "забытых" задач.
-
-### Gateway
-**Паттерн межмодульной коммуникации.** Protocol определяет интерфейс, Adapter реализует (Direct для монолита, HTTP для микросервисов). Позволяет переключаться между режимами без изменения бизнес-логики.
-
-### Temporal
-**Платформа для durable execution.** Используется для Saga паттерна вместо TaskIQ для критичных бизнес-процессов. Гарантирует выполнение даже при сбоях инфраструктуры.
-
-### Saga
-**Паттерн распределённых транзакций с компенсациями.** Реализуется через Temporal Workflows. Каждый шаг имеет compensate метод для отката при ошибке.
-
-### Outbox
-**Transactional Outbox паттерн для гарантированной доставки событий.** События сохраняются в БД атомарно с бизнес-данными. Отдельный процессор публикует их в брокер.
-
-### Idempotency
-**Свойство операции давать одинаковый результат при повторных вызовах.** Реализуется через `X-Idempotency-Key` header. Критично для платёжных и критичных операций.
+| Паттерн | Описание | Подробнее |
+|---------|----------|-----------|
+| **Result Pattern** | `Success(value)` / `Failure(error)` | [docs/04-result-railway.md](../docs/04-result-railway.md) |
+| **CQRS** | Actions (write) / Queries (read) | [docs/03-components.md](../docs/03-components.md) |
+| **Structured Concurrency** | anyio TaskGroups | [docs/05-concurrency.md](../docs/05-concurrency.md) |
+| **Gateway** | Protocol + Adapter для межмодульной связи | [docs/14-module-gateway-pattern.md](../docs/14-module-gateway-pattern.md) |
+| **Saga** | Распределённые транзакции (Temporal) | [docs/15-saga-patterns.md](../docs/15-saga-patterns.md) |
+| **Outbox** | Гарантированная доставка событий | [docs/18-unified-event-bus.md](../docs/18-unified-event-bus.md) |
 
 ---
 
-## 📦 Типы данных
+## 📦 DTOs и данные
 
-### Request DTO
-**Входящие данные.** Pydantic BaseModel с валидацией. Используется в Controllers.
-
-### Response DTO  
-**Исходящие данные.** EntitySchema с `from_entity()`. Сериализация для API.
-
-### Error
-**Ошибка бизнес-логики.** Pydantic frozen модель с `http_status` и `code`.
-
-### Model
-**ORM сущность.** Piccolo Table, представляет данные в БД.
-
----
-
-## 🔧 Инфраструктура
-
-### Dishka
-**DI фреймворк.** Dependency Injection с поддержкой scopes.
-
-### Litestar
-**Web фреймворк.** HTTP, WebSocket, CLI, Events.
-
-### Piccolo
-**Async ORM.** База данных + миграции.
-
-### returns
-**Функциональная библиотека.** Result, Maybe, flow, bind.
-
-### anyio
-**Async runtime.** Structured Concurrency, TaskGroups.
+| Термин | Тип | Особенности |
+|--------|-----|-------------|
+| **Request DTO** | `BaseModel` + `frozen=True` | Валидация входных данных |
+| **Response DTO** | `EntitySchema` | `from_entity()` для конвертации |
+| **Error** | `BaseError` (frozen) | `http_status`, `code`, `message` |
+| **Model** | Piccolo `Table` | ORM сущность |
 
 ---
 
 ## 📐 Naming Conventions
 
-| Термин | Паттерн | Пример |
-|--------|---------|--------|
+| Компонент | Паттерн | Пример |
+|-----------|---------|--------|
 | Action | `{Verb}{Noun}Action` | `CreateUserAction` |
 | Task | `{Verb}{Noun}Task` | `HashPasswordTask` |
 | Query | `{Verb}{Noun}Query` | `GetUserQuery` |
@@ -143,16 +65,15 @@ class GetUserQuery(Query[GetUserQueryInput, User | None]):
 | Controller | `{Noun}Controller` | `UserController` |
 | Error | `{Noun}Error` | `UserNotFoundError` |
 | Event | `{Noun}{PastVerb}` | `UserCreated` |
-| Request | `{Action}Request` | `CreateUserRequest` |
-| Response | `{Noun}Response` | `UserResponse` |
 
 ---
 
-## 🔗 Связанные
+## 🔗 Полная документация
 
-- **Philosophy:** `docs/00-philosophy.md`
-- **Architecture:** `docs/01-architecture.md`
-- **Components:** `docs/03-components.md`
+- [docs/00-philosophy.md](../docs/00-philosophy.md) — Философия и принципы
+- [docs/01-architecture.md](../docs/01-architecture.md) — Архитектура слоёв
+- [docs/03-components.md](../docs/03-components.md) — **Детальное описание всех компонентов**
+- [docs/08-libraries.md](../docs/08-libraries.md) — Tech Stack
 
 
 

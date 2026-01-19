@@ -1,9 +1,10 @@
 """User module request DTOs.
 
 Request DTOs use Pydantic for validation.
+All Request DTOs are frozen (immutable) for safety.
 """
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class CreateUserRequest(BaseModel):
@@ -14,6 +15,8 @@ class CreateUserRequest(BaseModel):
         password: User's password (min 8 characters)
         name: User's display name (min 2 characters)
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     email: EmailStr
     password: str = Field(..., min_length=8, description="Password (min 8 characters)")
@@ -35,6 +38,8 @@ class UpdateUserRequest(BaseModel):
         is_active: New active status
     """
     
+    model_config = ConfigDict(frozen=True)
+    
     name: str | None = Field(None, min_length=2, max_length=100)
     is_active: bool | None = None
 
@@ -47,6 +52,8 @@ class ChangePasswordRequest(BaseModel):
         new_password: New password to set
     """
     
+    model_config = ConfigDict(frozen=True)
+    
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8)
 
@@ -58,6 +65,8 @@ class LoginRequest(BaseModel):
         email: User's email address
         password: User's password
     """
+    
+    model_config = ConfigDict(frozen=True)
     
     email: EmailStr
     password: str = Field(..., min_length=1)

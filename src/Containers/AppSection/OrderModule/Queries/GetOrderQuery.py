@@ -1,49 +1,54 @@
-"""GetOrderQuery - Retrieve order by ID."""
+"""GetOrderQuery - Retrieve order by ID.
+
+CQRS Query: Read-only operation with direct ORM access.
+Does NOT use Repository — optimized for performance.
+"""
 
 from dataclasses import dataclass
 from uuid import UUID
 
+from pydantic import BaseModel, ConfigDict
+
 from src.Ship.Parents.Query import Query
-from src.Containers.AppSection.OrderModule.Data.Repositories.OrderRepository import OrderRepository
-from src.Containers.AppSection.OrderModule.Data.Repositories.OrderItemRepository import OrderItemRepository
 from src.Containers.AppSection.OrderModule.Models.Order import Order
+from src.Containers.AppSection.OrderModule.Models.OrderItem import OrderItem
 
 
-@dataclass
-class GetOrderInput:
-    """Input for get order query."""
+class GetOrderInput(BaseModel):
+    """Input for get order query.
+    
+    Uses frozen Pydantic model for immutability.
+    """
+    
+    model_config = ConfigDict(frozen=True)
     
     order_id: UUID
     include_items: bool = True
 
 
-@dataclass
+@dataclass(frozen=True)
 class OrderWithItems:
-    """Order with its items."""
+    """Order with its items.
+    
+    Uses dataclass instead of Pydantic to handle ORM models.
+    """
     
     order: Order
-    items: list
+    items: list[OrderItem]
 
 
 class GetOrderQuery(Query[GetOrderInput, OrderWithItems | None]):
-    """Query: Get order by ID.
+    """CQRS Query: Get order by ID.
     
-    Retrieves a single order with optional items.
+    Read-only operation with direct ORM access for better performance.
+    Does NOT go through Repository or UnitOfWork (CQRS pattern).
+    
+    Example:
+        query = GetOrderQuery()
+        result = await query.execute(GetOrderInput(order_id=order_id))
+        if result:
+            return OrderResponse.from_entity(result.order)
     """
-    
-    def __init__(
-        self,
-        order_repository: OrderRepository,
-        item_repository: OrderItemRepository,
-    ) -> None:
-        """Initialize query with dependencies.
-        
-        Args:
-            order_repository: Repository for orders
-            item_repository: Repository for order items
-        """
-        self.order_repository = order_repository
-        self.item_repository = item_repository
     
     async def execute(self, input: GetOrderInput) -> OrderWithItems | None:
         """Execute the query.
@@ -54,12 +59,15 @@ class GetOrderQuery(Query[GetOrderInput, OrderWithItems | None]):
         Returns:
             OrderWithItems if found, None otherwise
         """
-        order = await self.order_repository.get(input.order_id)
+        # Direct ORM access (CQRS read optimization)
+        order = await Order.objects().where(Order.id == input.order_id).first()
         if order is None:
             return None
         
-        items = []
+        items: list[OrderItem] = []
         if input.include_items:
-            items = await self.item_repository.get_by_order(input.order_id)
+            items = await OrderItem.objects().where(
+                OrderItem.order == input.order_id
+            ).order_by(OrderItem.id)
         
         return OrderWithItems(order=order, items=items)

@@ -338,7 +338,7 @@ Repository → Model (Piccolo Table)
 | Module Gateway Pattern | `docs/15-module-gateway-pattern.md` |
 | Roadmap и будущее | `docs/16-future-roadmap.md` |
 | Вынос в микросервис | `docs/17-microservice-extraction-guide.md` |
-| Temporal Saga Patterns | `docs/22-temporal-saga-patterns.md` |
+| Saga Patterns | `docs/15-saga-patterns.md` |
 
 ---
 
@@ -392,7 +392,7 @@ from src.Ship.CLI.Decorators import with_container, handle_cli_result
 from src.Ship.Core.Errors import ErrorWithTemplate
 
 # Temporal Saga (для распределённых транзакций)
-# См. docs/22-temporal-saga-patterns.md
+# См. docs/15-saga-patterns.md
 ```
 
 ---
