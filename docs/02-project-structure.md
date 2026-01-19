@@ -161,6 +161,10 @@ new_porto/                            # Root проекта
 │               │   ├── RefreshTokenAction.py
 │               │   └── UpdateUserAction.py
 │               │
+│               ├── Activities/       # Temporal Activities (опционально)
+│               │   ├── __init__.py   # Для модулей с Workflows
+│               │   └── ...Activity.py
+│               │
 │               ├── Data/             # Data Access Layer
 │               │   ├── __init__.py
 │               │   │
@@ -195,12 +199,16 @@ new_porto/                            # Root проекта
 │               │   ├── GetUserQuery.py
 │               │   └── ListUsersQuery.py
 │               │
-│               ├── Tasks/            # Atomic Operations
+│               ├── Tasks/            # Atomic Operations (локальные)
 │               │   ├── __init__.py
 │               │   ├── GenerateTokenTask.py
 │               │   ├── HashPasswordTask.py
 │               │   ├── SendWelcomeEmailTask.py
 │               │   └── VerifyPasswordTask.py
+│               │
+│               ├── Workflows/        # Temporal Workflows (опционально)
+│               │   ├── __init__.py   # Для модулей с Saga
+│               │   └── ...Workflow.py
 │               │
 │               └── UI/               # Presentation Layer
 │                   ├── __init__.py

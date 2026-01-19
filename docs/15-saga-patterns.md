@@ -439,125 +439,196 @@ class CreateOrderWorkflow:
 
 ### 3.4 Интеграция с Porto архитектурой
 
-В Hyper-Porto **Activities** маппятся на **Tasks**, а **Workflows** — на сложные **Actions**.
+В Hyper-Porto **Activities** — это функции в отдельной папке `Activities/`, а **Workflows** — сложные оркестраторы в папке `Workflows/`.
 
-#### Activities = Porto Tasks
+> **Почему функции, а не классы?**
+> - Temporal Python SDK идиоматичнее работает с функциями
+> - `@activity.defn` ожидает функцию, а не класс
+> - Меньше boilerplate, проще тестировать
+> - Porto Tasks остаются для локальных атомарных операций (не-Temporal)
+
+#### Activities = Функции с @activity.defn
 
 ```python
-# src/Containers/AppSection/OrderModule/Tasks/CreateOrderTask.py
+# src/Containers/AppSection/OrderModule/Activities/CreateOrderActivity.py
 
 from temporalio import activity
-from dataclasses import dataclass
-from src.Ship.Parents.Task import Task
+from pydantic import BaseModel
+from uuid import UUID, uuid4
 
-@activity.defn
-@dataclass
-class CreateOrderTask(Task[CreateOrderInput, Order]):
-    """
-    Temporal Activity = Porto Task.
-    
-    Атомарная операция создания заказа.
-    """
-    uow: OrderUnitOfWork
-    
-    async def run(self, data: CreateOrderInput) -> Order:
-        async with self.uow:
-            order = Order(
-                user_id=data.user_id,
-                items=data.items,
-                status=OrderStatus.PENDING,
-            )
-            await self.uow.orders.add(order)
-            await self.uow.commit()
-        return order
+from src.Containers.AppSection.OrderModule.Data.UnitOfWork import OrderUnitOfWork
+from src.Containers.AppSection.OrderModule.Data.Repositories.OrderRepository import OrderRepository
+from src.Containers.AppSection.OrderModule.Models.Order import Order, OrderStatus
 
 
-@activity.defn
-@dataclass  
-class CancelOrderTask(Task[str, None]):
-    """
-    Компенсация для CreateOrderTask.
+class CreateOrderInput(BaseModel):
+    """Input DTO для activity."""
+    workflow_id: str
+    user_id: UUID
+    items: list[OrderItemInput]
+    shipping_address: str
+    currency: str = "USD"
+
+
+class CreateOrderOutput(BaseModel):
+    """Output DTO от activity."""
+    order_id: UUID
+    user_id: UUID
+    total_amount: str
+    status: str
+
+
+@activity.defn(name="create_order")
+async def create_order(data: CreateOrderInput) -> CreateOrderOutput:
+    """Temporal Activity: создать заказ в БД.
     
-    ⚠️ ВАЖНО: Должна быть идемпотентной!
+    Это функция (не класс), использующая UoW напрямую.
+    Temporal обеспечивает retry и durability.
     """
-    uow: OrderUnitOfWork
+    activity.logger.info(f"📦 Creating order for user {data.user_id}")
     
-    async def run(self, order_id: str) -> None:
-        async with self.uow:
-            order = await self.uow.orders.get(order_id)
-            # Идемпотентность: проверяем текущее состояние
-            if order and order.status != OrderStatus.CANCELLED:
-                order.status = OrderStatus.CANCELLED
-                await self.uow.commit()
+    # Создаём UoW внутри activity (не инжектируем)
+    uow = OrderUnitOfWork(
+        orders=OrderRepository(),
+        items=OrderItemRepository(),
+    )
+    
+    async with uow:
+        order = Order(
+            id=uuid4(),
+            user_id=data.user_id,
+            status=OrderStatus.PENDING.value,
+            total_amount=data.total_amount,
+        )
+        await uow.orders.add(order)
+        await uow.commit()
+    
+    activity.logger.info(f"✅ Order created: {order.id}")
+    
+    return CreateOrderOutput(
+        order_id=order.id,
+        user_id=order.user_id,
+        total_amount=str(order.total_amount),
+        status=order.status,
+    )
+
+
+@activity.defn(name="cancel_order")
+async def cancel_order(order_id: UUID) -> bool:
+    """Компенсация: отменить заказ.
+    
+    ⚠️ ВАЖНО: Идемпотентна — безопасно вызывать несколько раз.
+    """
+    activity.logger.info(f"🔙 Cancelling order: {order_id}")
+    
+    uow = OrderUnitOfWork(orders=OrderRepository(), items=OrderItemRepository())
+    
+    async with uow:
+        order = await uow.orders.get(order_id)
+        
+        # Идемпотентность: проверяем текущее состояние
+        if order is None:
+            return True  # Уже удалён
+            
+        if order.status in (OrderStatus.CANCELLED.value, OrderStatus.FAILED.value):
+            return True  # Уже отменён
+        
+        await uow.orders.update_status(order_id, OrderStatus.FAILED)
+        await uow.commit()
+    
+    return True
 ```
 
-#### Workflow = Сложный Porto Action
+#### Workflow = Оркестратор с SagaCompensations
 
 ```python
 # src/Containers/AppSection/OrderModule/Workflows/CreateOrderWorkflow.py
 
 from temporalio import workflow
+from temporalio.common import RetryPolicy
 from returns.result import Result, Success, Failure
 from datetime import timedelta
 
-@workflow.defn
+with workflow.unsafe.imports_passed_through():
+    from src.Containers.AppSection.OrderModule.Activities import (
+        create_order, cancel_order,
+        reserve_inventory, cancel_reservation,
+        charge_payment, refund_payment,
+        schedule_delivery,
+        CreateOrderInput, CreateOrderOutput,
+    )
+    from src.Ship.Infrastructure.Temporal.Saga import SagaCompensations
+
+
+@workflow.defn(name="CreateOrderWorkflow")
 class CreateOrderWorkflow:
     """
-    Temporal Workflow = Сложный Porto Action с Saga.
+    Temporal Workflow = Оркестратор Saga.
     
     Используется когда:
     - Нужна durability (переживает перезапуски)
     - Длительные операции (часы/дни)
     - Критичные бизнес-процессы с деньгами
+    
+    Использует SagaCompensations для автоматического rollback.
     """
     
     @workflow.run
-    async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderError]:
-        compensations: list = []
+    async def run(self, data: CreateOrderWorkflowInput) -> Result[OrderResult, OrderError]:
+        # Compensation tracker из Ship/Infrastructure
+        comp = SagaCompensations()
         
         try:
             # Шаг 1: Создать заказ
-            compensations.append(cancel_order_task)
-            order = await workflow.execute_activity(
-                create_order_task, data,
+            workflow.logger.info("📦 Step 1: Creating order")
+            order: CreateOrderOutput = await workflow.execute_activity(
+                create_order,  # Функция, не класс!
+                CreateOrderInput(workflow_id=workflow.info().workflow_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
             )
+            comp.add(cancel_order, order.order_id)  # Регистрируем компенсацию
             
             # Шаг 2: Зарезервировать товар
-            compensations.append(cancel_reservation_task)
+            workflow.logger.info("📦 Step 2: Reserving inventory")
             reservation = await workflow.execute_activity(
-                reserve_inventory_task, order.id,
+                reserve_inventory,
+                ReserveInventoryInput(order_id=order.order_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
             )
+            comp.add(cancel_reservation, reservation.reservation_id)
             
             # Шаг 3: Списать оплату
-            compensations.append(refund_payment_task)
+            workflow.logger.info("💳 Step 3: Processing payment")
             payment = await workflow.execute_activity(
-                charge_payment_task, order.id,
+                charge_payment,
+                ChargePaymentInput(order_id=order.order_id, amount=order.total_amount, ...),
                 start_to_close_timeout=timedelta(seconds=60),
-                retry_policy=RetryPolicy(maximum_attempts=3),
+                retry_policy=RetryPolicy(maximum_attempts=5),
             )
+            comp.add(refund_payment, payment.payment_id)
             
-            # Шаг 4: Назначить доставку
+            # Шаг 4: Назначить доставку (последний шаг)
+            workflow.logger.info("🚚 Step 4: Scheduling delivery")
             delivery = await workflow.execute_activity(
-                schedule_delivery_task, order.id,
+                schedule_delivery,
+                ScheduleDeliveryInput(order_id=order.order_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
             )
             
+            # Успех — очищаем компенсации
+            comp.clear()
+            
             return Success(OrderResult(
-                order_id=order.id,
-                reservation_id=reservation.id,
-                payment_id=payment.id,
-                delivery_id=delivery.id,
+                order_id=order.order_id,
+                reservation_id=reservation.reservation_id,
+                payment_id=payment.payment_id,
+                delivery_id=delivery.delivery_id,
             ))
             
         except Exception as ex:
-            # ROLLBACK: компенсации в обратном порядке
-            for comp in reversed(compensations):
-                await workflow.execute_activity(
-                    comp, order.id if 'order' in locals() else data,
-                    start_to_close_timeout=timedelta(seconds=30),
-                )
+            # ROLLBACK: запускаем все компенсации в обратном порядке
+            workflow.logger.error(f"❌ Saga failed: {ex}. Running compensations...")
+            await comp.run_all()
             return Failure(OrderCreationFailed(reason=str(ex)))
 ```
 
@@ -565,17 +636,36 @@ class CreateOrderWorkflow:
 
 ```
 OrderModule/
-├── Workflows/                    # Temporal Workflows (= сложные Actions)
-│   ├── CreateOrderWorkflow.py
-│   └── CancelOrderWorkflow.py
-├── Tasks/                        # Temporal Activities (= Porto Tasks)
-│   ├── CreateOrderTask.py
-│   ├── CancelOrderTask.py
-│   ├── ReserveInventoryTask.py
-│   └── ChargePaymentTask.py
-└── Actions/                      # Обычные Porto Actions (простые use cases)
-    └── GetOrderAction.py
+├── Activities/                   # Temporal Activities (функции с @activity.defn)
+│   ├── __init__.py              # Экспорт всех activities и DTOs
+│   ├── CreateOrderActivity.py   # create_order, cancel_order
+│   ├── ReserveInventoryActivity.py
+│   ├── ChargePaymentActivity.py
+│   ├── ScheduleDeliveryActivity.py
+│   └── NotificationActivity.py
+├── Workflows/                    # Temporal Workflows (классы-оркестраторы)
+│   ├── __init__.py
+│   └── CreateOrderWorkflow.py
+├── Tasks/                        # Porto Tasks (локальные, не-Temporal)
+│   ├── ReserveInventoryTask.py  # Для использования вне Temporal
+│   └── ProcessPaymentTask.py
+├── Actions/                      # Porto Actions (простые use cases)
+│   ├── CreateOrderAction.py     # Обычный action (без Temporal)
+│   └── StartCreateOrderWorkflowAction.py  # Запуск Workflow
+└── Workers/                      # Temporal Worker регистрация
+    └── OrderWorker.py
 ```
+
+#### Различие Activities и Tasks
+
+| Аспект | Activities (`Activities/`) | Tasks (`Tasks/`) |
+|--------|---------------------------|------------------|
+| **Декоратор** | `@activity.defn` | Нет (обычный класс) |
+| **Запуск** | Через Temporal Worker | Напрямую в Action |
+| **Retry** | Автоматический (RetryPolicy) | Ручной (tenacity) |
+| **Durability** | Да (сохраняется в Temporal) | Нет |
+| **DI** | Создаёт UoW внутри | Инжектируется через DI |
+| **Use case** | Шаги Saga/Workflow | Локальные операции |
 
 ### Сравнение паттернов Temporal
 
@@ -895,148 +985,187 @@ async def run_compensations(compensations: list) -> None:
 
 ## 6. Полный пример: CreateOrderWorkflow
 
-Комплексный пример Saga для оформления заказа с Temporal:
+Комплексный пример Saga для оформления заказа с Temporal.
+Основан на реальной реализации в `src/Containers/AppSection/OrderModule/`.
 
-### Activities (Tasks)
+### Структура файлов
+
+```
+OrderModule/
+├── Activities/
+│   ├── __init__.py              # Экспорт всех activities
+│   ├── CreateOrderActivity.py   # create_order, cancel_order
+│   ├── ReserveInventoryActivity.py
+│   ├── ChargePaymentActivity.py
+│   ├── ScheduleDeliveryActivity.py
+│   └── NotificationActivity.py
+├── Workflows/
+│   └── CreateOrderWorkflow.py
+├── Workers/
+│   └── OrderWorker.py           # Регистрация activities и workflows
+└── Actions/
+    └── StartCreateOrderWorkflowAction.py
+```
+
+### Activities (Функции)
 
 ```python
-# src/Containers/AppSection/OrderModule/Tasks/OrderTasks.py
+# src/Containers/AppSection/OrderModule/Activities/CreateOrderActivity.py
 
 from temporalio import activity
-from dataclasses import dataclass
-from uuid import UUID
-from datetime import datetime
+from pydantic import BaseModel
+from uuid import UUID, uuid4
+
+from src.Containers.AppSection.OrderModule.Data.UnitOfWork import OrderUnitOfWork
+from src.Containers.AppSection.OrderModule.Data.Repositories.OrderRepository import OrderRepository
+from src.Containers.AppSection.OrderModule.Models.Order import Order, OrderStatus
+
+
+# ═══════════════════════════════════════════════════════════════
+# Input/Output DTOs (Pydantic для сериализации)
+# ═══════════════════════════════════════════════════════════════
+
+class CreateOrderInput(BaseModel):
+    """Input DTO — сериализуется Temporal."""
+    workflow_id: str
+    user_id: UUID
+    items: list[OrderItemInput]
+    shipping_address: str
+    currency: str = "USD"
+
+
+class CreateOrderOutput(BaseModel):
+    """Output DTO — сериализуется Temporal."""
+    order_id: UUID
+    user_id: UUID
+    total_amount: str  # Decimal как строка
+    status: str
+    created_at: datetime
+
 
 # ═══════════════════════════════════════════════════════════════
 # STEP 1: CREATE ORDER
 # ═══════════════════════════════════════════════════════════════
 
-@dataclass
-class CreateOrderInput:
-    user_id: UUID
-    items: list[OrderItem]
-    total_amount: Decimal
-
-
-@dataclass
-class OrderCreated:
-    order_id: UUID
-    created_at: datetime
-
-
-@activity.defn
-async def create_order(data: CreateOrderInput) -> OrderCreated:
-    """Создать заказ в статусе PENDING."""
-    order = Order(
-        user_id=data.user_id,
-        items=data.items,
-        total_amount=data.total_amount,
-        status=OrderStatus.PENDING,
+@activity.defn(name="create_order")
+async def create_order(data: CreateOrderInput) -> CreateOrderOutput:
+    """Создать заказ в статусе PENDING.
+    
+    Activity создаёт UoW внутри себя (не через DI),
+    так как выполняется в контексте Temporal Worker.
+    """
+    activity.logger.info(f"📦 Creating order for user {data.user_id}")
+    
+    # UoW создаётся внутри activity
+    uow = OrderUnitOfWork(
+        orders=OrderRepository(),
+        items=OrderItemRepository(),
     )
-    await order_repository.add(order)
-    return OrderCreated(order_id=order.id, created_at=order.created_at)
-
-
-@activity.defn
-async def cancel_order(order_id: UUID) -> None:
-    """Компенсация: отменить заказ."""
-    order = await order_repository.get(order_id)
-    if order and order.status != OrderStatus.CANCELLED:
-        order.status = OrderStatus.CANCELLED
-        await order_repository.update(order)
-
-
-# ═══════════════════════════════════════════════════════════════
-# STEP 2: RESERVE INVENTORY
-# ═══════════════════════════════════════════════════════════════
-
-@dataclass
-class ReservationCreated:
-    reservation_id: UUID
-    items_reserved: list[str]
-
-
-@activity.defn
-async def reserve_inventory(order_id: UUID) -> ReservationCreated:
-    """Зарезервировать товары на складе."""
-    order = await order_repository.get(order_id)
-    reservation = await inventory_service.reserve(order.items)
-    return ReservationCreated(
-        reservation_id=reservation.id,
-        items_reserved=[item.sku for item in order.items],
-    )
-
-
-@activity.defn
-async def cancel_reservation(reservation_id: UUID) -> None:
-    """Компенсация: отменить резервацию."""
-    reservation = await inventory_service.get_reservation(reservation_id)
-    if reservation and reservation.status != "cancelled":
-        await inventory_service.cancel_reservation(reservation_id)
-
-
-# ═══════════════════════════════════════════════════════════════
-# STEP 3: CHARGE PAYMENT
-# ═══════════════════════════════════════════════════════════════
-
-@dataclass
-class PaymentCharged:
-    payment_id: UUID
-    amount: Decimal
-    transaction_id: str
-
-
-@activity.defn
-async def charge_payment(order_id: UUID) -> PaymentCharged:
-    """Списать оплату."""
-    order = await order_repository.get(order_id)
-    payment = await payment_service.charge(
+    
+    async with uow:
+        order = Order(
+            id=uuid4(),
+            user_id=data.user_id,
+            status=OrderStatus.PENDING.value,
+            total_amount=data.total_amount,
+            shipping_address=data.shipping_address,
+        )
+        await uow.orders.add(order)
+        
+        # Создаём OrderItems
+        for item_data in data.items:
+            item = OrderItem(order=order.id, ...)
+            await uow.items.add(item)
+        
+        await uow.commit()
+    
+    activity.logger.info(f"✅ Order created: {order.id}")
+    
+    return CreateOrderOutput(
+        order_id=order.id,
         user_id=order.user_id,
-        amount=order.total_amount,
-        order_id=order_id,
-    )
-    return PaymentCharged(
-        payment_id=payment.id,
-        amount=payment.amount,
-        transaction_id=payment.transaction_id,
+        total_amount=str(order.total_amount),
+        status=order.status,
+        created_at=order.created_at,
     )
 
 
-@activity.defn
-async def refund_payment(payment_id: UUID) -> None:
-    """Компенсация: вернуть деньги."""
-    payment = await payment_service.get_payment(payment_id)
-    if payment and payment.status != "refunded":
-        await payment_service.refund(payment_id)
-
-
-# ═══════════════════════════════════════════════════════════════
-# STEP 4: SCHEDULE DELIVERY
-# ═══════════════════════════════════════════════════════════════
-
-@dataclass
-class DeliveryScheduled:
-    delivery_id: UUID
-    estimated_date: datetime
-
-
-@activity.defn
-async def schedule_delivery(order_id: UUID) -> DeliveryScheduled:
-    """Назначить доставку."""
-    order = await order_repository.get(order_id)
-    delivery = await delivery_service.schedule(
-        order_id=order_id,
-        address=order.delivery_address,
-    )
-    return DeliveryScheduled(
-        delivery_id=delivery.id,
-        estimated_date=delivery.estimated_date,
-    )
-
-# Нет компенсации для delivery — последний шаг
+@activity.defn(name="cancel_order")
+async def cancel_order(order_id: UUID) -> bool:
+    """Компенсация: отменить заказ.
+    
+    ⚠️ Идемпотентна — безопасно вызывать несколько раз.
+    """
+    activity.logger.info(f"🔙 Cancelling order: {order_id}")
+    
+    uow = OrderUnitOfWork(orders=OrderRepository(), items=OrderItemRepository())
+    
+    async with uow:
+        order = await uow.orders.get(order_id)
+        
+        if order is None:
+            return True  # Уже удалён — идемпотентность
+            
+        if order.status in (OrderStatus.CANCELLED.value, OrderStatus.FAILED.value):
+            return True  # Уже отменён
+        
+        await uow.orders.update_status(order_id, OrderStatus.FAILED)
+        await uow.commit()
+    
+    activity.logger.info(f"✅ Order {order_id} marked as failed")
+    return True
 ```
 
-### Workflow (Action)
+```python
+# src/Containers/AppSection/OrderModule/Activities/ChargePaymentActivity.py
+
+@activity.defn(name="charge_payment")
+async def charge_payment(data: ChargePaymentInput) -> PaymentOutput:
+    """Списать оплату.
+    
+    В production здесь вызов Stripe/PayPal.
+    Temporal обеспечивает retry через RetryPolicy.
+    """
+    activity.logger.info(f"💳 Processing payment: {data.amount} {data.currency}")
+    
+    # Валидация
+    if Decimal(data.amount) > Decimal("10000.00"):
+        raise Exception("Payment declined: Amount exceeds limit")
+    
+    # В production:
+    # payment_intent = await stripe.PaymentIntent.create(...)
+    
+    payment_id = f"PAY-{uuid4().hex[:12].upper()}"
+    
+    activity.logger.info(f"✅ Payment processed: {payment_id}")
+    
+    return PaymentOutput(
+        payment_id=payment_id,
+        order_id=data.order_id,
+        amount=data.amount,
+        status="completed",
+    )
+
+
+@activity.defn(name="refund_payment")
+async def refund_payment(payment_id: str) -> RefundOutput:
+    """Компенсация: вернуть деньги.
+    
+    Идемпотентна — повторный refund игнорируется.
+    """
+    activity.logger.info(f"💸 Refunding payment: {payment_id}")
+    
+    # В production:
+    # await stripe.Refund.create(payment_intent=payment_id)
+    
+    return RefundOutput(
+        refund_id=f"REF-{uuid4().hex[:12].upper()}",
+        payment_id=payment_id,
+        status="completed",
+    )
+```
+
+### Workflow (Оркестратор)
 
 ```python
 # src/Containers/AppSection/OrderModule/Workflows/CreateOrderWorkflow.py
@@ -1044,186 +1173,263 @@ async def schedule_delivery(order_id: UUID) -> DeliveryScheduled:
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from returns.result import Result, Success, Failure
-from dataclasses import dataclass
 from datetime import timedelta
-from uuid import UUID
-from decimal import Decimal
 
-@dataclass
-class CreateOrderInput:
-    user_id: UUID
-    items: list[OrderItem]
-    total_amount: Decimal
-
-
-@dataclass
-class OrderResult:
-    order_id: UUID
-    reservation_id: UUID
-    payment_id: UUID
-    delivery_id: UUID
-    estimated_delivery: datetime
+with workflow.unsafe.imports_passed_through():
+    from src.Containers.AppSection.OrderModule.Activities import (
+        create_order, cancel_order,
+        reserve_inventory, cancel_reservation,
+        charge_payment, refund_payment,
+        schedule_delivery, cancel_delivery,
+        CreateOrderInput, ChargePaymentInput,
+    )
+    from src.Ship.Infrastructure.Temporal.Saga import SagaCompensations
 
 
-@dataclass
-class OrderCreationFailed:
-    reason: str
-    failed_step: str | None = None
-
-
-@workflow.defn
+@workflow.defn(name="CreateOrderWorkflow")
 class CreateOrderWorkflow:
-    """
-    Saga для создания заказа.
+    """Saga для создания заказа.
     
     Шаги:
     1. Create Order (PENDING) → cancel_order
     2. Reserve Inventory → cancel_reservation  
     3. Charge Payment → refund_payment
-    4. Schedule Delivery (no compensation)
+    4. Schedule Delivery → cancel_delivery
+    5. Send Notification (без компенсации)
     """
     
+    def __init__(self) -> None:
+        self._status = "pending"
+        self._order_id: UUID | None = None
+    
+    @workflow.query
+    def get_status(self) -> str:
+        """Query для получения статуса во время выполнения."""
+        return self._status
+    
     @workflow.run
-    async def run(self, data: CreateOrderInput) -> Result[OrderResult, OrderCreationFailed]:
-        compensations: list[tuple] = []
+    async def run(
+        self, 
+        data: CreateOrderWorkflowInput,
+    ) -> Result[OrderWorkflowResult, OrderWorkflowError]:
+        workflow.logger.info(f"🎭 Starting CreateOrderWorkflow for user {data.user_id}")
+        
+        # Compensation tracker
+        comp = SagaCompensations()
+        workflow_id = workflow.info().workflow_id
+        
+        # Retry policies
+        default_retry = RetryPolicy(
+            maximum_attempts=3,
+            initial_interval=timedelta(seconds=1),
+            maximum_interval=timedelta(seconds=30),
+        )
+        
+        payment_retry = RetryPolicy(
+            maximum_attempts=5,
+            initial_interval=timedelta(seconds=2),
+            maximum_interval=timedelta(seconds=60),
+        )
         
         try:
             # ═══════════════════════════════════════════════════════
             # STEP 1: CREATE ORDER
             # ═══════════════════════════════════════════════════════
-            workflow.logger.info(f"Step 1: Creating order for user {data.user_id}")
+            self._status = "creating_order"
+            workflow.logger.info("📦 Step 1: Creating order")
             
-            compensations.append((cancel_order, ()))  # Регистрируем ДО!
-            order = await workflow.execute_activity(
-                create_order, data,
+            order: CreateOrderOutput = await workflow.execute_activity(
+                create_order,
+                CreateOrderInput(workflow_id=workflow_id, user_id=data.user_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=default_retry,
             )
-            # Обновляем аргументы компенсации
-            compensations[-1] = (cancel_order, (order.order_id,))
             
-            workflow.logger.info(f"Order {order.order_id} created")
+            self._order_id = order.order_id
+            comp.add(cancel_order, order.order_id)  # Регистрируем компенсацию
             
             # ═══════════════════════════════════════════════════════
             # STEP 2: RESERVE INVENTORY
             # ═══════════════════════════════════════════════════════
-            workflow.logger.info(f"Step 2: Reserving inventory")
+            self._status = "reserving_inventory"
+            workflow.logger.info("📦 Step 2: Reserving inventory")
             
-            compensations.append((cancel_reservation, ()))
             reservation = await workflow.execute_activity(
-                reserve_inventory, order.order_id,
+                reserve_inventory,
+                ReserveInventoryInput(order_id=order.order_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=default_retry,
             )
-            compensations[-1] = (cancel_reservation, (reservation.reservation_id,))
-            
-            workflow.logger.info(f"Reservation {reservation.reservation_id} created")
+            comp.add(cancel_reservation, reservation.reservation_id)
             
             # ═══════════════════════════════════════════════════════
             # STEP 3: CHARGE PAYMENT
             # ═══════════════════════════════════════════════════════
-            workflow.logger.info(f"Step 3: Charging payment")
+            self._status = "processing_payment"
+            workflow.logger.info("💳 Step 3: Processing payment")
             
-            compensations.append((refund_payment, ()))
             payment = await workflow.execute_activity(
-                charge_payment, order.order_id,
-                start_to_close_timeout=timedelta(seconds=60),
-                retry_policy=RetryPolicy(
-                    maximum_attempts=3,
-                    initial_interval=timedelta(seconds=1),
-                    maximum_interval=timedelta(seconds=10),
+                charge_payment,
+                ChargePaymentInput(
+                    order_id=order.order_id,
+                    amount=order.total_amount,
+                    ...
                 ),
+                start_to_close_timeout=timedelta(seconds=60),
+                retry_policy=payment_retry,  # Больше retry для платежей
             )
-            compensations[-1] = (refund_payment, (payment.payment_id,))
-            
-            workflow.logger.info(f"Payment {payment.payment_id} charged: {payment.amount}")
+            comp.add(refund_payment, payment.payment_id)
             
             # ═══════════════════════════════════════════════════════
-            # STEP 4: SCHEDULE DELIVERY (no compensation)
+            # STEP 4: SCHEDULE DELIVERY
             # ═══════════════════════════════════════════════════════
-            workflow.logger.info(f"Step 4: Scheduling delivery")
+            self._status = "scheduling_delivery"
+            workflow.logger.info("🚚 Step 4: Scheduling delivery")
             
-            # Без регистрации компенсации — последний шаг
             delivery = await workflow.execute_activity(
-                schedule_delivery, order.order_id,
+                schedule_delivery,
+                ScheduleDeliveryInput(order_id=order.order_id, ...),
                 start_to_close_timeout=timedelta(seconds=30),
+                retry_policy=default_retry,
             )
-            
-            workflow.logger.info(f"Delivery {delivery.delivery_id} scheduled")
+            comp.add(cancel_delivery, delivery.delivery_id)
             
             # ═══════════════════════════════════════════════════════
             # SUCCESS
             # ═══════════════════════════════════════════════════════
-            return Success(OrderResult(
+            self._status = "completed"
+            comp.clear()  # Очищаем — успех!
+            
+            workflow.logger.info(f"🎉 Order {order.order_id} completed!")
+            
+            return Success(OrderWorkflowResult(
                 order_id=order.order_id,
                 reservation_id=reservation.reservation_id,
                 payment_id=payment.payment_id,
                 delivery_id=delivery.delivery_id,
-                estimated_delivery=delivery.estimated_date,
+                tracking_number=delivery.tracking_number,
+                status="confirmed",
             ))
             
         except Exception as ex:
             # ═══════════════════════════════════════════════════════
             # ROLLBACK
             # ═══════════════════════════════════════════════════════
-            workflow.logger.error(f"Saga failed: {ex}. Starting rollback...")
+            self._status = "compensating"
+            workflow.logger.error(f"❌ Saga failed: {ex}. Running compensations...")
             
-            for comp_func, comp_args in reversed(compensations):
-                if comp_args:  # Есть аргументы — шаг был выполнен
-                    try:
-                        await workflow.execute_activity(
-                            comp_func, *comp_args,
-                            start_to_close_timeout=timedelta(seconds=30),
-                        )
-                        workflow.logger.info(f"Compensation {comp_func.__name__} completed")
-                    except Exception as comp_ex:
-                        workflow.logger.exception(
-                            f"Compensation {comp_func.__name__} failed: {comp_ex}"
-                        )
+            # Запускаем все компенсации в обратном порядке
+            await comp.run_all()
             
-            return Failure(OrderCreationFailed(reason=str(ex)))
+            self._status = "failed"
+            
+            return Failure(OrderWorkflowError(
+                message=f"Order creation failed: {ex}",
+                code="ORDER_CREATION_FAILED",
+                failed_step=self._status,
+            ))
 ```
 
-### Запуск Workflow
+### Запуск Workflow из Action
 
 ```python
-# src/Containers/AppSection/OrderModule/Actions/CreateOrderAction.py
+# src/Containers/AppSection/OrderModule/Actions/StartCreateOrderWorkflowAction.py
 
-from temporalio.client import Client
+from temporalio.client import Client as TemporalClient
 from returns.result import Result, Success, Failure
-from dataclasses import dataclass
 from uuid import uuid4
 
-@dataclass
-class CreateOrderAction(Action[CreateOrderRequest, OrderResponse, OrderError]):
-    """Action для создания заказа через Temporal."""
+from src.Ship.Parents.Action import Action
+from src.Containers.AppSection.OrderModule.Workflows.CreateOrderWorkflow import (
+    CreateOrderWorkflow,
+    CreateOrderWorkflowInput,
+)
+
+
+class StartCreateOrderWorkflowAction(Action[CreateOrderRequest, WorkflowStarted, OrderError]):
+    """Action для запуска Temporal Workflow.
     
-    temporal_client: Client
+    Не ждёт завершения — возвращает workflow_id для polling.
+    """
     
-    async def run(self, data: CreateOrderRequest) -> Result[OrderResponse, OrderError]:
-        # Запускаем Workflow
+    def __init__(self, temporal_client: TemporalClient) -> None:
+        self.temporal_client = temporal_client
+    
+    async def run(self, data: CreateOrderRequest) -> Result[WorkflowStarted, OrderError]:
+        workflow_id = f"order-{uuid4()}"
+        
+        try:
+            handle = await self.temporal_client.start_workflow(
+                CreateOrderWorkflow.run,
+                CreateOrderWorkflowInput(
+                    user_id=data.user_id,
+                    items=data.items,
+                    shipping_address=data.shipping_address,
+                    currency=data.currency,
+                ),
+                id=workflow_id,
+                task_queue="orders",
+            )
+            
+            return Success(WorkflowStarted(
+                workflow_id=workflow_id,
+                run_id=handle.run_id,
+                message="Order creation started",
+            ))
+            
+        except Exception as ex:
+            return Failure(OrderError(message=f"Failed to start workflow: {ex}"))
+
+
+class ExecuteCreateOrderWorkflowAction(Action[CreateOrderRequest, OrderResult, OrderError]):
+    """Action для запуска и ожидания результата Workflow."""
+    
+    def __init__(self, temporal_client: TemporalClient) -> None:
+        self.temporal_client = temporal_client
+    
+    async def run(self, data: CreateOrderRequest) -> Result[OrderResult, OrderError]:
         workflow_id = f"order-{uuid4()}"
         
         handle = await self.temporal_client.start_workflow(
             CreateOrderWorkflow.run,
-            CreateOrderInput(
-                user_id=data.user_id,
-                items=data.items,
-                total_amount=data.total_amount,
-            ),
+            CreateOrderWorkflowInput(...),
             id=workflow_id,
             task_queue="orders",
         )
         
-        # Ждём результат (или можно вернуть workflow_id для polling)
+        # Ждём результат
         result = await handle.result()
         
         match result:
             case Success(order_result):
-                return Success(OrderResponse.from_result(order_result))
+                return Success(order_result)
             case Failure(error):
-                return Failure(OrderCreationError(
-                    message=error.reason,
-                    workflow_id=workflow_id,
+                return Failure(OrderError(
+                    message=error.message,
+                    code=error.code,
                 ))
+```
+
+### Worker регистрация
+
+```python
+# src/Containers/AppSection/OrderModule/Workers/OrderWorker.py
+
+from temporalio.worker import Worker
+from temporalio.client import Client
+
+from src.Containers.AppSection.OrderModule.Workflows import ALL_WORKFLOWS
+from src.Containers.AppSection.OrderModule.Activities import ALL_ACTIVITIES
+
+
+async def create_order_worker(client: Client) -> Worker:
+    """Создать Temporal Worker для OrderModule."""
+    return Worker(
+        client,
+        task_queue="orders",
+        workflows=ALL_WORKFLOWS,
+        activities=ALL_ACTIVITIES,
+    )
 ```
 
 ---
