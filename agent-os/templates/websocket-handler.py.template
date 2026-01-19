@@ -1,0 +1,215 @@
+"""${Module} WebSocket Handlers.
+
+Litestar Channels handlers for real-time ${Entity} updates.
+"""
+
+from uuid import UUID
+
+import anyio
+import logfire
+from litestar import WebSocket, websocket
+from litestar.channels import ChannelsPlugin
+from litestar.exceptions import WebSocketDisconnect
+from dishka import AsyncContainer
+
+from src.Ship.Auth.Guards import auth_guard
+from src.Ship.Auth.Middleware import AuthUser
+from src.Containers.${Section}.${Module}.Queries.Get${Entity}Query import (
+    Get${Entity}Query,
+    Get${Entity}QueryInput,
+)
+
+
+# =============================================================================
+# PUBLIC WEBSOCKET (no auth required)
+# =============================================================================
+
+@websocket("/${entities_lower}/{${entity_lower}_id:uuid}/updates")
+async def ${entity_lower}_updates_handler(
+    socket: WebSocket,
+    ${entity_lower}_id: UUID,
+    channels: ChannelsPlugin,
+) -> None:
+    """WebSocket handler for ${entity_lower} updates.
+    
+    Subscribe to updates for a specific ${entity_lower}.
+    No authentication required.
+    
+    Protocol:
+    - Connect to /${entities_lower}/{id}/updates
+    - Receive JSON messages: {"event": "...", "data": {...}}
+    - Send commands: {"command": "ping"} → {"event": "pong"}
+    """
+    await socket.accept()
+    logfire.info("WebSocket connected", ${entity_lower}_id=str(${entity_lower}_id))
+    
+    try:
+        async with channels.start_subscription([f"${entity_lower}:{${entity_lower}_id}"]) as subscriber:
+            
+            async def handle_incoming():
+                """Handle commands from client."""
+                while True:
+                    try:
+                        message = await socket.receive_json()
+                        command = message.get("command")
+                        
+                        match command:
+                            case "ping":
+                                await socket.send_json({"event": "pong"})
+                            case _:
+                                await socket.send_json({
+                                    "event": "error",
+                                    "message": f"Unknown command: {command}",
+                                })
+                    except WebSocketDisconnect:
+                        raise
+                    except Exception as e:
+                        logfire.warning("WebSocket receive error", error=str(e))
+            
+            async def handle_channel_messages():
+                """Forward channel messages to WebSocket."""
+                async for message in subscriber.iter_events():
+                    try:
+                        # Message is bytes, decode to dict
+                        import json
+                        data = json.loads(message.decode()) if isinstance(message, bytes) else message
+                        await socket.send_json(data)
+                    except Exception as e:
+                        logfire.warning("WebSocket send error", error=str(e))
+            
+            # Run both tasks concurrently
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(handle_incoming)
+                tg.start_soon(handle_channel_messages)
+    
+    except WebSocketDisconnect:
+        logfire.info("WebSocket disconnected", ${entity_lower}_id=str(${entity_lower}_id))
+    except Exception as e:
+        logfire.error("WebSocket error", error=str(e))
+    finally:
+        await socket.close()
+
+
+# =============================================================================
+# AUTHENTICATED WEBSOCKET
+# =============================================================================
+
+@websocket("/my/${entities_lower}/updates", guards=[auth_guard])
+async def authenticated_${entity_lower}_updates_handler(
+    socket: WebSocket,
+    auth_user: AuthUser,
+    channels: ChannelsPlugin,
+    dishka_container: AsyncContainer,
+) -> None:
+    """WebSocket handler for authenticated user's ${entity_lower} updates.
+    
+    Subscribes to updates for the authenticated user.
+    Requires JWT token in query params or headers.
+    
+    Connection: /my/${entities_lower}/updates?token=<jwt>
+    """
+    await socket.accept()
+    user_id = auth_user.user_id
+    logfire.info("Authenticated WebSocket connected", user_id=user_id)
+    
+    try:
+        # Get initial data
+        async with dishka_container() as request_container:
+            query = await request_container.get(Get${Entity}Query)
+            ${entity_lower} = await query.execute(Get${Entity}QueryInput(${entity_lower}_id=UUID(user_id)))
+            
+            if ${entity_lower}:
+                await socket.send_json({
+                    "event": "initial_data",
+                    "${entity_lower}": {
+                        "id": str(${entity_lower}.id),
+                        "email": ${entity_lower}.email,
+                        "name": ${entity_lower}.name,
+                    },
+                })
+        
+        # Subscribe to user's channel
+        async with channels.start_subscription([f"${entity_lower}:{user_id}"]) as subscriber:
+            
+            async def handle_incoming():
+                while True:
+                    try:
+                        message = await socket.receive_json()
+                        command = message.get("command")
+                        
+                        match command:
+                            case "refresh":
+                                async with dishka_container() as req_container:
+                                    query = await req_container.get(Get${Entity}Query)
+                                    ${entity_lower} = await query.execute(
+                                        Get${Entity}QueryInput(${entity_lower}_id=UUID(user_id))
+                                    )
+                                    if ${entity_lower}:
+                                        await socket.send_json({
+                                            "event": "${entity_lower}_data",
+                                            "${entity_lower}": {
+                                                "id": str(${entity_lower}.id),
+                                                "email": ${entity_lower}.email,
+                                                "name": ${entity_lower}.name,
+                                            },
+                                        })
+                            case "ping":
+                                await socket.send_json({"event": "pong"})
+                    except WebSocketDisconnect:
+                        raise
+            
+            async def handle_channel_messages():
+                async for message in subscriber.iter_events():
+                    import json
+                    data = json.loads(message.decode()) if isinstance(message, bytes) else message
+                    await socket.send_json(data)
+            
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(handle_incoming)
+                tg.start_soon(handle_channel_messages)
+    
+    except WebSocketDisconnect:
+        logfire.info("Authenticated WebSocket disconnected", user_id=user_id)
+    finally:
+        await socket.close()
+
+
+# =============================================================================
+# HELPER: Publish to channel (use in Listeners)
+# =============================================================================
+#
+# def publish_to_${entity_lower}_channel(
+#     app: Litestar,
+#     ${entity_lower}_id: str,
+#     event_type: str,
+#     data: dict,
+# ) -> None:
+#     try:
+#         channels = app.plugins.get(ChannelsPlugin)
+#         if channels:
+#             channels.publish(
+#                 data={"event": event_type, "${entity_lower}_id": ${entity_lower}_id, **data},
+#                 channels=[f"${entity_lower}:{${entity_lower}_id}"],
+#             )
+#     except Exception as e:
+#         logfire.warning("Failed to publish to channel", error=str(e))
+#
+# =============================================================================
+# REGISTRATION IN App.py:
+# =============================================================================
+#
+# from src.Containers.${Section}.${Module}.UI.WebSocket.Handlers import (
+#     ${entity_lower}_updates_handler,
+#     authenticated_${entity_lower}_updates_handler,
+# )
+#
+# app = Litestar(
+#     route_handlers=[
+#         ${entity_lower}_updates_handler,
+#         authenticated_${entity_lower}_updates_handler,
+#     ],
+# )
+# =============================================================================
+
+
+

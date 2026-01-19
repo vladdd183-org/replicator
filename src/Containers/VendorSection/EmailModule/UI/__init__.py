@@ -1,0 +1,4 @@
+"""EmailModule UI layer."""
+
+
+

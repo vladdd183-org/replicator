@@ -1,0 +1,193 @@
+# Feedback Loop Configuration
+# Version: 1.0.0
+
+version: "1.0.0"
+
+# ═══════════════════════════════════════════════════════════════
+# Collection Settings
+# ═══════════════════════════════════════════════════════════════
+
+collection:
+  # Автоматические триггеры
+  auto_triggers:
+    after_implementation:
+      enabled: true
+      delay_seconds: 0
+      
+    after_error_fix:
+      enabled: true
+      delay_seconds: 0
+      
+    after_session:
+      enabled: true
+      min_duration_minutes: 15
+      
+    weekly_survey:
+      enabled: true
+      day: friday
+      time: "17:00"
+      
+  # Методы сбора
+  methods:
+    inline_chat: true
+    
+  # Формат вопросов
+  question_style:
+    concise: true
+    language: ru
+
+# ═══════════════════════════════════════════════════════════════
+# Analysis Settings
+# ═══════════════════════════════════════════════════════════════
+
+analysis:
+  # Когда запускать анализ
+  auto_analyze:
+    on_feedback_count: 10
+    weekly: true
+    on_demand: true
+    
+  # Пороги для обнаружения
+  thresholds:
+    # После скольких негативных отзывов создать alert
+    negative_feedback_alert: 3
+    
+    # После скольких похожих создать паттерн
+    pattern_detection: 5
+    
+    # Минимальный score для "негативного"
+    negative_threshold: 2
+    
+    # Минимальный score для "позитивного"  
+    positive_threshold: 4
+    
+  # Категоризация
+  categories:
+    - code_quality
+    - accuracy
+    - speed
+    - understanding
+    - conventions
+    - architecture
+
+# ═══════════════════════════════════════════════════════════════
+# Action Settings
+# ═══════════════════════════════════════════════════════════════
+
+actions:
+  # Автоматические действия
+  auto_actions:
+    # Создать запись об ошибке при негативном фидбеке
+    create_mistake_entry:
+      enabled: true
+      min_severity: major
+      
+    # Обновить user preferences при позитивных паттернах
+    update_preferences:
+      enabled: true
+      threshold: 5
+      
+    # Уведомить о трендах
+    notify_trends:
+      enabled: true
+      frequency: weekly
+      
+  # Требуется ли одобрение пользователя
+  require_approval:
+    update_standards: true
+    add_anti_pattern: true
+    modify_agent_behavior: true
+    add_guardrail: true
+    
+  # Автоматические без одобрения
+  auto_apply:
+    update_memory: true
+    update_stats: true
+    create_insight: true
+
+# ═══════════════════════════════════════════════════════════════
+# Metrics Settings
+# ═══════════════════════════════════════════════════════════════
+
+metrics:
+  # Что отслеживать
+  tracked_metrics:
+    - name: satisfaction_score
+      type: rating
+      range: [1, 5]
+      aggregation: average
+      
+    - name: task_completion_rate
+      type: percentage
+      calculation: "successful / total"
+      
+    - name: error_rate
+      type: percentage
+      calculation: "with_errors / total"
+      
+    - name: iteration_count
+      type: count
+      aggregation: average
+      
+    - name: nps_score
+      type: calculated
+      formula: "promoters - detractors"
+      
+  # Группировки
+  group_by:
+    - task_type
+    - module
+    - agent
+    - week
+    
+  # Хранение истории
+  retention:
+    detailed: 90  # дней
+    aggregated: 365  # дней
+
+# ═══════════════════════════════════════════════════════════════
+# Reporting Settings
+# ═══════════════════════════════════════════════════════════════
+
+reporting:
+  weekly:
+    generate: true
+    day: sunday
+    include:
+      - metrics_summary
+      - top_issues
+      - improvements
+      - trends
+      - recommendations
+    output: "analysis/reports/weekly/YYYY-WNN.md"
+    
+  monthly:
+    generate: true
+    day: 1
+    include:
+      - all_weekly_aggregated
+      - long_term_trends
+      - improvement_areas
+      - success_stories
+    output: "analysis/reports/monthly/YYYY-MM.md"
+
+# ═══════════════════════════════════════════════════════════════
+# Integration Settings
+# ═══════════════════════════════════════════════════════════════
+
+integrations:
+  memory:
+    write_insights: true
+    write_mistakes: true
+    update_patterns: true
+    path: "../memory/"
+    
+  standards:
+    propose_changes: true
+    require_approval: true
+    path: "../standards/"
+    
+  training:
+    update_tutorials: true
+    add_examples: true
+    path: "../training/"

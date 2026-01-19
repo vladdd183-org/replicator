@@ -1,0 +1,94 @@
+"""${ActionName} - Use case for ${description}."""
+
+import anyio
+from returns.result import Result, Success, Failure
+
+from src.Ship.Parents.Action import Action
+from src.Ship.Decorators import audited
+from src.Containers.${Section}.${Module}.Data.Schemas.Requests import ${ActionName}Request
+from src.Containers.${Section}.${Module}.Data.UnitOfWork import ${Module}UnitOfWork
+from src.Containers.${Section}.${Module}.Errors import ${Module}Error, ${Entity}NotFoundError
+from src.Containers.${Section}.${Module}.Events import ${Entity}Created
+from src.Containers.${Section}.${Module}.Models.${Entity} import ${Entity}
+
+
+@audited(action="${action_verb}", entity_type="${Entity}")
+class ${ActionName}(Action[${ActionName}Request, ${Entity}, ${Module}Error]):
+    """Use Case: ${description}.
+    
+    Steps:
+    1. Validate input data
+    2. Check business rules
+    3. Execute operation
+    4. Publish domain event
+    
+    Example:
+        action = ${ActionName}(uow)
+        result = await action.run(${ActionName}Request(...))
+    """
+    
+    def __init__(
+        self,
+        uow: ${Module}UnitOfWork,
+    ) -> None:
+        """Initialize action with dependencies.
+        
+        Args:
+            uow: Unit of Work for data operations
+        """
+        self.uow = uow
+    
+    async def run(self, data: ${ActionName}Request) -> Result[${Entity}, ${Module}Error]:
+        """Execute the ${action_verb} ${entity_lower} use case.
+        
+        Args:
+            data: ${ActionName}Request with input data
+            
+        Returns:
+            Result[${Entity}, ${Module}Error]: Success with ${entity_lower} or Failure with error
+        """
+        # Step 1: Validate / Check business rules
+        # existing = await self.uow.${entities_lower}.find_by_xxx(data.xxx)
+        # if existing:
+        #     return Failure(${Entity}AlreadyExistsError(...))
+        
+        # Step 2: Execute operation
+        async with self.uow:
+            ${entity_lower} = ${Entity}(
+                # ... fields from data
+            )
+            await self.uow.${entities_lower}.add(${entity_lower})
+            
+            # Step 3: Add domain event (published after commit)
+            self.uow.add_event(${Entity}Created(
+                ${entity_lower}_id=${entity_lower}.id,
+                # ... other event fields
+            ))
+            
+            await self.uow.commit()
+        
+        return Success(${entity_lower})
+
+
+# =============================================================================
+# USAGE EXAMPLE:
+# =============================================================================
+# 
+# # In Controller:
+# @post("/")
+# @result_handler(${Entity}Response, success_status=HTTP_201_CREATED)
+# async def create_${entity_lower}(
+#     self,
+#     data: ${ActionName}Request,
+#     action: FromDishka[${ActionName}],
+# ) -> Result[${Entity}, ${Module}Error]:
+#     return await action.run(data)
+#
+# # In Providers.py:
+# class ${Module}RequestProvider(Provider):
+#     scope = Scope.REQUEST
+#     ${action_name_lower} = provide(${ActionName})
+# =============================================================================
+
+
+

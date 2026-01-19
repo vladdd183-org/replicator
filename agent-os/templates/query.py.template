@@ -1,0 +1,175 @@
+"""${QueryName} - CQRS query for ${description}."""
+
+from uuid import UUID
+from dataclasses import dataclass
+
+from pydantic import BaseModel, Field, ConfigDict
+
+from src.Ship.Parents.Query import Query
+from src.Containers.${Section}.${Module}.Models.${Entity} import ${Entity}
+
+
+# =============================================================================
+# GET SINGLE ENTITY QUERY
+# =============================================================================
+
+class Get${Entity}QueryInput(BaseModel):
+    """Input parameters for Get${Entity}Query.
+    
+    Uses Pydantic with frozen=True for immutability.
+    """
+    
+    model_config = ConfigDict(frozen=True)
+    
+    ${entity_lower}_id: UUID
+
+
+class Get${Entity}Query(Query[Get${Entity}QueryInput, ${Entity} | None]):
+    """CQRS Query: Get ${entity_lower} by ID.
+    
+    Read-only operation optimized for data retrieval.
+    Direct ORM access — no Repository/UoW for simplicity.
+    
+    Example:
+        query = Get${Entity}Query()
+        ${entity_lower} = await query.execute(Get${Entity}QueryInput(${entity_lower}_id=id))
+        if ${entity_lower}:
+            return ${Entity}Response.from_entity(${entity_lower})
+    """
+    
+    async def execute(self, input: Get${Entity}QueryInput) -> ${Entity} | None:
+        """Execute query to get ${entity_lower} by ID.
+        
+        Args:
+            input: Query input with ${entity_lower}_id
+            
+        Returns:
+            ${Entity} or None if not found
+        """
+        return await ${Entity}.objects().where(
+            ${Entity}.id == input.${entity_lower}_id
+        ).first()
+
+
+# =============================================================================
+# LIST ENTITIES QUERY (with pagination)
+# =============================================================================
+
+class List${Entities}QueryInput(BaseModel):
+    """Input parameters for List${Entities}Query.
+    
+    Uses Pydantic for validation + frozen for immutability.
+    """
+    
+    model_config = ConfigDict(frozen=True)
+    
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+    # Add filters here:
+    # is_active: bool | None = None
+    # search: str | None = None
+
+
+@dataclass(frozen=True)
+class List${Entities}QueryOutput:
+    """Output of List${Entities}Query.
+    
+    Uses dataclass(frozen=True) instead of Pydantic to avoid
+    arbitrary_types_allowed issues with ORM models.
+    """
+    
+    ${entities_lower}: list[${Entity}]
+    total: int
+    limit: int
+    offset: int
+
+
+class List${Entities}Query(Query[List${Entities}QueryInput, List${Entities}QueryOutput]):
+    """CQRS Query: List ${entities_lower} with pagination.
+    
+    Direct ORM access for optimal read performance.
+    
+    Example:
+        query = List${Entities}Query()
+        result = await query.execute(List${Entities}QueryInput(limit=10, offset=0))
+        return ${Entity}ListResponse(
+            ${entities_lower}=[${Entity}Response.from_entity(x) for x in result.${entities_lower}],
+            total=result.total,
+        )
+    """
+    
+    async def execute(self, params: List${Entities}QueryInput) -> List${Entities}QueryOutput:
+        """Execute query to list ${entities_lower}.
+        
+        Args:
+            params: Query parameters with pagination and filters
+            
+        Returns:
+            List${Entities}QueryOutput with ${entities_lower} and pagination info
+        """
+        query = ${Entity}.objects()
+        count_query = ${Entity}.count()
+        
+        # Apply filters here:
+        # if params.is_active is not None:
+        #     query = query.where(${Entity}.is_active == params.is_active)
+        #     count_query = count_query.where(${Entity}.is_active == params.is_active)
+        
+        total = await count_query
+        ${entities_lower} = await (
+            query
+            .limit(params.limit)
+            .offset(params.offset)
+            .order_by(${Entity}.created_at, ascending=False)
+        )
+        
+        return List${Entities}QueryOutput(
+            ${entities_lower}=${entities_lower},
+            total=total,
+            limit=params.limit,
+            offset=params.offset,
+        )
+
+
+# =============================================================================
+# USAGE IN CONTROLLER:
+# =============================================================================
+#
+# @get("/{${entity_lower}_id:uuid}")
+# async def get_${entity_lower}(
+#     self,
+#     ${entity_lower}_id: UUID,
+#     query: FromDishka[Get${Entity}Query],
+# ) -> ${Entity}Response:
+#     ${entity_lower} = await query.execute(Get${Entity}QueryInput(${entity_lower}_id=${entity_lower}_id))
+#     if ${entity_lower} is None:
+#         raise DomainException(${Entity}NotFoundError(${entity_lower}_id=${entity_lower}_id))
+#     return ${Entity}Response.from_entity(${entity_lower})
+#
+# @get("/")
+# async def list_${entities_lower}(
+#     self,
+#     query: FromDishka[List${Entities}Query],
+#     limit: int = 20,
+#     offset: int = 0,
+# ) -> ${Entity}ListResponse:
+#     result = await query.execute(List${Entities}QueryInput(limit=limit, offset=offset))
+#     return ${Entity}ListResponse(
+#         ${entities_lower}=[${Entity}Response.from_entity(x) for x in result.${entities_lower}],
+#         total=result.total,
+#         limit=result.limit,
+#         offset=result.offset,
+#     )
+#
+# =============================================================================
+# REGISTRATION IN PROVIDERS:
+# =============================================================================
+#
+# class ${Module}RequestProvider(Provider):
+#     scope = Scope.REQUEST
+#     get_${entity_lower}_query = provide(Get${Entity}Query)
+#     list_${entities_lower}_query = provide(List${Entities}Query)
+# =============================================================================
+
+
+

@@ -1,0 +1,148 @@
+"""${Module} DI Providers - Dishka registration.
+
+Providers register dependencies for different scopes:
+- APP scope: Stateless services, singletons
+- REQUEST scope: Per-request dependencies
+"""
+
+from dishka import Provider, Scope, provide
+from litestar import Request
+
+# Tasks (APP scope - stateless)
+from src.Containers.${Section}.${Module}.Tasks.SomeTask import SomeTask
+
+# Repositories
+from src.Containers.${Section}.${Module}.Data.Repositories.${Entity}Repository import ${Entity}Repository
+
+# Unit of Work
+from src.Containers.${Section}.${Module}.Data.UnitOfWork import ${Module}UnitOfWork
+
+# Actions
+from src.Containers.${Section}.${Module}.Actions.Create${Entity}Action import Create${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Update${Entity}Action import Update${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Delete${Entity}Action import Delete${Entity}Action
+
+# Queries
+from src.Containers.${Section}.${Module}.Queries.Get${Entity}Query import Get${Entity}Query
+from src.Containers.${Section}.${Module}.Queries.List${Entities}Query import List${Entities}Query
+
+
+# =============================================================================
+# APP SCOPE PROVIDER (Stateless services)
+# =============================================================================
+
+class ${Module}Provider(Provider):
+    """APP scope — stateless services, tasks, singletons.
+    
+    These are created once and reused across all requests.
+    """
+    
+    scope = Scope.APP
+    
+    # Tasks (stateless, reusable)
+    # some_task = provide(SomeTask)
+    # hash_password_task = provide(HashPasswordTask)
+
+
+# =============================================================================
+# REQUEST SCOPE PROVIDER (Per-request dependencies)
+# =============================================================================
+
+class _Base${Module}RequestProvider(Provider):
+    """Base REQUEST scope — common dependencies for HTTP and CLI.
+    
+    Inherit from this to create context-specific providers.
+    """
+    
+    scope = Scope.REQUEST
+    
+    # Repositories
+    ${entity_lower}_repository = provide(${Entity}Repository)
+    
+    # Queries (CQRS read operations)
+    get_${entity_lower}_query = provide(Get${Entity}Query)
+    list_${entities_lower}_query = provide(List${Entities}Query)
+    
+    # Actions (CQRS write operations)
+    create_${entity_lower}_action = provide(Create${Entity}Action)
+    update_${entity_lower}_action = provide(Update${Entity}Action)
+    delete_${entity_lower}_action = provide(Delete${Entity}Action)
+
+
+class ${Module}RequestProvider(_Base${Module}RequestProvider):
+    """HTTP context — UoW with event emitter.
+    
+    Used for HTTP requests where we have access to Request object.
+    Events will be published via litestar.events.
+    """
+    
+    @provide
+    def provide_${module_lower}_uow(self, request: Request) -> ${Module}UnitOfWork:
+        """Create UnitOfWork with event emitter from request.
+        
+        Args:
+            request: Litestar Request object
+            
+        Returns:
+            ${Module}UnitOfWork with event publishing capability
+        """
+        return ${Module}UnitOfWork(
+            _emit=request.app.emit,
+            _app=request.app,
+        )
+
+
+class ${Module}CLIProvider(_Base${Module}RequestProvider):
+    """CLI context — UoW without event emitter.
+    
+    Used for CLI commands where we don't have HTTP request.
+    Events will NOT be published (or use different mechanism).
+    """
+    
+    @provide
+    def provide_${module_lower}_uow(self) -> ${Module}UnitOfWork:
+        """Create UnitOfWork without event emitter.
+        
+        Returns:
+            ${Module}UnitOfWork without event publishing
+        """
+        return ${Module}UnitOfWork(
+            _emit=None,
+            _app=None,
+        )
+
+
+# =============================================================================
+# REGISTRATION IN Ship/Providers/__init__.py:
+# =============================================================================
+#
+# from src.Containers.${Section}.${Module}.Providers import (
+#     ${Module}Provider,
+#     ${Module}RequestProvider,
+#     ${Module}CLIProvider,
+# )
+#
+# def get_all_providers() -> list[Provider]:
+#     """Get all providers for HTTP context."""
+#     return [
+#         AppProvider(),
+#         LitestarProvider(),
+#         # Module providers
+#         ${Module}Provider(),
+#         ${Module}RequestProvider(),
+#         # ... other modules
+#     ]
+#
+# def get_cli_providers() -> list[Provider]:
+#     """Get providers for CLI context (without Request)."""
+#     return [
+#         AppProvider(),
+#         # Module providers (CLI versions)
+#         ${Module}Provider(),
+#         ${Module}CLIProvider(),
+#         # ... other modules
+#     ]
+# =============================================================================
+
+
+

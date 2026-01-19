@@ -1,0 +1,222 @@
+# Standards Evolution Configuration
+# Version: 1.0.0
+
+version: "1.0.0"
+
+# ═══════════════════════════════════════════════════════════════
+# Observation Settings
+# ═══════════════════════════════════════════════════════════════
+
+observation:
+  sources:
+    # Анализ кодовой базы
+    codebase:
+      enabled: true
+      paths:
+        - src/Containers/
+        - src/Ship/
+      exclude:
+        - "**/migrations/**"
+        - "**/piccolo_migrations/**"
+        - "**/__pycache__/**"
+        - "**/*.pyc"
+      
+    # Анализ feedback
+    feedback:
+      enabled: true
+      path: ../../feedback/
+      
+    # Анализ memory (ошибок, инсайтов)
+    memory:
+      enabled: true
+      path: ../../memory/
+      
+  # Расписание анализа
+  schedule:
+    codebase_scan: weekly      # Полный скан кодовой базы
+    feedback_analysis: daily   # Анализ нового feedback
+    pattern_detection: on_change  # При изменениях в коде
+    gap_detection: weekly      # Поиск разрывов
+    
+  # Пороги для обнаружения
+  thresholds:
+    pattern:
+      min_occurrences: 5       # Паттерн = 5+ появлений
+      min_files: 2             # Минимум в 2 файлах
+      
+    gap:
+      min_violations: 3        # Gap = 3+ нарушений
+      severity_weight:         # Вес по серьёзности
+        critical: 3
+        major: 2
+        minor: 1
+        
+    trend:
+      min_datapoints: 10       # Минимум точек для тренда
+      significance: 0.15       # 15% изменение = значимо
+
+# ═══════════════════════════════════════════════════════════════
+# Pattern Detection
+# ═══════════════════════════════════════════════════════════════
+
+patterns:
+  # Какие паттерны искать
+  detect:
+    # Структурные паттерны
+    - name: sync_task_in_async
+      description: "SyncTask вызывается через anyio.to_thread"
+      regex: "anyio\\.to_thread\\.run_sync\\("
+      
+    - name: result_pattern_match
+      description: "Pattern matching для Result"
+      regex: "match\\s+\\w+:\\s*case\\s+Success"
+      
+    - name: uow_context_manager
+      description: "UoW как context manager"
+      regex: "async\\s+with\\s+self\\.uow:"
+      
+    - name: result_handler_decorator
+      description: "Использование @result_handler"
+      regex: "@result_handler\\("
+      
+  # Анти-паттерны для обнаружения
+  anti_patterns:
+    - name: relative_import
+      description: "Относительный импорт"
+      regex: "from\\s+\\.\\.\\.+"
+      severity: major
+      
+    - name: raise_in_action
+      description: "raise в бизнес-логике Action"
+      regex: "raise\\s+(Exception|ValueError|RuntimeError)"
+      context: "Actions/"
+      severity: major
+      
+    - name: service_locator
+      description: "Service Locator паттерн"
+      regex: "get_container\\(\\)|container\\.get\\("
+      severity: major
+
+# ═══════════════════════════════════════════════════════════════
+# Proposal Settings
+# ═══════════════════════════════════════════════════════════════
+
+proposals:
+  # Автоматическое создание
+  auto_create:
+    from_patterns: true
+    from_gaps: true
+    from_feedback: true
+    from_mistakes: true
+    
+  # ID генерация
+  id_format: "PROP-{NNN}"
+  
+  # Требуется ли одобрение
+  require_approval:
+    new_rule: true             # Новое правило
+    modify_rule: true          # Изменение правила
+    deprecate_rule: true       # Устаревание правила
+    add_anti_pattern: true     # Новый анти-паттерн
+    update_example: false      # Примеры - автоматически
+    update_stats: false        # Статистика - автоматически
+    
+  # Приоритеты
+  priority_rules:
+    # Высокий приоритет
+    high:
+      - type: from_critical_mistake
+      - type: from_repeated_feedback
+        threshold: 5
+        
+    # Средний приоритет
+    medium:
+      - type: from_pattern
+        threshold: 10
+      - type: from_gap
+        threshold: 5
+        
+    # Низкий приоритет
+    low:
+      - type: example_update
+      - type: formatting
+
+# ═══════════════════════════════════════════════════════════════
+# Auto-Update Settings
+# ═══════════════════════════════════════════════════════════════
+
+updates:
+  # Автоматические обновления (без одобрения)
+  auto_update:
+    # Примеры кода
+    examples:
+      enabled: true
+      max_per_rule: 3          # Максимум примеров на правило
+      prefer_recent: true       # Предпочитать свежий код
+      min_quality_score: 0.8   # Минимальное качество примера
+      
+    # Статистика использования
+    usage_stats:
+      enabled: true
+      
+    # Перекрёстные ссылки
+    cross_references:
+      enabled: true
+      
+    # Даты последнего обновления
+    timestamps:
+      enabled: true
+      
+  # Валидация перед обновлением
+  validation:
+    syntax_check: true
+    link_check: true
+    consistency_check: true
+
+# ═══════════════════════════════════════════════════════════════
+# Notifications
+# ═══════════════════════════════════════════════════════════════
+
+notifications:
+  notify_on:
+    new_proposal: true
+    proposal_applied: true
+    significant_gap: true
+    new_pattern: true
+    trend_detected: true
+    
+  # Когда gap считается significant
+  significant_gap:
+    min_violations: 5
+    min_severity_score: 6  # major*2 + minor*1
+    
+  method: inline  # Уведомления в чате
+
+# ═══════════════════════════════════════════════════════════════
+# Analytics
+# ═══════════════════════════════════════════════════════════════
+
+analytics:
+  reports:
+    coverage:
+      generate: weekly
+      output: "analytics/coverage.md"
+      
+    adherence:
+      generate: weekly
+      output: "analytics/adherence.md"
+      
+    evolution:
+      generate: monthly
+      output: "analytics/evolution-log.md"
+      
+  metrics:
+    track:
+      - total_rules
+      - total_examples
+      - coverage_percentage
+      - adherence_percentage
+      - proposals_pending
+      - proposals_applied
+      - patterns_discovered
+      - gaps_detected

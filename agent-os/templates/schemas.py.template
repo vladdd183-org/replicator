@@ -1,0 +1,174 @@
+"""${Module} DTOs - Request and Response schemas.
+
+All DTOs are Pydantic BaseModel for validation and serialization.
+Response DTOs inherit from EntitySchema for automatic from_entity().
+"""
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
+
+from src.Ship.Core.BaseSchema import EntitySchema
+
+
+# =============================================================================
+# REQUEST DTOs (Input validation)
+# =============================================================================
+
+class Create${Entity}Request(BaseModel):
+    """Request DTO for creating ${entity_lower}.
+    
+    Pydantic validates all fields automatically.
+    
+    Example:
+        data = Create${Entity}Request(
+            email="user@example.com",
+            name="John Doe",
+        )
+    """
+    
+    email: EmailStr
+    name: str = Field(..., min_length=2, max_length=100)
+    # password: str = Field(..., min_length=8)  # If needed
+    
+    # Add more fields as needed:
+    # description: str | None = None
+    # is_active: bool = True
+
+
+class Update${Entity}Request(BaseModel):
+    """Request DTO for updating ${entity_lower}.
+    
+    All fields are optional (partial update).
+    Only provided fields will be updated.
+    """
+    
+    name: str | None = Field(None, min_length=2, max_length=100)
+    # email: EmailStr | None = None
+    # is_active: bool | None = None
+    
+    # Add more fields as needed
+
+
+class ${Entity}FilterRequest(BaseModel):
+    """Request DTO for filtering ${entities_lower}.
+    
+    Used in list endpoints for query parameters.
+    """
+    
+    is_active: bool | None = None
+    search: str | None = Field(None, min_length=1, max_length=100)
+    # created_after: datetime | None = None
+    # created_before: datetime | None = None
+
+
+# =============================================================================
+# RESPONSE DTOs (Output serialization)
+# =============================================================================
+
+class ${Entity}Response(EntitySchema):
+    """Response DTO for single ${entity_lower}.
+    
+    Inherits from_entity() from EntitySchema for automatic
+    conversion from ORM model.
+    
+    Example:
+        ${entity_lower} = await query.execute(...)
+        return ${Entity}Response.from_entity(${entity_lower})
+    """
+    
+    id: UUID
+    email: str
+    name: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None = None
+    
+    # Add computed fields if needed:
+    # @computed_field
+    # @property
+    # def display_name(self) -> str:
+    #     return f"{self.name} <{self.email}>"
+
+
+class ${Entity}ListResponse(BaseModel):
+    """Response DTO for list of ${entities_lower} with pagination.
+    
+    Example:
+        result = await query.execute(...)
+        return ${Entity}ListResponse(
+            ${entities_lower}=[${Entity}Response.from_entity(x) for x in result.${entities_lower}],
+            total=result.total,
+            limit=result.limit,
+            offset=result.offset,
+        )
+    """
+    
+    ${entities_lower}: list[${Entity}Response]
+    total: int
+    limit: int
+    offset: int
+    
+    # Computed pagination helpers
+    @property
+    def has_next(self) -> bool:
+        """Check if there are more items."""
+        return self.offset + len(self.${entities_lower}) < self.total
+    
+    @property
+    def has_prev(self) -> bool:
+        """Check if there are previous items."""
+        return self.offset > 0
+
+
+class ${Entity}ShortResponse(EntitySchema):
+    """Short response DTO for ${entity_lower} (minimal fields).
+    
+    Use in lists or nested responses where full data not needed.
+    """
+    
+    id: UUID
+    name: str
+    email: str
+
+
+# =============================================================================
+# USAGE IN CONTROLLER:
+# =============================================================================
+#
+# # Create endpoint
+# @post("/")
+# @result_handler(${Entity}Response, success_status=HTTP_201_CREATED)
+# async def create_${entity_lower}(
+#     self,
+#     data: Create${Entity}Request,  # Pydantic validates input
+#     action: FromDishka[Create${Entity}Action],
+# ) -> Result[${Entity}, ${Module}Error]:
+#     return await action.run(data)
+#
+# # List endpoint
+# @get("/")
+# async def list_${entities_lower}(
+#     self,
+#     query: FromDishka[List${Entities}Query],
+#     limit: int = 20,
+#     offset: int = 0,
+# ) -> ${Entity}ListResponse:
+#     result = await query.execute(...)
+#     return ${Entity}ListResponse(
+#         ${entities_lower}=[${Entity}Response.from_entity(x) for x in result.${entities_lower}],
+#         total=result.total,
+#         limit=result.limit,
+#         offset=result.offset,
+#     )
+#
+# # Get single endpoint
+# @get("/{${entity_lower}_id:uuid}")
+# async def get_${entity_lower}(...) -> ${Entity}Response:
+#     ${entity_lower} = await query.execute(...)
+#     return ${Entity}Response.from_entity(${entity_lower})
+# =============================================================================
+
+
+

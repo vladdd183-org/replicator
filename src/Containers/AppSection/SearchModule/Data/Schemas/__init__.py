@@ -1,0 +1,4 @@
+"""SearchModule schemas."""
+
+
+

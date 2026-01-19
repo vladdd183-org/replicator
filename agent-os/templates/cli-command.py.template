@@ -1,0 +1,197 @@
+"""${Module} CLI Commands.
+
+Click commands for ${Module} operations via CLI.
+"""
+
+from uuid import UUID
+
+import click
+from rich.console import Console
+from rich.table import Table
+from dishka import make_async_container
+import anyio
+
+from src.Ship.Providers import get_cli_providers
+from src.Ship.CLI.Decorators import with_container, handle_cli_result
+from src.Containers.${Section}.${Module}.Actions.Create${Entity}Action import Create${Entity}Action
+from src.Containers.${Section}.${Module}.Queries.Get${Entity}Query import Get${Entity}Query, Get${Entity}QueryInput
+from src.Containers.${Section}.${Module}.Queries.List${Entities}Query import List${Entities}Query, List${Entities}QueryInput
+from src.Containers.${Section}.${Module}.Data.Schemas.Requests import Create${Entity}Request
+
+
+console = Console()
+
+
+# =============================================================================
+# CLI GROUP
+# =============================================================================
+
+@click.group(name="${entities_lower}")
+def ${entities_lower}_group():
+    """${Entity} management commands."""
+    pass
+
+
+# =============================================================================
+# LIST COMMAND
+# =============================================================================
+
+@${entities_lower}_group.command(name="list")
+@click.option("--limit", "-l", default=20, help="Number of items to show")
+@click.option("--offset", "-o", default=0, help="Offset for pagination")
+def list_${entities_lower}(limit: int, offset: int):
+    """List all ${entities_lower}."""
+    
+    async def _run():
+        container = make_async_container(*get_cli_providers())
+        
+        async with container() as request_container:
+            query = await request_container.get(List${Entities}Query)
+            result = await query.execute(List${Entities}QueryInput(
+                limit=limit,
+                offset=offset,
+            ))
+            
+            # Display as table
+            table = Table(title="${Entities}")
+            table.add_column("ID", style="cyan")
+            table.add_column("Email", style="green")
+            table.add_column("Name")
+            table.add_column("Active", style="yellow")
+            
+            for ${entity_lower} in result.${entities_lower}:
+                table.add_row(
+                    str(${entity_lower}.id)[:8] + "...",
+                    ${entity_lower}.email,
+                    ${entity_lower}.name,
+                    "✓" if ${entity_lower}.is_active else "✗",
+                )
+            
+            console.print(table)
+            console.print(f"\nTotal: {result.total} | Showing: {len(result.${entities_lower})}")
+        
+        await container.close()
+    
+    anyio.run(_run)
+
+
+# =============================================================================
+# GET COMMAND
+# =============================================================================
+
+@${entities_lower}_group.command(name="get")
+@click.argument("${entity_lower}_id", type=click.UUID)
+def get_${entity_lower}(${entity_lower}_id: UUID):
+    """Get ${entity_lower} by ID."""
+    
+    async def _run():
+        container = make_async_container(*get_cli_providers())
+        
+        async with container() as request_container:
+            query = await request_container.get(Get${Entity}Query)
+            ${entity_lower} = await query.execute(Get${Entity}QueryInput(${entity_lower}_id=${entity_lower}_id))
+            
+            if ${entity_lower} is None:
+                console.print(f"[red]${Entity} not found: {${entity_lower}_id}[/red]")
+                return
+            
+            console.print(f"[bold]${Entity} Details[/bold]")
+            console.print(f"  ID: {${entity_lower}.id}")
+            console.print(f"  Email: {${entity_lower}.email}")
+            console.print(f"  Name: {${entity_lower}.name}")
+            console.print(f"  Active: {'Yes' if ${entity_lower}.is_active else 'No'}")
+            console.print(f"  Created: {${entity_lower}.created_at}")
+        
+        await container.close()
+    
+    anyio.run(_run)
+
+
+# =============================================================================
+# CREATE COMMAND
+# =============================================================================
+
+@${entities_lower}_group.command(name="create")
+@click.option("--email", "-e", required=True, help="${Entity} email")
+@click.option("--name", "-n", required=True, help="${Entity} name")
+def create_${entity_lower}(email: str, name: str):
+    """Create a new ${entity_lower}."""
+    
+    async def _run():
+        container = make_async_container(*get_cli_providers())
+        
+        async with container() as request_container:
+            action = await request_container.get(Create${Entity}Action)
+            result = await action.run(Create${Entity}Request(
+                email=email,
+                name=name,
+            ))
+            
+            # Handle Result
+            from returns.result import Success, Failure
+            match result:
+                case Success(${entity_lower}):
+                    console.print(f"[green]✓ ${Entity} created successfully![/green]")
+                    console.print(f"  ID: {${entity_lower}.id}")
+                    console.print(f"  Email: {${entity_lower}.email}")
+                case Failure(error):
+                    console.print(f"[red]✗ Failed to create ${entity_lower}[/red]")
+                    console.print(f"  Error: {error.message}")
+                    console.print(f"  Code: {error.code}")
+        
+        await container.close()
+    
+    anyio.run(_run)
+
+
+# =============================================================================
+# DELETE COMMAND
+# =============================================================================
+
+@${entities_lower}_group.command(name="delete")
+@click.argument("${entity_lower}_id", type=click.UUID)
+@click.confirmation_option(prompt="Are you sure you want to delete this ${entity_lower}?")
+def delete_${entity_lower}(${entity_lower}_id: UUID):
+    """Delete ${entity_lower} by ID."""
+    
+    async def _run():
+        container = make_async_container(*get_cli_providers())
+        
+        async with container() as request_container:
+            from src.Containers.${Section}.${Module}.Actions.Delete${Entity}Action import Delete${Entity}Action
+            
+            action = await request_container.get(Delete${Entity}Action)
+            result = await action.run(${entity_lower}_id)
+            
+            from returns.result import Success, Failure
+            match result:
+                case Success(_):
+                    console.print(f"[green]✓ ${Entity} deleted successfully![/green]")
+                case Failure(error):
+                    console.print(f"[red]✗ Failed to delete ${entity_lower}[/red]")
+                    console.print(f"  Error: {error.message}")
+        
+        await container.close()
+    
+    anyio.run(_run)
+
+
+# =============================================================================
+# REGISTRATION IN pyproject.toml:
+# =============================================================================
+#
+# [project.entry-points."litestar.commands"]
+# ${entities_lower} = "src.Containers.${Section}.${Module}.UI.CLI.Commands:${entities_lower}_group"
+#
+# =============================================================================
+# USAGE:
+# =============================================================================
+#
+# litestar ${entities_lower} list
+# litestar ${entities_lower} get <uuid>
+# litestar ${entities_lower} create --email user@example.com --name "John"
+# litestar ${entities_lower} delete <uuid>
+# =============================================================================
+
+
+

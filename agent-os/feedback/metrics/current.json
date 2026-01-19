@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-19T12:00:00Z",
+  "period": {
+    "start": "2026-01-19",
+    "end": null,
+    "type": "ongoing"
+  },
+  
+  "summary": {
+    "total_feedback": 0,
+    "total_sessions": 0,
+    "total_implementations": 0,
+    "total_error_fixes": 0
+  },
+  
+  "satisfaction": {
+    "average": null,
+    "distribution": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    },
+    "trend": null
+  },
+  
+  "task_completion": {
+    "total": 0,
+    "successful": 0,
+    "partial": 0,
+    "failed": 0,
+    "rate": null
+  },
+  
+  "errors": {
+    "total": 0,
+    "fixed": 0,
+    "fix_rate": null,
+    "avg_iterations": null
+  },
+  
+  "nps": {
+    "promoters": 0,
+    "passives": 0,
+    "detractors": 0,
+    "score": null
+  },
+  
+  "by_task_type": {},
+  
+  "by_module": {},
+  
+  "by_agent": {},
+  
+  "issues": {
+    "top_issues": [],
+    "by_category": {
+      "wrong_approach": 0,
+      "missing_features": 0,
+      "code_quality": 0,
+      "conventions": 0,
+      "performance": 0,
+      "other": 0
+    }
+  },
+  
+  "best_aspects": {
+    "code_generation": 0,
+    "debugging": 0,
+    "explanations": 0,
+    "architecture": 0,
+    "speed": 0,
+    "understanding": 0
+  },
+  
+  "improvement_areas": {
+    "accuracy": 0,
+    "speed": 0,
+    "understanding": 0,
+    "conventions": 0,
+    "consistency": 0,
+    "memory": 0
+  },
+  
+  "trends": {
+    "satisfaction": {
+      "direction": null,
+      "change": null
+    },
+    "completion_rate": {
+      "direction": null,
+      "change": null
+    },
+    "error_rate": {
+      "direction": null,
+      "change": null
+    }
+  }
+}

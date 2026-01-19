@@ -1,0 +1,95 @@
+[project]
+name = "hyper-porto-app"
+version = "0.1.0"
+description = "Hyper-Porto v4.0 - Functional architecture for Python backends"
+authors = [
+    {name = "Developer", email = "dev@example.com"}
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+dependencies = [
+    # Web Framework
+    "litestar[standard]>=2.12.0",
+    # GraphQL
+    "strawberry-graphql[litestar]>=0.230",
+    # Background Tasks
+    "taskiq>=0.11",
+    "taskiq-redis>=1.0",
+    "taskiq-litestar>=0.2",
+    # Functional Programming
+    "returns>=0.23",
+    # Async & Resilience
+    "anyio>=4.0",
+    "tenacity>=8.2",
+    "cashews>=7.0",
+    # DI
+    "dishka>=1.4.0",
+    # ORM + Litestar DTO
+    "piccolo[all]>=1.0",
+    # Validation
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    # Observability
+    "logfire[asgi]>=0.50",
+    "structlog>=24.0",
+    # Security
+    "bcrypt>=4.0",
+    "PyJWT>=2.0",
+    # Utils
+    "httpx>=0.27",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0",
+    # Server
+    "uvicorn[standard]>=0.32.0",
+    # NOTE: dishka-strawberry requires FastAPI, doesn't work with Litestar
+    # Use get_dependency() helper from Ship/GraphQL/Helpers.py instead
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.0",
+    "hypothesis>=6.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pre-commit>=3.0",
+]
+
+[project.scripts]
+porto = "src.Ship.CLI.Main:cli"
+
+# Litestar CLIPlugin entry points
+# Commands are available via: litestar <command> --help
+[project.entry-points."litestar.commands"]
+users = "src.Containers.AppSection.UserModule.UI.CLI.Commands:users_group"
+db = "src.Ship.CLI.MigrationCommands:db_group"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = [
+    "returns.contrib.mypy.returns_plugin",
+    "pydantic.mypy",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+

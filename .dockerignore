@@ -1,0 +1,88 @@
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+foxdocs/
+*.md
+!README.md
+
+# Database files (will be generated in container)
+*.db
+data/
+
+# Local config
+.env
+.env.local
+.env.*.local
+env.example
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.mypy_cache/
+.ruff_cache/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Tests (optional - comment out if you want to include tests in container)
+tests/
+
+# Misc
+*.bak
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+
+

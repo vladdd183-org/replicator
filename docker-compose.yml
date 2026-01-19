@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hyper-porto-app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Hyper-Porto
+      - APP_VERSION=1.0.0
+      - APP_DEBUG=false
+      - APP_ENV=production
+      - DATABASE_URL=sqlite:///./data/app.db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-key-change-in-production}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_HOURS=24
+      - CORS_ALLOW_ORIGINS=["*"]
+    volumes:
+      - app-data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hyper-porto-network
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7-alpine
+    container_name: hyper-porto-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - hyper-porto-network
+
+  # TaskIQ worker for background tasks
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hyper-porto-worker
+    environment:
+      - APP_NAME=Hyper-Porto-Worker
+      - APP_ENV=production
+      - DATABASE_URL=sqlite:///./data/app.db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-key-change-in-production}
+    volumes:
+      - app-data:/app/data
+    command: ["taskiq", "worker", "src.Ship.Infrastructure.Workers.Broker:broker"]
+    depends_on:
+      - app
+      - redis
+    restart: unless-stopped
+    networks:
+      - hyper-porto-network
+
+volumes:
+  app-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  hyper-porto-network:
+    driver: bridge
+
+
+

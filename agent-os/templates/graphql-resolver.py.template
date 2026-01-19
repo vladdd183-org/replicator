@@ -1,0 +1,261 @@
+"""${Module} GraphQL Resolvers.
+
+Strawberry GraphQL resolvers for ${Module} operations.
+"""
+
+from uuid import UUID
+
+import strawberry
+from strawberry.types import Info
+from returns.result import Success, Failure
+
+from src.Ship.GraphQL.Helpers import get_dependency
+from src.Containers.${Section}.${Module}.Actions.Create${Entity}Action import Create${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Update${Entity}Action import Update${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Delete${Entity}Action import Delete${Entity}Action
+from src.Containers.${Section}.${Module}.Queries.Get${Entity}Query import Get${Entity}Query, Get${Entity}QueryInput
+from src.Containers.${Section}.${Module}.Queries.List${Entities}Query import List${Entities}Query, List${Entities}QueryInput
+from src.Containers.${Section}.${Module}.Data.Schemas.Requests import (
+    Create${Entity}Request,
+    Update${Entity}Request,
+)
+from src.Containers.${Section}.${Module}.Models.${Entity} import ${Entity}
+
+
+# =============================================================================
+# GRAPHQL TYPES
+# =============================================================================
+
+@strawberry.type
+class ${Entity}Type:
+    """GraphQL type for ${Entity}."""
+    
+    id: strawberry.ID
+    email: str
+    name: str
+    is_active: bool
+    created_at: str
+    
+    @classmethod
+    def from_entity(cls, entity: ${Entity}) -> "${Entity}Type":
+        return cls(
+            id=strawberry.ID(str(entity.id)),
+            email=entity.email,
+            name=entity.name,
+            is_active=entity.is_active,
+            created_at=entity.created_at.isoformat(),
+        )
+
+
+@strawberry.type
+class ${Entity}ErrorType:
+    """GraphQL error type."""
+    
+    message: str
+    code: str
+
+
+@strawberry.type
+class ${Entity}ListType:
+    """GraphQL type for paginated ${entities_lower} list."""
+    
+    ${entities_lower}: list[${Entity}Type]
+    total: int
+    limit: int
+    offset: int
+
+
+# =============================================================================
+# MUTATION PAYLOADS
+# =============================================================================
+
+@strawberry.type
+class Create${Entity}Payload:
+    """Payload for create${Entity} mutation."""
+    
+    ${entity_lower}: ${Entity}Type | None = None
+    error: ${Entity}ErrorType | None = None
+
+
+@strawberry.type
+class Update${Entity}Payload:
+    """Payload for update${Entity} mutation."""
+    
+    ${entity_lower}: ${Entity}Type | None = None
+    error: ${Entity}ErrorType | None = None
+
+
+@strawberry.type
+class Delete${Entity}Payload:
+    """Payload for delete${Entity} mutation."""
+    
+    success: bool
+    error: ${Entity}ErrorType | None = None
+
+
+# =============================================================================
+# INPUTS
+# =============================================================================
+
+@strawberry.input
+class Create${Entity}Input:
+    """Input for create${Entity} mutation."""
+    
+    email: str
+    name: str
+
+
+@strawberry.input
+class Update${Entity}Input:
+    """Input for update${Entity} mutation."""
+    
+    name: str | None = None
+
+
+# =============================================================================
+# QUERIES
+# =============================================================================
+
+@strawberry.type
+class ${Entity}Queries:
+    """GraphQL queries for ${Entity}."""
+    
+    @strawberry.field
+    async def ${entity_lower}(self, info: Info, id: strawberry.ID) -> ${Entity}Type | None:
+        """Get ${entity_lower} by ID."""
+        query = await get_dependency(info, Get${Entity}Query)
+        ${entity_lower} = await query.execute(Get${Entity}QueryInput(${entity_lower}_id=UUID(id)))
+        
+        if ${entity_lower} is None:
+            return None
+        
+        return ${Entity}Type.from_entity(${entity_lower})
+    
+    @strawberry.field
+    async def ${entities_lower}(
+        self,
+        info: Info,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ${Entity}ListType:
+        """List ${entities_lower} with pagination."""
+        query = await get_dependency(info, List${Entities}Query)
+        result = await query.execute(List${Entities}QueryInput(
+            limit=limit,
+            offset=offset,
+        ))
+        
+        return ${Entity}ListType(
+            ${entities_lower}=[${Entity}Type.from_entity(x) for x in result.${entities_lower}],
+            total=result.total,
+            limit=result.limit,
+            offset=result.offset,
+        )
+
+
+# =============================================================================
+# MUTATIONS
+# =============================================================================
+
+@strawberry.type
+class ${Entity}Mutations:
+    """GraphQL mutations for ${Entity}."""
+    
+    @strawberry.mutation
+    async def create_${entity_lower}(
+        self,
+        info: Info,
+        input: Create${Entity}Input,
+    ) -> Create${Entity}Payload:
+        """Create a new ${entity_lower}."""
+        action = await get_dependency(info, Create${Entity}Action)
+        
+        result = await action.run(Create${Entity}Request(
+            email=input.email,
+            name=input.name,
+        ))
+        
+        match result:
+            case Success(${entity_lower}):
+                return Create${Entity}Payload(
+                    ${entity_lower}=${Entity}Type.from_entity(${entity_lower})
+                )
+            case Failure(error):
+                return Create${Entity}Payload(
+                    error=${Entity}ErrorType(
+                        message=error.message,
+                        code=error.code,
+                    )
+                )
+    
+    @strawberry.mutation
+    async def update_${entity_lower}(
+        self,
+        info: Info,
+        id: strawberry.ID,
+        input: Update${Entity}Input,
+    ) -> Update${Entity}Payload:
+        """Update ${entity_lower}."""
+        action = await get_dependency(info, Update${Entity}Action)
+        
+        result = await action.run(UUID(id), Update${Entity}Request(
+            name=input.name,
+        ))
+        
+        match result:
+            case Success(${entity_lower}):
+                return Update${Entity}Payload(
+                    ${entity_lower}=${Entity}Type.from_entity(${entity_lower})
+                )
+            case Failure(error):
+                return Update${Entity}Payload(
+                    error=${Entity}ErrorType(
+                        message=error.message,
+                        code=error.code,
+                    )
+                )
+    
+    @strawberry.mutation
+    async def delete_${entity_lower}(
+        self,
+        info: Info,
+        id: strawberry.ID,
+    ) -> Delete${Entity}Payload:
+        """Delete ${entity_lower}."""
+        action = await get_dependency(info, Delete${Entity}Action)
+        
+        result = await action.run(UUID(id))
+        
+        match result:
+            case Success(_):
+                return Delete${Entity}Payload(success=True)
+            case Failure(error):
+                return Delete${Entity}Payload(
+                    success=False,
+                    error=${Entity}ErrorType(
+                        message=error.message,
+                        code=error.code,
+                    )
+                )
+
+
+# =============================================================================
+# REGISTRATION IN Ship/GraphQL/Schema.py:
+# =============================================================================
+#
+# from src.Containers.${Section}.${Module}.UI.GraphQL.Resolvers import (
+#     ${Entity}Queries,
+#     ${Entity}Mutations,
+# )
+#
+# @strawberry.type
+# class Query(${Entity}Queries):  # Inherit or compose
+#     pass
+#
+# @strawberry.type
+# class Mutation(${Entity}Mutations):
+#     pass
+# =============================================================================
+
+
+

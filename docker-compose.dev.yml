@@ -1,0 +1,51 @@
+version: '3.8'
+
+# Development docker-compose with hot reload and debug mode
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hyper-porto-app-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Hyper-Porto-Dev
+      - APP_VERSION=1.0.0
+      - APP_DEBUG=true
+      - APP_ENV=development
+      - DATABASE_URL=sqlite:///./data/app.db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=dev-secret-key-not-for-production
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_HOURS=24
+      - CORS_ALLOW_ORIGINS=["*"]
+    volumes:
+      - ./src:/app/src:ro
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["uvicorn", "src.App:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    networks:
+      - hyper-porto-dev
+
+  redis:
+    image: redis:7-alpine
+    container_name: hyper-porto-redis-dev
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - hyper-porto-dev
+
+networks:
+  hyper-porto-dev:
+    driver: bridge
+
+
+

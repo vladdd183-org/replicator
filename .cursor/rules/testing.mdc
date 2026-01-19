@@ -1,0 +1,87 @@
+---
+description: Rules for writing tests in Hyper-Porto projects
+globs: ["tests/**/*.py", "**/test_*.py"]
+---
+
+# Testing Rules for Hyper-Porto
+
+## Test Structure
+
+```
+tests/
+├── conftest.py                    # Shared fixtures
+├── unit/                          # Unit tests (isolated)
+│   └── Containers/[Section]/[Module]/
+│       ├── test_actions.py
+│       ├── test_tasks.py
+│       └── test_queries.py
+├── integration/                   # Integration tests (with DB)
+└── e2e/                          # End-to-end API tests
+```
+
+## Required Fixtures (conftest.py)
+
+```python
+import pytest
+import pytest_asyncio
+from dishka import AsyncContainer
+
+@pytest.fixture
+def test_settings() -> Settings:
+    return Settings(db_name="test_db", debug=True)
+
+@pytest_asyncio.fixture
+async def container(test_settings) -> AsyncContainer:
+    return create_test_container(test_settings)
+
+@pytest_asyncio.fixture
+async def request_container(container):
+    async with container() as rc:
+        yield rc
+```
+
+## Action Testing Pattern
+
+```python
+class TestCreateUserAction:
+    @pytest_asyncio.fixture
+    async def action(self):
+        mock_uow = AsyncMock()
+        mock_uow.__aenter__ = AsyncMock(return_value=mock_uow)
+        mock_uow.__aexit__ = AsyncMock(return_value=None)
+        return CreateUserAction(uow=mock_uow)
+    
+    @pytest.mark.asyncio
+    async def test_success(self, action):
+        result = await action.run(valid_input)
+        assert isinstance(result, Success)
+    
+    @pytest.mark.asyncio
+    async def test_failure(self, action):
+        result = await action.run(invalid_input)
+        assert isinstance(result, Failure)
+```
+
+## Rules
+
+1. **Mock UoW properly** — Include `__aenter__` and `__aexit__`
+2. **Test both Success and Failure** — Every Action has error cases
+3. **Use `@pytest.mark.asyncio`** — For async tests
+4. **One assertion focus** — Test one behavior per test
+5. **Descriptive names** — `test_[scenario]_[expected_result]`
+
+## Coverage Targets
+
+| Component | Target |
+|-----------|--------|
+| Actions | 80%+ |
+| Tasks | 90%+ |
+| Queries | 70%+ |
+| Controllers | 60%+ |
+
+## Don'ts
+
+- Don't test implementation details
+- Don't make real HTTP calls (mock clients)
+- Don't share state between tests
+- Don't use `time.sleep()` — use `anyio.sleep()` mock

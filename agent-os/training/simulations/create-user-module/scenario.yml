@@ -1,0 +1,227 @@
+# Симуляция: Создание модуля User
+
+name: "Создание модуля User"
+id: create-user-module
+level: beginner
+estimated_time: "45 мин"
+version: "1.0"
+
+# =============================================================================
+# Описание
+# =============================================================================
+description: |
+  Ты — новый разработчик в команде. Тебе поручили создать модуль управления 
+  пользователями (UserModule) с нуля, следуя архитектуре Hyper-Porto.
+  
+  Модуль должен поддерживать:
+  - Регистрацию новых пользователей
+  - Получение информации о пользователе
+  - Обновление профиля
+  
+  Это твоя первая реальная задача в проекте!
+
+# =============================================================================
+# Цель
+# =============================================================================
+goal: |
+  Создать полноценный модуль UserModule со следующими компонентами:
+  
+  1. Модель User (Piccolo Table)
+  2. Repository и UnitOfWork
+  3. Actions: CreateUser, GetUser, UpdateUser
+  4. HTTP Endpoints
+  5. Регистрация в DI
+
+# =============================================================================
+# Критерии успеха
+# =============================================================================
+success_criteria:
+  - id: structure
+    name: "Правильная структура модуля"
+    description: "Все файлы созданы в правильных папках"
+    weight: 20
+    checks:
+      - path_exists: "src/Containers/AppSection/UserModule/__init__.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Models/User.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Data/Repository.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Data/UnitOfWork.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Data/Schemas.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Actions/CreateUserAction.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Actions/GetUserAction.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Actions/UpdateUserAction.py"
+      - path_exists: "src/Containers/AppSection/UserModule/UI/API/Controllers.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Errors.py"
+      - path_exists: "src/Containers/AppSection/UserModule/Providers.py"
+
+  - id: imports
+    name: "Абсолютные импорты"
+    description: "Все импорты абсолютные (from src.)"
+    weight: 15
+    checks:
+      - no_relative_imports: "src/Containers/AppSection/UserModule/**/*.py"
+
+  - id: result_pattern
+    name: "Result[T, E] паттерн"
+    description: "Actions возвращают Result"
+    weight: 20
+    checks:
+      - file_contains: 
+          path: "src/Containers/AppSection/UserModule/Actions/CreateUserAction.py"
+          pattern: "-> Result\\["
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Actions/GetUserAction.py"
+          pattern: "-> Result\\["
+
+  - id: pydantic_dto
+    name: "Pydantic DTO"
+    description: "Используются Pydantic модели"
+    weight: 15
+    checks:
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Data/Schemas.py"
+          pattern: "class.*\\(BaseModel\\)"
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Errors.py"
+          pattern: "frozen.*True|model_config"
+
+  - id: di_registration
+    name: "DI регистрация"
+    description: "Компоненты зарегистрированы в Dishka"
+    weight: 15
+    checks:
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Providers.py"
+          pattern: "provide\\("
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Providers.py"
+          pattern: "Provider"
+
+  - id: uow_usage
+    name: "UnitOfWork"
+    description: "Используется паттерн UnitOfWork"
+    weight: 15
+    checks:
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Actions/CreateUserAction.py"
+          pattern: "async with.*uow"
+      - file_contains:
+          path: "src/Containers/AppSection/UserModule/Actions/CreateUserAction.py"
+          pattern: "commit\\(\\)"
+
+# =============================================================================
+# Пререквизиты
+# =============================================================================
+prerequisites:
+  tutorials:
+    - 01-first-action
+  knowledge:
+    - Понимание Action, Repository, UnitOfWork
+    - Базовое знание Pydantic
+    - Понимание Result[T, E]
+
+# =============================================================================
+# Навыки, которые получишь
+# =============================================================================
+skills:
+  - Создание структуры модуля
+  - Написание Piccolo Models
+  - Реализация Repository pattern
+  - Создание Actions с Result
+  - Регистрация в DI
+  - Создание HTTP endpoints
+
+# =============================================================================
+# Контекст симуляции
+# =============================================================================
+context:
+  section: AppSection
+  module: UserModule
+  
+  # Модель User
+  user_fields:
+    - name: id
+      type: UUID
+      description: "Уникальный идентификатор"
+    - name: email
+      type: str
+      description: "Email (уникальный)"
+    - name: password_hash
+      type: str
+      description: "Хэш пароля"
+    - name: name
+      type: str
+      description: "Имя пользователя"
+    - name: is_active
+      type: bool
+      description: "Активен ли аккаунт"
+    - name: created_at
+      type: datetime
+      description: "Дата создания"
+  
+  # Ожидаемые Actions
+  actions:
+    - name: CreateUserAction
+      input: CreateUserRequest
+      output: User
+      errors:
+        - UserAlreadyExistsError
+    - name: GetUserAction
+      input: GetUserRequest
+      output: User | None
+      errors:
+        - UserNotFoundError
+    - name: UpdateUserAction
+      input: UpdateUserRequest
+      output: User
+      errors:
+        - UserNotFoundError
+
+  # Ожидаемые Endpoints
+  endpoints:
+    - method: POST
+      path: /api/v1/users
+      action: CreateUserAction
+    - method: GET
+      path: /api/v1/users/{user_id}
+      action: GetUserAction
+    - method: PATCH
+      path: /api/v1/users/{user_id}
+      action: UpdateUserAction
+
+# =============================================================================
+# Рекомендации
+# =============================================================================
+recommendations:
+  - Начни с Models — это фундамент
+  - Потом Schemas и Errors
+  - Затем Repository и UnitOfWork
+  - Actions используют Repository через UoW
+  - Controllers в конце — они просто вызывают Actions
+  - Не забудь Providers.py для DI
+
+# =============================================================================
+# Ресурсы
+# =============================================================================
+resources:
+  documentation:
+    - docs/02-project-structure.md
+    - docs/03-components.md
+  examples:
+    - foxdocs/LitestarPortoShowcase-main/src/Containers/
+  checklists:
+    - agent-os/checklists/new-module.md
+  templates:
+    - agent-os/templates/action.template
+    - agent-os/templates/repository.template
+
+# =============================================================================
+# Метаданные
+# =============================================================================
+metadata:
+  created: 2025-01-19
+  author: Training System
+  tags:
+    - beginner
+    - module
+    - crud
+    - porto

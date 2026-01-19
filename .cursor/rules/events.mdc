@@ -1,0 +1,106 @@
+---
+description: Rules for Domain Events in Hyper-Porto
+globs: ["**/Events.py", "**/events.py", "**/Listeners.py"]
+---
+
+# Domain Events Rules for Hyper-Porto
+
+## Event Definition
+
+```python
+# Events.py
+from src.Ship.Parents.Event import DomainEvent
+
+class UserCreated(DomainEvent):
+    """Emitted when a new user is created.
+    
+    Listeners:
+    - on_user_created_send_welcome_email
+    - on_user_created_init_settings
+    """
+    user_id: UUID
+    email: str
+    name: str
+```
+
+## Event Properties
+
+1. **Immutable** — Events use `frozen=True` (inherited)
+2. **Past tense** — `UserCreated`, not `CreateUser`
+3. **Include IDs** — Pass IDs, not full entities
+4. **Document listeners** — List in docstring
+
+## Publishing Events
+
+```python
+# In Action
+async with self.uow:
+    user = AppUser(...)
+    await self.uow.users.add(user)
+    
+    # Add event BEFORE commit
+    self.uow.add_event(UserCreated(
+        user_id=user.id,
+        email=user.email,
+        name=user.name,
+    ))
+    
+    # Events emit AFTER commit
+    await self.uow.commit()
+```
+
+## Listener Definition
+
+```python
+# Listeners.py
+from src.Containers.[Section].[Module].Events import UserCreated
+
+async def on_user_created_send_welcome_email(event: UserCreated) -> None:
+    """Send welcome email to new user."""
+    # Handle event
+    pass
+```
+
+## Listener Naming
+
+Pattern: `on_{event_snake_case}_{action}`
+
+| Event | Listener |
+|-------|----------|
+| UserCreated | `on_user_created_send_email` |
+| OrderPaid | `on_order_paid_notify_warehouse` |
+
+## Registration
+
+```python
+# App.py
+from litestar.events import listener
+
+listeners = [
+    listener(UserCreated)(on_user_created_send_welcome_email),
+    listener(UserCreated)(on_user_created_init_settings),
+]
+
+app = Litestar(..., listeners=listeners)
+```
+
+## Cross-Module Communication
+
+**CRITICAL:** Containers NEVER import each other!
+
+```
+❌ WRONG:
+OrderModule imports UserModule.GetUserQuery
+
+✅ CORRECT:
+OrderModule emits OrderCreated
+UserModule listens to OrderCreated
+```
+
+## Rules
+
+1. **Add event before commit** — `uow.add_event()` then `uow.commit()`
+2. **Events are fire-and-forget** — Don't rely on listener result
+3. **Listeners are idempotent** — Handle duplicates gracefully
+4. **No cross-module imports** — Use events for communication
+5. **Document all listeners** — In event docstring

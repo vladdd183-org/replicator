@@ -1,0 +1,324 @@
+---
+alwaysApply: true
+---
+# 🚀 Hyper-Porto v4.0 — Cursor AI Rules
+
+> Эти правила помогают AI-агенту правильно понимать и генерировать код по архитектуре Hyper-Porto.
+
+---
+
+## 📚 ОБЯЗАТЕЛЬНО ЗАГРУЖАЙ ЭТИ ФАЙЛЫ ПЕРЕД РАБОТОЙ
+
+При начале работы над любой задачей, СНАЧАЛА прочитай:
+
+### Базовые документы (всегда)
+- `docs/00-philosophy.md` — принципы и конституция
+- `docs/02-project-structure.md` — структура папок
+- `docs/03-components.md` — Action, Task, Repository, Controller
+
+### При работе с конкретными аспектами
+- `docs/04-result-railway.md` — при работе с Result/Failure
+- `docs/05-concurrency.md` — при работе с async/await, TaskGroups
+- `docs/08-libraries.md` — при добавлении зависимостей
+- `docs/09-transports.md` — при работе с HTTP, GraphQL, CLI, WebSocket
+- `docs/11-litestar-features.md` — при работе с Litestar (events, middleware, channels)
+- `docs/12-reducing-boilerplate.md` — справочник по реализации (EntitySchema, BaseUnitOfWork)
+
+---
+
+## 🏗️ АРХИТЕКТУРА
+
+### Porto Pattern
+```
+src/
+├── Ship/               # Общая инфраструктура (Parents, Core, Infrastructure)
+└── Containers/         # Бизнес-модули
+    └── AppSection/     # Секция модулей
+        └── UserModule/ # Конкретный модуль
+```
+
+### Структура Container (Модуля)
+```
+UserModule/
+├── UI/                 # Presentation Layer (Controllers, Routes, GraphQL)
+│   ├── API/            # HTTP REST
+│   ├── GraphQL/        # Strawberry resolvers
+│   ├── CLI/            # Click commands
+│   └── Workers/        # TaskIQ background tasks
+├── Actions/            # Use Cases (оркестрация)
+├── Tasks/              # Атомарные операции (переиспользуемые)
+├── Queries/            # CQRS Read-модели
+├── Data/               # Repositories, Schemas, UnitOfWork
+├── Models/             # Piccolo ORM Tables
+├── Events/             # Domain Events
+├── Errors.py           # Ошибки модуля (Pydantic frozen)
+└── Providers.py        # DI регистрация (Dishka)
+```
+
+---
+
+## 📜 ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА
+
+### 1. ИМПОРТЫ — ТОЛЬКО АБСОЛЮТНЫЕ
+
+```python
+# ✅ ПРАВИЛЬНО — абсолютные от src/
+from src.Containers.AppSection.UserModule.Actions.CreateUserAction import CreateUserAction
+from src.Containers.AppSection.UserModule.Errors import UserNotFoundError
+from src.Ship.Parents.Action import Action
+
+# ❌ ЗАПРЕЩЕНО — относительные импорты
+from ....Actions.CreateUserAction import CreateUserAction
+from ...Errors import UserNotFoundError
+```
+
+### 2. Actions ВСЕГДА возвращают Result[T, E]
+
+```python
+from returns.result import Result, Success, Failure
+from src.Ship.Parents.Action import Action
+
+class CreateUserAction(Action[CreateUserRequest, User, UserError]):
+    async def run(self, data: CreateUserRequest) -> Result[User, UserError]:
+        # Бизнес-логика
+        if error:
+            return Failure(UserAlreadyExistsError(email=data.email))
+        return Success(user)
+```
+
+### 3. Pattern Matching для Result
+
+```python
+match result:
+    case Success(user):
+        return Response(content=UserResponse.from_entity(user), status_code=201)
+    case Failure(UserNotFoundError()):
+        return Response(content={"error": "User not found"}, status_code=404)
+    case Failure(error):
+        return Response(content={"error": str(error)}, status_code=400)
+```
+
+### 4. Все DTO — Pydantic (НЕ dataclass!)
+
+```python
+# Request DTO — с валидацией
+from pydantic import BaseModel, EmailStr, Field
+
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    name: str = Field(..., min_length=2)
+
+# Response DTO — наследует EntitySchema
+from src.Ship.Core.BaseSchema import EntitySchema
+
+class UserResponse(EntitySchema):
+    id: UUID
+    email: str
+    name: str
+```
+
+### 5. Ошибки — Pydantic frozen модели
+
+```python
+from pydantic import BaseModel
+
+class UserError(BaseModel):
+    """Базовая ошибка модуля."""
+    model_config = {"frozen": True}
+    message: str
+    code: str = "USER_ERROR"
+
+class UserNotFoundError(UserError):
+    code: str = "USER_NOT_FOUND"
+    user_id: UUID
+```
+
+### 6. UnitOfWork для транзакций + Events
+
+```python
+async with self.uow:
+    user = User(email=data.email, ...)
+    await self.uow.users.add(user)
+    
+    # События публикуются ПОСЛЕ commit через litestar.events
+    self.uow.add_event(UserCreated(user_id=user.id))
+    
+    await self.uow.commit()  # Здесь события уйдут
+```
+
+### 7. DI через Dishka
+
+```python
+# В Controller
+from dishka.integrations.litestar import FromDishka
+
+@post("/users")
+async def create_user(
+    data: CreateUserRequest,
+    action: FromDishka[CreateUserAction],  # DI инъекция
+) -> Response:
+    return await action.run(data)
+
+# В Providers.py
+from dishka import Provider, Scope, provide
+
+class UserModuleProvider(Provider):
+    scope = Scope.REQUEST
+    create_user_action = provide(CreateUserAction)
+```
+
+### 8. Structured Concurrency с anyio
+
+```python
+import anyio
+
+async def process_batch(items: list[Item]) -> list[Result]:
+    results: list[Result] = []
+    
+    async with anyio.create_task_group() as tg:
+        for item in items:
+            tg.start_soon(process_one, item, results)
+    
+    return results  # Все задачи завершены
+```
+
+---
+
+## 🚫 НЕ ДЕЛАЙ ЭТО
+
+| ❌ НЕ делай | ✅ Используй вместо |
+|-------------|---------------------|
+| `from ....` (относительные импорты) | `from src.Containers...` |
+| `raise Exception(...)` в бизнес-логике | `return Failure(Error(...))` |
+| `@dataclass` для DTO | `pydantic.BaseModel` |
+| Свой Result класс | `returns.result.Result` |
+| `asyncio.create_task()` | `anyio.create_task_group()` |
+| Service Locator | Dishka DI |
+| Свой @cached | `cashews` |
+| Свой @retryable | `tenacity` |
+| Свой EventBus | `litestar.events` + UoW |
+
+---
+
+## 📋 ИМЕНОВАНИЕ
+
+| Компонент | Паттерн | Пример |
+|-----------|---------|--------|
+| Action | `{Verb}{Noun}Action` | `CreateUserAction` |
+| Task | `{Verb}{Noun}Task` | `HashPasswordTask` |
+| Repository | `{Noun}Repository` | `UserRepository` |
+| Controller | `{Noun}Controller` | `UserController` |
+| Error | `{Noun}Error` | `UserNotFoundError` |
+| Event | `{Noun}{Verb}` | `UserCreated` |
+| Request DTO | `{Action}Request` | `CreateUserRequest` |
+| Response DTO | `{Noun}Response` | `UserResponse` |
+
+---
+
+## 🔗 ЗАВИСИМОСТИ МЕЖДУ КОМПОНЕНТАМИ
+
+```
+Controller → Action (только!)
+Action → Task, Repository, UoW
+Task → Repository (опционально)
+Repository → Model (Piccolo Table)
+```
+
+### Правила вызовов
+
+- Controller МОЖЕТ вызывать: Action, Query
+- Action МОЖЕТ вызывать: Task, Repository, UoW, SubAction
+- Task МОЖЕТ вызывать: Repository (но лучше через UoW)
+- Container НЕ МОЖЕТ импортировать другой Container (только через Events)
+
+---
+
+## 🛠️ TECH STACK
+
+| Категория | Библиотека | Использование |
+|-----------|------------|---------------|
+| Web | Litestar | HTTP, WebSocket, CLI |
+| GraphQL | Strawberry | GraphQL resolvers |
+| ORM | Piccolo | Async ORM + миграции |
+| DI | Dishka | Dependency Injection |
+| Result | returns | Result[T, E], flow, bind |
+| Async | anyio | TaskGroups, structured concurrency |
+| Validation | Pydantic | DTOs, Settings |
+| Cache | cashews | @cached декоратор |
+| Retry | tenacity | @retry декоратор |
+| Background | TaskIQ | Async task queue |
+| Observability | Logfire | Tracing + logging |
+
+---
+
+## 📝 ЧЕКЛИСТ СОЗДАНИЯ НОВОГО МОДУЛЯ
+
+```markdown
+- [ ] Создать структуру папок Container
+- [ ] Определить Models (Piccolo Tables)
+- [ ] Создать PiccoloApp.py для миграций
+- [ ] Определить Errors.py (Pydantic frozen)
+- [ ] Создать Schemas (Requests + Responses)
+- [ ] Создать Repository
+- [ ] Создать UnitOfWork (наследник BaseUnitOfWork)
+- [ ] Создать Tasks (атомарные операции)
+- [ ] Создать Actions (Use Cases)
+- [ ] Создать Controllers (API endpoints)
+- [ ] Зарегистрировать в Providers.py
+- [ ] Добавить роутер в App.py
+- [ ] Написать тесты
+```
+
+---
+
+## 🔍 СПРАВКА ПО ДОКУМЕНТАЦИИ
+
+| Нужно понять | Читай документ |
+|--------------|----------------|
+| Философия и принципы | `docs/00-philosophy.md` |
+| Общая архитектура | `docs/01-architecture.md` |
+| Структура папок | `docs/02-project-structure.md` |
+| Компоненты (Action, Task, Repository) | `docs/03-components.md` |
+| Result и Railway-oriented | `docs/04-result-railway.md` |
+| Async и TaskGroups | `docs/05-concurrency.md` |
+| Декораторы и дженерики | `docs/06-metaprogramming.md` |
+| Spec-Driven Development | `docs/07-spec-driven.md` |
+| Библиотеки и зависимости | `docs/08-libraries.md` |
+| HTTP, GraphQL, CLI, WebSocket | `docs/09-transports.md` |
+| Явная регистрация | `docs/10-registration.md` |
+| Litestar features (events, channels) | `docs/11-litestar-features.md` |
+| Справочник реализации | `docs/12-reducing-boilerplate.md` |
+
+---
+
+## 🌐 ДОПОЛНИТЕЛЬНАЯ ДОКУМЕНТАЦИЯ (foxdocs/)
+
+| Библиотека | Путь |
+|------------|------|
+| Litestar | `foxdocs/litestar-main/docs/` |
+| Piccolo ORM | `foxdocs/piccolo-master/docs/` |
+| Dishka DI | `foxdocs/dishka-develop/docs/` |
+| Returns | `foxdocs/returns-master/docs/` |
+| anyio | `foxdocs/anyio-master/docs/` |
+| Strawberry GraphQL | `foxdocs/strawberry-main/docs/` |
+| TaskIQ + Litestar | `foxdocs/taskiq-litestar-develop/` |
+| Porto (оригинал) | `foxdocs/Porto-master/docs/` |
+| Cosmic Python | `foxdocs/cosmic/` |
+| Spec Kit | `foxdocs/spec-kit-main/` |
+| Пример Porto проекта | `foxdocs/LitestarPortoShowcase-main/` |
+
+---
+
+## 💡 СОВЕТЫ ДЛЯ AI
+
+1. **Перед написанием кода** — прочитай соответствующий раздел документации
+2. **Копируй паттерны** из `foxdocs/LitestarPortoShowcase-main/src/` — это рабочий пример
+3. **Проверяй типы** — всё должно быть типизировано
+4. **Используй match-case** для Result вместо if/else
+5. **Не изобретай велосипеды** — смотри таблицу библиотек выше
+
+---
+
+**Hyper-Porto v4.0** — Функциональная архитектура для Python бэкендов 🚀
+

@@ -1,0 +1,106 @@
+"""${TaskName} - Atomic operation for ${description}."""
+
+# =============================================================================
+# ASYNC TASK (for I/O operations)
+# =============================================================================
+
+from src.Ship.Parents.Task import Task
+
+
+class ${TaskName}(Task[${InputType}, ${OutputType}]):
+    """Async task for ${description}.
+    
+    Atomic operation that can be reused across different Actions.
+    For I/O-bound operations (network, database, file system).
+    
+    Example:
+        task = ${TaskName}(dependency)
+        result = await task.run(input_data)
+    """
+    
+    def __init__(self, dependency: SomeDependency) -> None:
+        """Initialize task with dependencies."""
+        self.dependency = dependency
+    
+    async def run(self, data: ${InputType}) -> ${OutputType}:
+        """Execute the task.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            ${OutputType}: Result of the operation
+        """
+        # Async operation here
+        result = await self.dependency.do_something(data)
+        return result
+
+
+# =============================================================================
+# SYNC TASK (for CPU-bound operations)
+# =============================================================================
+
+from src.Ship.Parents.Task import SyncTask
+from src.Ship.Configs import get_settings
+
+
+class ${TaskName}Sync(SyncTask[${InputType}, ${OutputType}]):
+    """Synchronous task for ${description}.
+    
+    For CPU-bound operations (hashing, encryption, computation).
+    Call via anyio.to_thread.run_sync() from async context.
+    
+    Example:
+        task = ${TaskName}Sync()
+        # Sync call:
+        result = task.run(input_data)
+        # Async call (recommended):
+        result = await anyio.to_thread.run_sync(task.run, input_data)
+    """
+    
+    def __init__(self) -> None:
+        """Initialize task with settings."""
+        settings = get_settings()
+        self.some_config = settings.some_config
+    
+    def run(self, data: ${InputType}) -> ${OutputType}:
+        """Execute the task synchronously.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            ${OutputType}: Result of the operation
+        """
+        # CPU-bound operation here
+        result = some_computation(data)
+        return result
+
+
+# =============================================================================
+# USAGE IN ACTION:
+# =============================================================================
+#
+# class SomeAction(Action[...]):
+#     def __init__(self, task: ${TaskName}, uow: UnitOfWork):
+#         self.task = task
+#         self.uow = uow
+#     
+#     async def run(self, data):
+#         # Async task - direct call
+#         result = await self.task.run(data.field)
+#         
+#         # Sync task - offload to thread
+#         result = await anyio.to_thread.run_sync(self.sync_task.run, data.field)
+#
+# =============================================================================
+# REGISTRATION IN PROVIDERS:
+# =============================================================================
+#
+# class ${Module}Provider(Provider):
+#     scope = Scope.APP  # Tasks are stateless, APP scope is fine
+#     ${task_name_lower} = provide(${TaskName})
+# =============================================================================
+
+
+

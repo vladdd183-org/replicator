@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "last_updated": "2026-01-19T12:00:00Z",
+  
+  "totals": {
+    "decisions": 0,
+    "patterns": {
+      "verified": 0,
+      "experimental": 0
+    },
+    "mistakes": {
+      "critical": 0,
+      "major": 0,
+      "minor": 0
+    },
+    "insights": 0,
+    "sessions": 0,
+    "implementations": 0
+  },
+  
+  "by_category": {
+    "mistakes": {
+      "imports": 0,
+      "typing": 0,
+      "async": 0,
+      "di": 0,
+      "result-pattern": 0,
+      "architecture": 0,
+      "logic": 0,
+      "other": 0
+    }
+  },
+  
+  "by_module": {},
+  
+  "trends": {
+    "weekly": {
+      "sessions": [],
+      "success_rate": [],
+      "mistakes": []
+    }
+  },
+  
+  "feedback": {
+    "total_ratings": 0,
+    "average_rating": null,
+    "rating_distribution": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    }
+  }
+}

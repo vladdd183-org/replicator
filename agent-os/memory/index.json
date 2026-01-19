@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-19T12:00:00Z",
+  "description": "Index for agent memory system - enables fast search across decisions, mistakes, and patterns",
+  "entries": [],
+  "stats": {
+    "total_decisions": 0,
+    "total_mistakes": 0,
+    "total_patterns": 0,
+    "total_feedback_sessions": 0,
+    "avg_satisfaction_score": null
+  },
+  "tags_index": {},
+  "keywords_index": {}
+}

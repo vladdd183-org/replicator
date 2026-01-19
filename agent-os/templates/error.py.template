@@ -1,0 +1,155 @@
+"""${Module} module errors.
+
+All errors are Pydantic frozen models with explicit http_status.
+Uses ErrorWithTemplate for automatic message generation.
+"""
+
+from typing import ClassVar
+from uuid import UUID
+
+from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
+
+
+# =============================================================================
+# BASE MODULE ERROR
+# =============================================================================
+
+class ${Module}Error(BaseError):
+    """Base error for ${Module} module.
+    
+    All module-specific errors should inherit from this.
+    """
+    
+    code: str = "${MODULE_UPPER}_ERROR"
+
+
+# =============================================================================
+# NOT FOUND ERRORS
+# =============================================================================
+
+class ${Entity}NotFoundError(ErrorWithTemplate, ${Module}Error):
+    """Error raised when ${entity_lower} is not found.
+    
+    Example:
+        return Failure(${Entity}NotFoundError(${entity_lower}_id=uuid))
+        # message: "${Entity} with id {uuid} not found"
+    """
+    
+    _message_template: ClassVar[str] = "${Entity} with id {${entity_lower}_id} not found"
+    code: str = "${ENTITY_UPPER}_NOT_FOUND"
+    http_status: int = 404
+    ${entity_lower}_id: UUID
+
+
+# =============================================================================
+# ALREADY EXISTS ERRORS
+# =============================================================================
+
+class ${Entity}AlreadyExistsError(ErrorWithTemplate, ${Module}Error):
+    """Error raised when ${entity_lower} already exists.
+    
+    Example:
+        return Failure(${Entity}AlreadyExistsError(email="test@example.com"))
+        # message: "${Entity} with email test@example.com already exists"
+    """
+    
+    _message_template: ClassVar[str] = "${Entity} with email {email} already exists"
+    code: str = "${ENTITY_UPPER}_ALREADY_EXISTS"
+    http_status: int = 409
+    email: str
+
+
+# =============================================================================
+# VALIDATION ERRORS
+# =============================================================================
+
+class Invalid${Entity}DataError(${Module}Error):
+    """Error raised when ${entity_lower} data is invalid.
+    
+    For business logic validation (not Pydantic validation).
+    """
+    
+    code: str = "INVALID_${ENTITY_UPPER}_DATA"
+    http_status: int = 400
+    message: str = "Invalid ${entity_lower} data"
+
+
+# =============================================================================
+# PERMISSION ERRORS
+# =============================================================================
+
+class ${Entity}AccessForbiddenError(ErrorWithTemplate, ${Module}Error):
+    """Error raised when access to ${entity_lower} is forbidden.
+    
+    Example:
+        return Failure(${Entity}AccessForbiddenError(${entity_lower}_id=uuid, action="delete"))
+    """
+    
+    _message_template: ClassVar[str] = "Access to ${entity_lower} {${entity_lower}_id} forbidden: {action}"
+    code: str = "${ENTITY_UPPER}_ACCESS_FORBIDDEN"
+    http_status: int = 403
+    ${entity_lower}_id: UUID
+    action: str
+
+
+# =============================================================================
+# STATE ERRORS
+# =============================================================================
+
+class ${Entity}InactiveError(ErrorWithTemplate, ${Module}Error):
+    """Error raised when ${entity_lower} is inactive.
+    
+    Example:
+        return Failure(${Entity}InactiveError(${entity_lower}_id=uuid))
+    """
+    
+    _message_template: ClassVar[str] = "${Entity} {${entity_lower}_id} is inactive"
+    code: str = "${ENTITY_UPPER}_INACTIVE"
+    http_status: int = 403
+    ${entity_lower}_id: UUID
+
+
+# =============================================================================
+# USAGE IN ACTION:
+# =============================================================================
+#
+# from returns.result import Result, Success, Failure
+# from src.Containers.${Section}.${Module}.Errors import (
+#     ${Module}Error,
+#     ${Entity}NotFoundError,
+#     ${Entity}AlreadyExistsError,
+# )
+#
+# async def run(self, data) -> Result[${Entity}, ${Module}Error]:
+#     # Check existence
+#     existing = await self.uow.${entities_lower}.find_by_email(data.email)
+#     if existing:
+#         return Failure(${Entity}AlreadyExistsError(email=data.email))
+#     
+#     # Check if found
+#     ${entity_lower} = await self.uow.${entities_lower}.get(${entity_lower}_id)
+#     if not ${entity_lower}:
+#         return Failure(${Entity}NotFoundError(${entity_lower}_id=${entity_lower}_id))
+#     
+#     # Check state
+#     if not ${entity_lower}.is_active:
+#         return Failure(${Entity}InactiveError(${entity_lower}_id=${entity_lower}_id))
+#     
+#     return Success(${entity_lower})
+#
+# =============================================================================
+# HTTP RESPONSE (automatic via @result_handler + ProblemDetails):
+# =============================================================================
+#
+# ${Entity}NotFoundError → 404 Not Found
+# {
+#   "type": "about:blank",
+#   "title": "${Entity} Not Found",
+#   "status": 404,
+#   "detail": "${Entity} with id {uuid} not found",
+#   "code": "${ENTITY_UPPER}_NOT_FOUND"
+# }
+# =============================================================================
+
+
+

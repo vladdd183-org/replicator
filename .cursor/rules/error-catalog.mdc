@@ -1,0 +1,113 @@
+---
+description: Standard error definitions and HTTP status codes for Hyper-Porto
+globs: ["**/Errors.py", "**/errors.py"]
+---
+
+# Error Catalog for Hyper-Porto
+
+## Error Base Classes
+
+```python
+from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
+
+class ModuleError(BaseError):
+    """Base error for this module."""
+    code: str = "MODULE_ERROR"
+```
+
+## Standard HTTP Status Codes
+
+| Status | Use Case | Error Pattern |
+|--------|----------|---------------|
+| 400 | Bad Request | Validation, business rule |
+| 401 | Unauthorized | Missing/invalid token |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 409 | Conflict | Duplicate, state conflict |
+| 422 | Unprocessable | Semantic validation |
+| 429 | Too Many Requests | Rate limited |
+| 500 | Internal Error | Unexpected error |
+
+## Error Templates
+
+### Not Found (404)
+
+```python
+class UserNotFoundError(ErrorWithTemplate, UserError):
+    _message_template: ClassVar[str] = "User with id {user_id} not found"
+    code: str = "USER_NOT_FOUND"
+    http_status: int = 404
+    user_id: UUID
+```
+
+### Already Exists (409)
+
+```python
+class UserAlreadyExistsError(ErrorWithTemplate, UserError):
+    _message_template: ClassVar[str] = "User with email {email} already exists"
+    code: str = "USER_ALREADY_EXISTS"
+    http_status: int = 409
+    email: str
+```
+
+### Unauthorized (401)
+
+```python
+class InvalidCredentialsError(ErrorWithTemplate, AuthError):
+    _message_template: ClassVar[str] = "Invalid email or password"
+    code: str = "INVALID_CREDENTIALS"
+    http_status: int = 401
+```
+
+### Forbidden (403)
+
+```python
+class InsufficientPermissionsError(ErrorWithTemplate, AuthError):
+    _message_template: ClassVar[str] = "You don't have permission to {action}"
+    code: str = "INSUFFICIENT_PERMISSIONS"
+    http_status: int = 403
+    action: str
+```
+
+### Validation (400)
+
+```python
+class InvalidInputError(ErrorWithTemplate, BaseError):
+    _message_template: ClassVar[str] = "Invalid {field}: {reason}"
+    code: str = "INVALID_INPUT"
+    http_status: int = 400
+    field: str
+    reason: str
+```
+
+### Business Rule (422)
+
+```python
+class OrderCannotBeCancelledError(ErrorWithTemplate, OrderError):
+    _message_template: ClassVar[str] = "Order {order_id} cannot be cancelled: {reason}"
+    code: str = "ORDER_CANNOT_BE_CANCELLED"
+    http_status: int = 422
+    order_id: UUID
+    reason: str
+```
+
+## Error Response Format (RFC 9457)
+
+```json
+{
+    "type": "about:blank",
+    "title": "User Not Found",
+    "status": 404,
+    "detail": "User with id 123e4567-e89b-12d3-a456-426614174000 not found",
+    "instance": "/api/users/123e4567-e89b-12d3-a456-426614174000",
+    "code": "USER_NOT_FOUND"
+}
+```
+
+## Rules
+
+1. **Always set `http_status`** — For automatic HTTP response
+2. **Use `ErrorWithTemplate`** — For dynamic messages
+3. **Include relevant IDs** — For debugging
+4. **Don't expose internals** — No stack traces, table names
+5. **Use consistent codes** — SCREAMING_SNAKE_CASE

@@ -1,0 +1,167 @@
+---
+description: Rules for external service integrations in VendorSection
+globs: ["**/VendorSection/**/*.py"]
+---
+
+# Vendor Integration Rules for Hyper-Porto
+
+## VendorSection Structure
+
+```
+Containers/VendorSection/
+├── EmailModule/           # Email sending (SMTP, SendGrid, etc.)
+├── PaymentModule/         # Payment processing (Stripe, etc.)
+├── StorageModule/         # File storage (S3, etc.)
+├── NotificationModule/    # Push notifications
+└── WebhookModule/         # Incoming webhooks
+```
+
+## Service Client Pattern
+
+```python
+# In VendorSection/PaymentModule/Client.py
+from dataclasses import dataclass
+
+import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from src.Ship.Configs.Settings import Settings
+
+
+@dataclass
+class PaymentClient:
+    """Client for payment service API."""
+    
+    settings: Settings
+    _client: httpx.AsyncClient | None = None
+    
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(
+            base_url=self.settings.payment_api_url,
+            headers={"Authorization": f"Bearer {self.settings.payment_api_key}"},
+            timeout=30.0,
+        )
+        return self
+    
+    async def __aexit__(self, *args):
+        if self._client:
+            await self._client.aclose()
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+    )
+    async def create_charge(self, amount: Decimal, currency: str) -> ChargeResult:
+        response = await self._client.post("/charges", json={
+            "amount": str(amount),
+            "currency": currency,
+        })
+        response.raise_for_status()
+        return ChargeResult(**response.json())
+```
+
+## Rules
+
+### 1. Retry with Tenacity
+
+```python
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+)
+async def external_call(self):
+    ...
+```
+
+### 2. Timeouts Required
+
+```python
+self._client = httpx.AsyncClient(
+    timeout=httpx.Timeout(30.0, connect=10.0),
+)
+```
+
+### 3. Circuit Breaker for High Traffic
+
+```python
+from src.Ship.Infrastructure.CircuitBreaker import circuit_breaker
+
+@circuit_breaker(failure_threshold=5, recovery_timeout=60)
+async def call_external_api(self):
+    ...
+```
+
+### 4. Secrets from Settings
+
+```python
+# ❌ WRONG: Hardcoded
+api_key = "sk_live_xxx"
+
+# ✅ CORRECT: From settings
+api_key = self.settings.payment_api_key
+```
+
+### 5. Response DTOs
+
+```python
+# Define response types
+@dataclass
+class ChargeResult:
+    id: str
+    status: str
+    amount: Decimal
+
+# Don't return raw dicts
+```
+
+### 6. Error Mapping
+
+```python
+from src.Containers.VendorSection.PaymentModule.Errors import (
+    PaymentDeclinedError,
+    PaymentServiceUnavailableError,
+)
+
+async def create_charge(self, ...):
+    try:
+        response = await self._client.post(...)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 402:
+            raise PaymentDeclinedError(...)
+        raise PaymentServiceUnavailableError(...)
+```
+
+## Webhook Handler Pattern
+
+```python
+# In WebhookModule/UI/API/Controllers/WebhookController.py
+from litestar import Controller, post
+from litestar.status_codes import HTTP_200_OK
+
+class WebhookController(Controller):
+    path = "/webhooks"
+    
+    @post("/stripe")
+    async def stripe_webhook(
+        self,
+        data: dict,
+        action: FromDishka[ProcessStripeWebhookAction],
+    ) -> dict:
+        # Verify signature first!
+        await action.run(data)
+        return {"status": "ok"}
+```
+
+## Integration Checklist
+
+- [ ] Retry logic with tenacity
+- [ ] Timeouts configured
+- [ ] Circuit breaker for critical paths
+- [ ] Secrets from environment
+- [ ] Response DTOs defined
+- [ ] Errors mapped to domain errors
+- [ ] Webhook signature verification
+- [ ] Idempotency for webhooks

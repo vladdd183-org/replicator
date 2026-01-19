@@ -1,0 +1,112 @@
+---
+description: Rules for WebSocket handlers in Hyper-Porto with Litestar
+globs: ["**/WebSocket/**/*.py", "**/UI/WebSocket/*.py"]
+---
+
+# WebSocket Rules for Hyper-Porto
+
+## File Location
+
+```
+UI/WebSocket/
+├── __init__.py
+└── Handlers.py       # WebSocket handlers
+```
+
+## Handler Template
+
+```python
+from litestar import WebSocket
+from litestar.handlers import websocket
+from litestar.channels import ChannelsPlugin
+
+@websocket("/ws/path/{param:uuid}")
+async def handler(
+    socket: WebSocket,
+    param: UUID,
+    channels: ChannelsPlugin,
+) -> None:
+    await socket.accept()
+    
+    async with channels.start_subscription(["channel"]) as sub:
+        try:
+            async for message in sub.iter_events():
+                await socket.send_json(message)
+        except Exception:
+            pass
+        finally:
+            await socket.close()
+```
+
+## Rules
+
+### 1. Always accept before sending
+
+```python
+await socket.accept()  # MUST be first
+await socket.send_json(data)
+```
+
+### 2. Always close in finally
+
+```python
+try:
+    # Handle messages
+except Exception:
+    pass
+finally:
+    await socket.close()  # ALWAYS close
+```
+
+### 3. Authentication
+
+```python
+@websocket("/ws/protected")
+async def protected_handler(socket: WebSocket) -> None:
+    token = socket.query_params.get("token")
+    
+    if not token:
+        await socket.close(code=4001, reason="Unauthorized")
+        return
+    
+    try:
+        user = decode_jwt(token)
+    except Exception:
+        await socket.close(code=4001, reason="Invalid token")
+        return
+    
+    await socket.accept()
+    # Continue with authenticated connection
+```
+
+### 4. Use Channels for pub/sub
+
+```python
+# Subscribe
+async with channels.start_subscription(["room:123"]) as sub:
+    async for msg in sub.iter_events():
+        await socket.send_json(msg)
+
+# Publish (from Action)
+await channels.publish(data, channels=["room:123"])
+```
+
+## Message Protocol
+
+```python
+class MessageType(str, Enum):
+    MESSAGE = "message"
+    STATUS = "status"
+    ERROR = "error"
+
+class WSMessage(BaseModel):
+    type: MessageType
+    data: dict | None = None
+```
+
+## Don'ts
+
+- Don't forget `socket.accept()`
+- Don't forget `finally: socket.close()`
+- Don't block the event loop
+- Don't skip authentication on protected routes

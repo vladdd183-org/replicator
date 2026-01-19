@@ -1,0 +1,133 @@
+---
+description: Performance rules and optimization patterns for Hyper-Porto
+globs: ["src/**/*.py"]
+---
+
+# Performance Rules for Hyper-Porto
+
+## Database Performance
+
+### Avoid N+1 Queries
+
+```python
+# ❌ N+1 Problem
+async def list_orders(self):
+    orders = await Order.select()
+    for order in orders:
+        order.user = await User.select().where(User.id == order.user_id).first()
+
+# ✅ Use join
+async def list_orders(self):
+    return await Order.select(
+        Order.all_columns(),
+        Order.user.all_columns(),
+    )
+```
+
+### Select Only Needed Columns
+
+```python
+# ❌ Over-fetching
+users = await AppUser.select()
+
+# ✅ Select specific
+users = await AppUser.select(
+    AppUser.id,
+    AppUser.email,
+    AppUser.name,
+)
+```
+
+### Use Indexes
+
+```python
+class AppUser(Table):
+    email = Varchar(length=255, unique=True, index=True)
+    created_at = Timestamptz(index=True)  # If frequently queried
+```
+
+## Async Performance
+
+### Don't Block Event Loop
+
+```python
+# ❌ Blocking (CPU-bound in async)
+class MyAction:
+    async def run(self):
+        result = bcrypt.hashpw(password, salt)  # BLOCKS!
+
+# ✅ Run in thread
+import anyio
+
+class MyAction:
+    async def run(self):
+        result = await anyio.to_thread.run_sync(
+            bcrypt.hashpw, password, salt
+        )
+```
+
+### Use Concurrency
+
+```python
+# ❌ Sequential
+for item in items:
+    await process(item)
+
+# ✅ Concurrent with TaskGroup
+async with anyio.create_task_group() as tg:
+    for item in items:
+        tg.start_soon(process, item)
+```
+
+## Caching
+
+### Use @cache for Expensive Operations
+
+```python
+from cashews import cache
+
+@cache(ttl="5m", key="user_stats:{user_id}")
+async def get_user_stats(user_id: UUID):
+    return await calculate_stats(user_id)
+```
+
+## API Performance
+
+### Always Paginate Lists
+
+```python
+# ❌ Return all
+@get("/users")
+async def list_users():
+    return await User.select()
+
+# ✅ Paginated
+@get("/users")
+async def list_users(
+    page: int = 1,
+    per_page: int = Query(default=20, le=100),
+):
+    return await query.execute(ListUsersInput(page=page, per_page=per_page))
+```
+
+### Limit Response Size
+
+```python
+class ListUsersQueryInput:
+    page: int = 1
+    per_page: int = 20  # Default
+    
+# In controller, cap max
+per_page = min(request.per_page, 100)
+```
+
+## Performance Checklist
+
+- [ ] No N+1 queries
+- [ ] Only select needed columns
+- [ ] Indexes on frequently queried columns
+- [ ] CPU-bound ops in threads
+- [ ] Concurrent where possible
+- [ ] Expensive ops cached
+- [ ] Lists paginated
+- [ ] Response size limited

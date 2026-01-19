@@ -1,0 +1,222 @@
+"""${Entity}Controller - REST API endpoints for ${Entity}."""
+
+from uuid import UUID
+
+from dishka.integrations.litestar import FromDishka
+from litestar import Controller, get, post, patch, delete
+from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
+from returns.result import Result
+
+from src.Ship.Core.Errors import DomainException
+from src.Ship.Decorators.result_handler import result_handler
+
+# Actions (Write operations)
+from src.Containers.${Section}.${Module}.Actions.Create${Entity}Action import Create${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Update${Entity}Action import Update${Entity}Action
+from src.Containers.${Section}.${Module}.Actions.Delete${Entity}Action import Delete${Entity}Action
+
+# Queries (Read operations)
+from src.Containers.${Section}.${Module}.Queries.Get${Entity}Query import (
+    Get${Entity}Query,
+    Get${Entity}QueryInput,
+)
+from src.Containers.${Section}.${Module}.Queries.List${Entities}Query import (
+    List${Entities}Query,
+    List${Entities}QueryInput,
+)
+
+# DTOs
+from src.Containers.${Section}.${Module}.Data.Schemas.Requests import (
+    Create${Entity}Request,
+    Update${Entity}Request,
+)
+from src.Containers.${Section}.${Module}.Data.Schemas.Responses import (
+    ${Entity}Response,
+    ${Entity}ListResponse,
+)
+
+# Errors
+from src.Containers.${Section}.${Module}.Errors import ${Module}Error, ${Entity}NotFoundError
+
+# Models
+from src.Containers.${Section}.${Module}.Models.${Entity} import ${Entity}
+
+
+class ${Entity}Controller(Controller):
+    """REST API Controller for ${Entity} operations.
+    
+    Endpoints:
+    - POST   /${entities_lower}/          - Create ${entity_lower}
+    - GET    /${entities_lower}/          - List ${entities_lower}
+    - GET    /${entities_lower}/{id}      - Get ${entity_lower} by ID
+    - PATCH  /${entities_lower}/{id}      - Update ${entity_lower}
+    - DELETE /${entities_lower}/{id}      - Delete ${entity_lower}
+    """
+    
+    path = "/${entities_lower}"
+    tags = ["${Entities}"]
+    
+    # =========================================================================
+    # CREATE (POST) — Uses Action + @result_handler
+    # =========================================================================
+    
+    @post("/")
+    @result_handler(${Entity}Response, success_status=HTTP_201_CREATED)
+    async def create_${entity_lower}(
+        self,
+        data: Create${Entity}Request,
+        action: FromDishka[Create${Entity}Action],
+    ) -> Result[${Entity}, ${Module}Error]:
+        """Create a new ${entity_lower}.
+        
+        Args:
+            data: Create${Entity}Request with ${entity_lower} data
+            action: Injected Create${Entity}Action
+            
+        Returns:
+            Result[${Entity}, ${Module}Error]: Created ${entity_lower} or error
+        """
+        return await action.run(data)
+    
+    # =========================================================================
+    # LIST (GET) — Uses Query directly
+    # =========================================================================
+    
+    @get("/")
+    async def list_${entities_lower}(
+        self,
+        query: FromDishka[List${Entities}Query],
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ${Entity}ListResponse:
+        """List ${entities_lower} with pagination.
+        
+        Args:
+            query: Injected List${Entities}Query
+            limit: Max items per page (1-100)
+            offset: Skip N items
+            
+        Returns:
+            ${Entity}ListResponse with list and pagination info
+        """
+        result = await query.execute(List${Entities}QueryInput(
+            limit=limit,
+            offset=offset,
+        ))
+        
+        return ${Entity}ListResponse(
+            ${entities_lower}=[${Entity}Response.from_entity(x) for x in result.${entities_lower}],
+            total=result.total,
+            limit=result.limit,
+            offset=result.offset,
+        )
+    
+    # =========================================================================
+    # GET ONE (GET) — Uses Query directly
+    # =========================================================================
+    
+    @get("/{${entity_lower}_id:uuid}")
+    async def get_${entity_lower}(
+        self,
+        ${entity_lower}_id: UUID,
+        query: FromDishka[Get${Entity}Query],
+    ) -> ${Entity}Response:
+        """Get ${entity_lower} by ID.
+        
+        Args:
+            ${entity_lower}_id: UUID of ${entity_lower}
+            query: Injected Get${Entity}Query
+            
+        Returns:
+            ${Entity}Response
+            
+        Raises:
+            DomainException: If ${entity_lower} not found (404)
+        """
+        ${entity_lower} = await query.execute(Get${Entity}QueryInput(
+            ${entity_lower}_id=${entity_lower}_id
+        ))
+        
+        if ${entity_lower} is None:
+            raise DomainException(${Entity}NotFoundError(${entity_lower}_id=${entity_lower}_id))
+        
+        return ${Entity}Response.from_entity(${entity_lower})
+    
+    # =========================================================================
+    # UPDATE (PATCH) — Uses Action + @result_handler
+    # =========================================================================
+    
+    @patch("/{${entity_lower}_id:uuid}")
+    @result_handler(${Entity}Response, success_status=HTTP_200_OK)
+    async def update_${entity_lower}(
+        self,
+        ${entity_lower}_id: UUID,
+        data: Update${Entity}Request,
+        action: FromDishka[Update${Entity}Action],
+    ) -> Result[${Entity}, ${Module}Error]:
+        """Update ${entity_lower}.
+        
+        Args:
+            ${entity_lower}_id: UUID of ${entity_lower} to update
+            data: Update${Entity}Request with fields to update
+            action: Injected Update${Entity}Action
+            
+        Returns:
+            Result[${Entity}, ${Module}Error]: Updated ${entity_lower} or error
+        """
+        return await action.run(${entity_lower}_id, data)
+    
+    # =========================================================================
+    # DELETE (DELETE) — Uses Action + @result_handler
+    # =========================================================================
+    
+    @delete("/{${entity_lower}_id:uuid}")
+    @result_handler(None, success_status=HTTP_204_NO_CONTENT)
+    async def delete_${entity_lower}(
+        self,
+        ${entity_lower}_id: UUID,
+        action: FromDishka[Delete${Entity}Action],
+    ) -> Result[None, ${Module}Error]:
+        """Delete ${entity_lower}.
+        
+        Args:
+            ${entity_lower}_id: UUID of ${entity_lower} to delete
+            action: Injected Delete${Entity}Action
+            
+        Returns:
+            Result[None, ${Module}Error]: Success or error
+        """
+        return await action.run(${entity_lower}_id)
+
+
+# =============================================================================
+# ROUTER SETUP (in __init__.py or Routes.py):
+# =============================================================================
+#
+# from litestar import Router
+# from src.Containers.${Section}.${Module}.UI.API.Controllers.${Entity}Controller import ${Entity}Controller
+#
+# ${module_lower}_router = Router(
+#     path="/api/v1",
+#     route_handlers=[${Entity}Controller],
+# )
+#
+# # Export in __init__.py:
+# # from src.Containers.${Section}.${Module}.UI.API.Routes import ${module_lower}_router
+#
+# =============================================================================
+# REGISTRATION IN App.py:
+# =============================================================================
+#
+# from src.Containers.${Section}.${Module} import ${module_lower}_router
+#
+# app = Litestar(
+#     route_handlers=[
+#         ${module_lower}_router,
+#         # ... other routers
+#     ],
+# )
+# =============================================================================
+
+
+
