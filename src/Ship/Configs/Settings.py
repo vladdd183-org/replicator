@@ -200,6 +200,62 @@ class Settings(BaseSettings):
         description="Interval between outbox polling runs (seconds)",
     )
     
+    # =========================================================================
+    # Replicator AI Settings
+    # =========================================================================
+    
+    # Adapter mode: determines which adapters to use
+    adapter_mode: str = Field(
+        default="local",
+        description="Adapter mode: local, production, hybrid",
+    )
+    
+    # OpenRouter / LLM
+    openrouter_api_key: str = Field(
+        default="",
+        description="OpenRouter API key for LLM access",
+    )
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        description="OpenRouter base URL",
+    )
+    default_model: str = Field(
+        default="anthropic/claude-sonnet-4",
+        description="Default LLM model for complex tasks",
+    )
+    fast_model: str = Field(
+        default="openai/gpt-4o-mini",
+        description="Fast LLM model for trivial tasks",
+    )
+    reasoning_model: str = Field(
+        default="anthropic/claude-sonnet-4",
+        description="Reasoning model for strategic planning",
+    )
+    
+    # Replicator pipeline
+    max_retries: int = Field(
+        default=3,
+        description="Maximum retries for failed pipeline steps",
+    )
+    k_voting_k: int = Field(
+        default=1,
+        description="Number of parallel agents for K-Voting (1 = no voting)",
+    )
+    min_confidence: float = Field(
+        default=0.5,
+        description="Minimum confidence threshold for COMPASS strategy",
+    )
+    
+    # Storage paths
+    storage_base_path: str = Field(
+        default="./data/storage",
+        description="Base path for local storage adapter",
+    )
+    state_db_path: str = Field(
+        default="./data/state.db",
+        description="Path to SQLite state database",
+    )
+    
     @property
     def is_development(self) -> bool:
         """Check if running in development mode."""

@@ -12,4 +12,15 @@ from src.Ship.Providers.AppProvider import (
     get_ship_cli_providers,
 )
 
-__all__ = ["AppProvider", "get_ship_providers", "get_ship_cli_providers"]
+
+def get_worker_providers():
+    """Провайдеры для TaskIQ workers (без HTTP Request)."""
+    return get_ship_cli_providers()
+
+
+__all__ = [
+    "AppProvider",
+    "get_ship_providers",
+    "get_ship_cli_providers",
+    "get_worker_providers",
+]

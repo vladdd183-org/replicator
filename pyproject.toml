@@ -1,7 +1,7 @@
 [project]
-name = "hyper-porto-app"
+name = "replicator"
 version = "0.1.0"
-description = "Hyper-Porto v4.3 - Functional architecture for Python backends"
+description = "Replicator -- самоэволюционирующая модульная система на основе Hyper-Porto"
 authors = [
     {name = "Developer", email = "dev@example.com"}
 ]
@@ -45,8 +45,17 @@ dependencies = [
     "rich>=13.0",
     # Server
     "uvicorn[standard]>=0.32.0",
-    # NOTE: dishka-strawberry requires FastAPI, doesn't work with Litestar
-    # Use get_dependency() helper from Ship/GraphQL/Helpers.py instead
+    # --- Replicator AI & Tools ---
+    # LLM через OpenRouter (совместимый с OpenAI SDK)
+    "openai>=1.30",
+    # MCP -- Model Context Protocol SDK
+    "mcp>=1.0",
+    # DSPy -- prompt optimization
+    "dspy>=2.5",
+    # Jinja2 для шаблонов генерации кода
+    "jinja2>=3.1",
+    # aiosqlite для SQLiteStateAdapter
+    "aiosqlite>=0.20",
 ]
 
 [project.optional-dependencies]
@@ -69,7 +78,6 @@ porto = "src.Ship.CLI.PortoCLI:porto"
 # Litestar CLIPlugin entry points
 # Commands are available via: litestar <command> --help
 [project.entry-points."litestar.commands"]
-users = "src.Containers.AppSection.UserModule.UI.CLI.Commands:users_group"
 db = "src.Ship.CLI.MigrationCommands:db_group"
 temporal = "src.Ship.CLI.Commands.TemporalCommands:temporal_group"
 

@@ -1,8 +1,10 @@
 """Точка входа Replicator.
 
-Минимальное Litestar приложение с Ship-инфраструктурой.
-Containers будут подключаться по мере реализации Sections.
+Litestar приложение с полной Ship-инфраструктурой
+и подключёнными Sections: Core, Agent, Tool, Knowledge.
 """
+
+from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
@@ -16,10 +18,10 @@ from litestar.openapi.plugins import ScalarRenderPlugin
 
 from src.Ship.Configs import get_settings
 from src.Ship.Exceptions.ProblemDetails import create_problem_details_plugin
-from src.Ship.Providers.AppProvider import AppProvider
 from src.Ship.Infrastructure.Telemetry import setup_logfire
 from src.Ship.Infrastructure.Telemetry.RequestLoggingMiddleware import RequestLoggingMiddleware
 from src.Ship.Infrastructure.HealthCheck import health_controller
+from src.Providers import get_all_providers
 
 
 @asynccontextmanager
@@ -34,15 +36,11 @@ def create_app() -> Litestar:
     """Создать и сконфигурировать Litestar приложение."""
     settings = get_settings()
 
-    container = make_async_container(AppProvider())
+    container = make_async_container(*get_all_providers())
 
     app = Litestar(
         route_handlers=[
             health_controller,
-            # TODO: подключить роутеры CoreSection, AgentSection, ToolSection, KnowledgeSection
-        ],
-        listeners=[
-            # TODO: подключить listeners по мере реализации модулей
         ],
         plugins=[
             create_problem_details_plugin(),
