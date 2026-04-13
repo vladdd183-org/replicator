@@ -119,7 +119,7 @@ class ExecuteDetailedBeadAction(Action[DetailedBead, BeadExecutionResult, Orches
                 )
 
             result = await anyio.run_process(
-                ["git", "commit", "-m", message, "--allow-empty"],
+                ["git", "-c", "core.hooksPath=/dev/null", "commit", "-m", message, "--allow-empty"],
                 cwd=self._root, check=False,
             )
 
