@@ -95,7 +95,7 @@ class FinalizeMissionAction(Action[MissionExecutionResult, dict[str, Any], Orche
     async def _create_pr(self, title: str, body: str, branch: str) -> dict[str, Any]:
         result = await anyio.run_process(
             [
-                "gh", "api", "repos/{owner}/{repo}/pulls",
+                "gh", "api", "/repos/{owner}/{repo}/pulls",
                 "--method", "POST",
                 "-f", f"title={title}",
                 "-f", f"head={branch}",
