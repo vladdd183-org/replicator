@@ -1,1 +1,0 @@
-"""EmailModule API layer."""
