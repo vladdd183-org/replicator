@@ -28,10 +28,14 @@ _LEGACY_KEYWORDS = ("legacy", "существующ", "existing", "fix", "исп
 
 
 class CompileSpecAction(Action[str, MissionSpec, SpecCompilationError]):
-    """Компилирует текстовый intent в структурированную MissionSpec."""
+    """Компилирует текстовый intent в структурированную MissionSpec.
+    
+    Использует быструю модель-воркер (gpt-oss-120b на Cerebras).
+    """
 
-    def __init__(self, llm_client: Any = None) -> None:
+    def __init__(self, llm_client: Any = None, model: str = "openai/gpt-oss-120b") -> None:
         self._llm = llm_client
+        self._model = model
 
     async def run(self, data: str) -> Result[MissionSpec, SpecCompilationError]:
         if self._llm is not None:
@@ -46,7 +50,7 @@ class CompileSpecAction(Action[str, MissionSpec, SpecCompilationError]):
     ) -> Result[MissionSpec, SpecCompilationError]:
         """Компиляция intent через LLM."""
         response = await self._llm.chat.completions.create(
-            model="anthropic/claude-sonnet-4",
+            model=self._model,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": intent},

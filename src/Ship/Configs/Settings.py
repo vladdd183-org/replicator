@@ -219,17 +219,22 @@ class Settings(BaseSettings):
         default="https://openrouter.ai/api/v1",
         description="OpenRouter base URL",
     )
-    default_model: str = Field(
-        default="anthropic/claude-sonnet-4",
-        description="Default LLM model for complex tasks",
+    
+    # Мульти-модельная маршрутизация:
+    # strategist -- мозг (COMPASS), нужно глубокое рассуждение
+    strategist_model: str = Field(
+        default="anthropic/claude-opus-4",
+        description="Model for COMPASS strategy (deep reasoning, Opus 4.6)",
     )
-    fast_model: str = Field(
-        default="openai/gpt-4o-mini",
-        description="Fast LLM model for trivial tasks",
+    # worker -- быстрые воркеры (компиляция, декомпозиция, исполнение)
+    worker_model: str = Field(
+        default="openai/gpt-oss-120b",
+        description="Fast worker model on Cerebras (569+ tok/s, $0.35/M)",
     )
-    reasoning_model: str = Field(
-        default="anthropic/claude-sonnet-4",
-        description="Reasoning model for strategic planning",
+    # reviewer -- ревью и верификация
+    reviewer_model: str = Field(
+        default="openai/gpt-oss-120b",
+        description="Model for code review and verification",
     )
     
     # Replicator pipeline

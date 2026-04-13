@@ -26,6 +26,9 @@ from src.Containers.ToolSection.NixModule.Providers import NixModuleProvider
 
 from src.Containers.KnowledgeSection.MemoryModule.Providers import MemoryModuleProvider
 
+from src.Containers.ToolSection.BeadsModule.Providers import BeadsModuleProvider
+from src.Containers.ToolSection.GitHubModule.Providers import GitHubModuleProvider
+
 
 def get_all_providers() -> list[Provider]:
     """Получить все провайдеры для HTTP-контекста."""
@@ -45,6 +48,8 @@ def get_all_providers() -> list[Provider]:
         MCPClientModuleProvider(),
         GitModuleProvider(),
         NixModuleProvider(),
+        BeadsModuleProvider(),
+        GitHubModuleProvider(),
         # KnowledgeSection
         MemoryModuleProvider(),
     ]
@@ -65,5 +70,7 @@ def get_cli_providers() -> list[Provider]:
         MCPClientModuleProvider(),
         GitModuleProvider(),
         NixModuleProvider(),
+        BeadsModuleProvider(),
+        GitHubModuleProvider(),
         MemoryModuleProvider(),
     ]

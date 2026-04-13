@@ -39,10 +39,14 @@ Use bead indices (bead-0, bead-1, ...) for dependencies and parallel_groups."""
 
 
 class DecomposeAction(Action[StrategyPlan, BeadGraph, MakerError]):
-    """Декомпозирует StrategyPlan в BeadGraph из атомарных задач."""
+    """MAKER Decomposer: декомпозирует StrategyPlan в BeadGraph.
+    
+    Использует быструю модель-воркер (gpt-oss-120b на Cerebras).
+    """
 
-    def __init__(self, llm_client: Any = None) -> None:
+    def __init__(self, llm_client: Any = None, model: str = "openai/gpt-oss-120b") -> None:
         self._llm = llm_client
+        self._model = model
 
     async def run(self, data: StrategyPlan) -> Result[BeadGraph, MakerError]:
         if self._llm is not None:
@@ -55,7 +59,7 @@ class DecomposeAction(Action[StrategyPlan, BeadGraph, MakerError]):
     async def _decompose_with_llm(
         self, plan: StrategyPlan,
     ) -> Result[BeadGraph, MakerError]:
-        """Декомпозиция через LLM."""
+        """Декомпозиция через быструю модель (MAKER)."""
         plan_text = (
             f"Approach: {plan.approach}\n"
             f"Confidence: {plan.confidence}\n"
@@ -70,7 +74,7 @@ class DecomposeAction(Action[StrategyPlan, BeadGraph, MakerError]):
         plan_text += f"Rollback plan: {plan.rollback_plan}\n"
 
         response = await self._llm.chat.completions.create(
-            model="anthropic/claude-sonnet-4",
+            model=self._model,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": plan_text},

@@ -21,11 +21,21 @@ from src.Ship.Parents.Action import Action
 
 
 class ExecuteBeadGraphAction(Action[BeadGraph, ExecutionResult, OrchestratorError]):
-    """Исполняет BeadGraph: топологическая сортировка, параллельные группы, LLM."""
+    """Исполняет BeadGraph: параллельные группы через быструю модель.
+    
+    Использует gpt-oss-120b на Cerebras (569+ tok/s) для массового
+    параллельного исполнения бидов.
+    """
 
-    def __init__(self, llm_client: Any = None, compute_port: Any = None) -> None:
+    def __init__(
+        self,
+        llm_client: Any = None,
+        compute_port: Any = None,
+        model: str = "openai/gpt-oss-120b",
+    ) -> None:
         self._llm = llm_client
         self._compute = compute_port
+        self._model = model
 
     async def run(self, data: BeadGraph) -> Result[ExecutionResult, OrchestratorError]:
         start = time.monotonic()
@@ -99,7 +109,7 @@ class ExecuteBeadGraphAction(Action[BeadGraph, ExecutionResult, OrchestratorErro
             context = self._build_context(bead, prior_results)
 
             response = await self._llm.chat.completions.create(
-                model="anthropic/claude-sonnet-4",
+                model=self._model,
                 messages=[
                     {
                         "role": "system",

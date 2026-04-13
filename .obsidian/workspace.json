@@ -185,17 +185,18 @@
   },
   "active": "fe8be4b90ff468ef",
   "lastOpenFiles": [
-    "src/Ship/CLI/Commands/__pycache__/ReplicatorCommands.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/TemporalCommands.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeEvent.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeController.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeQuery.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeTask.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeAction.cpython-313.pyc",
-    "src/Ship/CLI/__pycache__/Generator.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/__init__.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__/MakeModule.cpython-313.pyc",
-    "src/Ship/CLI/Commands/__pycache__",
+    "src/Ship/Decorators/timed.py",
+    "src/Containers/ToolSection/GitHubModule/__init__.py",
+    "src/Containers/ToolSection/GitHubModule/Providers.py",
+    "src/Containers/ToolSection/GitHubModule/Events.py",
+    "src/Containers/ToolSection/GitHubModule/Errors.py",
+    "src/Containers/ToolSection/GitHubModule/Actions/__init__.py",
+    "src/Containers/ToolSection/GitHubModule/Actions/EnableAutoMergeAction.py",
+    "src/Containers/ToolSection/GitHubModule/Actions/CreatePRAction.py",
+    "src/Containers/ToolSection/BeadsModule/__init__.py",
+    "src/Containers/ToolSection/BeadsModule/Providers.py",
+    "src/Containers/ToolSection/BeadsModule/Events.py",
+    "CLAUDE.md",
     "foxdocs/OWNER-VISION.md",
     "foxdocs/IMPLEMENTATION-GUIDE.md",
     "foxdocs/HANDOFF-NOTES.md",
@@ -219,7 +220,6 @@
     "foxdocs/hyper-porto-docs/06-metaprogramming.md",
     "foxdocs/hyper-porto-docs/05-concurrency.md",
     "foxdocs/hyper-porto-docs/04-result-railway.md",
-    "foxdocs/hyper-porto-docs/03-components.md",
-    "foxdocs/hyper-porto-docs/02-project-structure.md"
+    "foxdocs/hyper-porto-docs/03-components.md"
   ]
 }

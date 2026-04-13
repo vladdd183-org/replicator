@@ -32,10 +32,14 @@ Be specific and actionable. For code changes, describe exact files and modificat
 
 
 class StrategizeAction(Action[MissionSpec, StrategyPlan, CompassError]):
-    """Meta-Thinker: формирует стратегию исполнения из MissionSpec."""
+    """Meta-Thinker (COMPASS): формирует стратегию исполнения из MissionSpec.
+    
+    Использует Opus 4.6 -- самую мощную модель для глубокого рассуждения.
+    """
 
-    def __init__(self, llm_client: Any = None) -> None:
+    def __init__(self, llm_client: Any = None, model: str = "anthropic/claude-opus-4") -> None:
         self._llm = llm_client
+        self._model = model
 
     async def run(self, data: MissionSpec) -> Result[StrategyPlan, CompassError]:
         if self._llm is not None:
@@ -48,7 +52,7 @@ class StrategizeAction(Action[MissionSpec, StrategyPlan, CompassError]):
     async def _strategize_with_llm(
         self, spec: MissionSpec,
     ) -> Result[StrategyPlan, CompassError]:
-        """Формирование стратегии через LLM."""
+        """Формирование стратегии через Opus 4.6 (COMPASS Meta-Thinker)."""
         spec_text = (
             f"Title: {spec.title}\n"
             f"Description: {spec.description}\n"
@@ -60,7 +64,7 @@ class StrategizeAction(Action[MissionSpec, StrategyPlan, CompassError]):
         )
 
         response = await self._llm.chat.completions.create(
-            model="anthropic/claude-sonnet-4",
+            model=self._model,
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
                 {"role": "user", "content": spec_text},

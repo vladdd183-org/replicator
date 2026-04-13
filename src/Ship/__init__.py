@@ -1,4 +1,1 @@
-"""Ship Layer - Common infrastructure for all Containers."""
-
-
-
+"""Ship -- инфраструктурное ядро Replicator."""

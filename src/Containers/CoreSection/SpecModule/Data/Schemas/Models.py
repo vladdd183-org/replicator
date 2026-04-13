@@ -99,3 +99,78 @@ class EvidenceBundle(BaseModel):
     metrics: dict[str, Any] = Field(default_factory=dict)
     risk_assessment: str = ""
     reviewer_notes: list[str] = Field(default_factory=list)
+
+
+# ============================================================================
+# V2 Pipeline Models: Opus = мозг, Workers = руки
+# ============================================================================
+
+class FileOperation(BaseModel):
+    """Одна файловая операция: создать, изменить, удалить."""
+    model_config = {"frozen": True}
+
+    action: str  # "create" | "modify" | "delete"
+    file_path: str
+    content: str = ""  # полный контент файла (для create) или новый контент (для modify)
+    description: str = ""  # что и зачем
+
+
+class DetailedBead(BaseModel):
+    """Детальная инструкция для воркера от Opus.
+
+    Opus продумывает ВСЁ и генерирует готовый к исполнению план.
+    Воркер НЕ думает -- он просто выполняет file_operations.
+    """
+    model_config = {"frozen": True}
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str = ""
+    bead_type: BeadType = BeadType.CODE
+
+    file_operations: list[FileOperation] = Field(default_factory=list)
+
+    shell_commands: list[str] = Field(default_factory=list)
+
+    acceptance_criteria: list[str] = Field(default_factory=list)
+    dependencies: list[str] = Field(default_factory=list)
+    estimated_complexity: Complexity = Complexity.SIMPLE
+
+
+class DetailedBeadGraph(BaseModel):
+    """Граф детальных bead-инструкций, готовых к исполнению воркерами."""
+    model_config = {"frozen": True}
+
+    mission_title: str = ""
+    beads: list[DetailedBead] = Field(default_factory=list)
+    parallel_groups: list[list[str]] = Field(default_factory=list)
+    git_branch: str = ""
+
+
+class BeadExecutionResult(BaseModel):
+    """Результат исполнения одного DetailedBead воркером."""
+    model_config = {"frozen": True}
+
+    bead_id: str
+    bead_title: str = ""
+    status: str = "success"  # success | failure
+    files_written: list[str] = Field(default_factory=list)
+    commands_executed: list[str] = Field(default_factory=list)
+    error_message: str = ""
+    duration_ms: int = 0
+    commit_hash: str = ""
+    bd_bead_id: str = ""
+
+
+class MissionExecutionResult(BaseModel):
+    """Полный результат исполнения миссии."""
+    model_config = {"frozen": True}
+
+    mission_title: str = ""
+    git_branch: str = ""
+    bead_results: list[BeadExecutionResult] = Field(default_factory=list)
+    overall_status: str = "success"
+    total_duration_ms: int = 0
+    total_files_changed: int = 0
+    total_commits: int = 0
+    finalize: dict[str, Any] | None = None
