@@ -1,0 +1,53 @@
+---
+globs: ["src/Containers/**"]
+---
+# Правила для Sections и Modules
+
+## Четыре Section-а Replicator
+
+### CoreSection -- ядро репликатора
+- `SpecModule` -- компиляция intent -> MissionSpec -> Formula
+- `CellRegistryModule` -- реестр CellSpec-ов
+- `TemplateModule` -- генерация Porto-скелетов из Jinja2 шаблонов
+- `EvolutionModule` -- мутация, verification, promotion
+
+### AgentSection -- интеллект
+- `CompassModule` -- стратегическое мышление (Meta-Thinker, Context Manager)
+- `MakerModule` -- надежное исполнение (MAD, K-Voting, Red-Flagging)
+- `OrchestratorModule` -- координация агентов, исполнение BeadGraph
+
+### ToolSection -- инструменты
+- `MCPClientModule` -- MCP tool integration
+- `GitModule` -- git operations, worktree
+- `NixModule` -- Nix build, nix2container, flake generation
+- `CICDModule` -- pipeline generation
+
+### KnowledgeSection -- знания
+- `MemoryModule` -- agent memory
+- `KnowledgeGraphModule` -- temporal knowledge graph
+- `SpecLibraryModule` -- библиотека Formula-шаблонов
+
+## Правила создания Module
+
+```
+Containers/{Section}/{Module}/
+  Actions/              # Use Cases: Action[Input, Output, Error] -> Result
+  Tasks/                # Атомарные операции: Task[Input, Output]
+  Queries/              # CQRS Read: Query[Input, Output]
+  Data/
+    Repositories/       # Доступ к данным
+    Schemas/            # Pydantic Request/Response DTOs
+    UnitOfWork.py       # Транзакции + Events
+  Models/               # Domain Models
+  UI/                   # API, CLI, WebSocket, Workers (опционально)
+  Events.py             # Domain Events (Pydantic frozen)
+  Listeners.py          # Event handlers
+  Errors.py             # Ошибки (Pydantic frozen, наследники BaseError)
+  Providers.py          # Dishka DI providers
+  cell_spec.py          # CellSpec (опционально)
+```
+
+## Правила межмодульного общения
+- ЗАПРЕЩЕНО: прямой импорт из другого Module
+- РАЗРЕШЕНО: через Domain Events (pub/sub)
+- РАЗРЕШЕНО: через Gateway Pattern (Protocol в потребителе, реализация в поставщике)

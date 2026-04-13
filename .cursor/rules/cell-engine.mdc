@@ -1,0 +1,36 @@
+---
+globs: ["src/Ship/Cell/**", "**/*cell_spec*"]
+---
+# Правила для Cell Engine (L2)
+
+## CellSpec
+
+Каждый Container МОЖЕТ иметь `cell_spec.py` с `CellSpec` -- декларативным описанием модуля.
+
+```python
+from src.Ship.Cell.CellSpec import CellSpec, CellStatus, ResourceBudget
+
+CELL_SPEC = CellSpec(
+    name="spec-module",
+    version="0.1.0",
+    description="Компиляция intent -> MissionSpec -> Formula",
+    section="CoreSection",
+    spec_hash="",  # вычисляется автоматически
+    actions=["CompileSpecAction", "ValidateSpecAction"],
+    tasks=["ParseIntentTask", "EnrichContextTask"],
+    events_emitted=["SpecCompiled", "SpecValidated"],
+    events_consumed=[],
+    capabilities_required=["storage:read", "compute:execute"],
+    dependencies=["cell-registry-module"],
+    status=CellStatus.DRAFT,
+)
+```
+
+## Правила
+
+1. CellSpec -- ВСЕГДА frozen dataclass
+2. spec_hash вычисляется через `compute_spec_hash()` (SHA-256 JSON без поля spec_hash)
+3. Версия -- semver (major.minor.patch)
+4. parent_spec_hash указывает на предыдущую версию (Merkle-chain)
+5. Статусы: DRAFT -> ACTIVE -> DEPRECATED -> ARCHIVED
+6. Capabilities используют формат "resource:action" (например "storage:read")

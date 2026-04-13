@@ -1,0 +1,49 @@
+---
+globs: ["src/Ship/Adapters/**", "src/Ship/Providers/AdapterProvider.py"]
+---
+# Правила для адаптерного слоя (L0)
+
+## Протоколы (Ports)
+
+Все пять портов определены в `Ship/Adapters/Protocols.py`:
+- `StoragePort` -- хранение неизменяемых данных (файлы, артефакты)
+- `StatePort` -- мутабельное состояние с историей
+- `MessagingPort` -- pub/sub обмен сообщениями
+- `IdentityPort` -- идентификация и авторизация
+- `ComputePort` -- исполнение изолированных вычислений
+
+## Правила написания адаптеров
+
+1. Адаптер ОБЯЗАН реализовать ВСЕ методы Protocol-а
+2. Все методы -- `async`
+3. При ошибке -- бросать типизированную ошибку из `Ship/Adapters/Errors.py`
+4. Никакой бизнес-логики в адаптерах -- только трансляция вызовов
+5. Адаптер регистрируется в `Ship/Providers/AdapterProvider.py` с `provides=XxxPort`
+
+## Пример:
+```python
+class LocalStorageAdapter:
+    """Реализация StoragePort для локальной файловой системы."""
+
+    def __init__(self, base_path: str) -> None:
+        self.base_path = Path(base_path)
+
+    async def put(self, data: bytes, metadata: dict | None = None) -> str:
+        content_hash = hashlib.sha256(data).hexdigest()
+        path = self.base_path / content_hash
+        await anyio.Path(path).write_bytes(data)
+        return content_hash
+
+    async def get(self, identifier: str) -> bytes:
+        path = self.base_path / identifier
+        if not await anyio.Path(path).exists():
+            raise StorageNotFoundError(identifier=identifier)
+        return await anyio.Path(path).read_bytes()
+```
+
+## DI:
+```python
+class LocalAdapterProvider(Provider):
+    scope = Scope.APP
+    storage = provide(LocalStorageAdapter, provides=StoragePort)
+```

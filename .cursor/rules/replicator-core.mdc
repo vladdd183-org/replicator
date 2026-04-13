@@ -1,0 +1,147 @@
+---
+alwaysApply: true
+---
+# Replicator -- Главные правила проекта
+
+> Самоэволюционирующая модульная система на основе Hyper-Porto. Все на русском.
+
+---
+
+## ОБЯЗАТЕЛЬНО ЗАГРУЗИ ПЕРЕД РАБОТОЙ
+
+### Всегда (при любой задаче)
+- `docs/architecture/00-vision.md` -- видение, три режима, слои L0-L5
+- `docs/reference/glossary.md` -- терминология (Cell, Bead, MissionSpec, Porto, ...)
+- `docs/reference/file-map.md` -- где какой файл
+
+### При работе с архитектурой
+- `docs/architecture/01-layers.md` -- слои от транспорта до репликации
+- `docs/architecture/02-cell-model.md` -- Cell -> Porto Container, CellSpec
+- `docs/architecture/03-adapter-neutrality.md` -- Protocols, DI-переключение
+- `docs/architecture/04-porto-extensions.md` -- что добавлено к Porto
+
+### При работе с pipeline-ом
+- `docs/architecture/05-replication-flow.md` -- Intent -> Spec -> Beads -> Execute -> Verify
+- `docs/architecture/06-evolution-model.md` -- мутация, fitness, promotion
+
+### При работе с паттернами
+- `docs/patterns/result-railway.md` -- Result[T, E]
+- `docs/patterns/gateway-adapter.md` -- Gateway и Adapter
+- `docs/patterns/event-driven.md` -- Domain Events
+- `docs/patterns/compass-maker.md` -- COMPASS + MAKER в Porto
+- `docs/patterns/spec-bead-workflow.md` -- Spec -> Bead decomposition
+
+### При работе со спецификациями
+- `specs/ship-adapters.spec.md`, `specs/ship-cell.spec.md`
+- `specs/core-section.spec.md`, `specs/agent-section.spec.md`
+- `specs/tool-section.spec.md`, `specs/knowledge-section.spec.md`
+- `specs/beads/` -- декомпозиция на атомарные задачи
+
+### При работе с очисткой/добавлением
+- `specs/cleanup-plan.md` -- что удалить, что оставить
+- `specs/addition-plan.md` -- порядок добавления, 6 этапов
+
+### Для референса (исходные материалы)
+- `foxdocs/` -- копии всех проектов-наработок (nn3w, factory-ai, COMPASS_MAKER, myaiteam, fd_cicd, python-uv-nix, research)
+
+---
+
+## АРХИТЕКТУРА REPLICATOR
+
+### Слои (L0-L5)
+```
+L0  ТРАНСПОРТ       Ship/Adapters/  (StoragePort, MessagingPort, IdentityPort, StatePort, ComputePort)
+L1  ИНФРАСТРУКТУРА  Ship/           (Core, Parents, Providers, Infrastructure, Auth, CLI)
+L2  РАНТАЙМ         Ship/Cell/      (CellSpec, Supervisor, Capabilities)
+L3  СТРУКТУРА КОДА  Containers/     (Actions, Tasks, Queries, Events, Result Railway)
+L4  ИНТЕЛЛЕКТ       AgentSection/   (COMPASS, MAKER, DSPy, Orchestrator)
+L5  РЕПЛИКАЦИЯ      CoreSection/    (Spec, Registry, Templates, Evolution)
+```
+
+### Sections (группы модулей)
+```
+Containers/
+  CoreSection/      -- ядро: SpecModule, CellRegistryModule, TemplateModule, EvolutionModule
+  AgentSection/     -- интеллект: CompassModule, MakerModule, OrchestratorModule
+  ToolSection/      -- инструменты: MCPClientModule, GitModule, NixModule, CICDModule
+  KnowledgeSection/ -- знания: MemoryModule, KnowledgeGraphModule, SpecLibraryModule
+```
+
+---
+
+## ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА
+
+### 1. Porto-паттерн
+- Ship НИКОГДА не импортирует из Containers
+- Container не импортирует из другого Container (только через Events или Gateway)
+- Абсолютные импорты от корня src/ ВСЕГДА
+- Каждый Module имеет: Actions/, Tasks/, Queries/, Data/, Events.py, Errors.py, Providers.py
+
+### 2. Result Railway
+- Все Actions возвращают `Result[T, E]` (из `returns.result`)
+- Ошибки -- Pydantic frozen models, наследники BaseError
+- Pattern matching в контроллерах, `@result_handler` для автоматизации
+
+### 3. Адаптерная нейтральность
+- Бизнес-логика зависит от Protocol, НЕ от конкретной реализации
+- Переключение Web2/Web3 через Dishka DI Provider
+- Пять портов: StoragePort, StatePort, MessagingPort, IdentityPort, ComputePort
+
+### 4. Cell модель
+- Container = Cell = граница будущего микросервиса
+- CellSpec описывает Container как версионируемую единицу
+- spec_hash = SHA-256 сериализации (будет CID в Web3)
+
+### 5. Domain Events
+- Межмодульное общение -- через Domain Events
+- UoW.add_event() -> commit() -> EventBus
+- Подменяемые бэкенды: InMemory -> NATS -> libp2p
+
+### 6. Structured Concurrency
+- anyio TaskGroup для параллелизма
+- Никаких fire-and-forget задач
+- CPU-bound через anyio.to_thread.run_sync()
+
+### 7. Язык
+- Вся документация и комментарии на РУССКОМ
+- Имена классов и переменных на АНГЛИЙСКОМ (Python стандарт)
+- Коммиты на русском
+
+---
+
+## ИМЕНОВАНИЕ
+
+```python
+# Actions: {Глагол}{Существительное}Action
+class CompileSpecAction(Action[str, MissionSpec, SpecError]): ...
+class RegisterCellAction(Action[CellSpec, CellSpec, RegistryError]): ...
+
+# Tasks: {Глагол}{Существительное}Task
+class BuildContextBriefTask(Task[ContextBundle, Brief]): ...
+class RenderTemplateTask(SyncTask[TemplateInput, str]): ...
+
+# Queries: {Get|List|Search}{Существительное}Query
+class GetCellQuery(Query[str, CellSpec | None]): ...
+class ListFormulasQuery(Query[str | None, list[FormulaSummary]]): ...
+
+# Errors: {Существительное}{Причина}Error
+class SpecCompilationError(SpecError): ...
+class CellNotFoundError(CellError): ...
+
+# Events: {Существительное}{Действие в прошедшем}
+class SpecCompiled(DomainEvent): ...
+class CellRegistered(DomainEvent): ...
+class VersionPromoted(DomainEvent): ...
+```
+
+---
+
+## ТРИ РЕЖИМА REPLICATOR
+
+| Режим | intent_type | Описание |
+|---|---|---|
+| Самоэволюция | `self_evolve` | Модификация собственного кода |
+| Генерация | `generate` | Создание нового репозитория |
+| Legacy | `legacy` | Работа с существующим проектом |
+
+Pipeline одинаков: Intent -> Spec -> Strategy -> Beads -> Execute -> Verify -> Promote
