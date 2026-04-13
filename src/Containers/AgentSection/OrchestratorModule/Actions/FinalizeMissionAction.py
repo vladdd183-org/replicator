@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import anyio
@@ -94,11 +95,13 @@ class FinalizeMissionAction(Action[MissionExecutionResult, dict[str, Any], Orche
     async def _create_pr(self, title: str, body: str, branch: str) -> dict[str, Any]:
         result = await anyio.run_process(
             [
-                "gh", "pr", "create",
-                "--title", title,
-                "--body", body,
-                "--base", "main",
-                "--head", branch,
+                "gh", "api", "repos/{owner}/{repo}/pulls",
+                "--method", "POST",
+                "-f", f"title={title}",
+                "-f", f"head={branch}",
+                "-f", "base=main",
+                "-f", f"body={body}",
+                "--jq", "{number: .number, url: .html_url, state: .state}",
             ],
             cwd=self._root, check=False,
         )
@@ -106,16 +109,11 @@ class FinalizeMissionAction(Action[MissionExecutionResult, dict[str, Any], Orche
         if result.returncode != 0:
             return {"error": result.stderr.decode()[:500]}
 
-        stdout = result.stdout.decode().strip()
-        if stdout.startswith("http"):
-            parts = stdout.rstrip("/").split("/")
-            try:
-                number = int(parts[-1])
-                return {"number": number, "url": stdout}
-            except (ValueError, IndexError):
-                pass
-
-        return {"url": stdout}
+        try:
+            parsed = json.loads(result.stdout.decode())
+            return parsed
+        except Exception:
+            return {"url": result.stdout.decode().strip()}
 
     async def _enable_auto_merge(self, pr_number: int) -> None:
         await anyio.run_process(
