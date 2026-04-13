@@ -5,7 +5,7 @@ Containers should define their own PiccoloApp.py for module-specific tables.
 
 Usage in piccolo_conf.py:
     from src.Ship.Core.PiccoloApp import APP_CONFIG as ship_app
-    
+
     APP_REGISTRY = AppRegistry(apps=[
         ship_app.app_name,
         # ... other container apps
@@ -29,6 +29,3 @@ APP_CONFIG = AppConfig(
     migration_dependencies=[],
     commands=[],
 )
-
-
-

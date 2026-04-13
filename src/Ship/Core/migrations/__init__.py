@@ -1,4 +1,1 @@
 """Ship migrations folder."""
-
-
-

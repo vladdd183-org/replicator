@@ -15,7 +15,7 @@ Error Hierarchy:
 Usage:
     Gateway adapters catch transport errors and wrap them
     in appropriate GatewayError subclasses for consistent handling.
-    
+
     Consumer modules can then map these to their domain errors
     or handle them generically.
 
@@ -41,15 +41,15 @@ from src.Ship.Core.Errors import BaseError, ErrorWithTemplate
 
 class GatewayError(BaseError):
     """Base error for all gateway-related failures.
-    
+
     All gateway errors inherit from this class.
     Allows catching all gateway errors with single except clause.
-    
+
     Attributes:
         service_name: Name of the target service/module
         code: Machine-readable error code
     """
-    
+
     code: str = "GATEWAY_ERROR"
     http_status: int = 502  # Bad Gateway
     service_name: str
@@ -57,19 +57,17 @@ class GatewayError(BaseError):
 
 class GatewayConnectionError(ErrorWithTemplate, GatewayError):
     """Error raised when gateway cannot connect to target service.
-    
+
     Causes:
     - Service is down
     - Network issues
     - DNS resolution failed
     - Connection refused
-    
+
     Retry Strategy: Exponential backoff with jitter
     """
-    
-    _message_template: ClassVar[str] = (
-        "Cannot connect to service '{service_name}': {details}"
-    )
+
+    _message_template: ClassVar[str] = "Cannot connect to service '{service_name}': {details}"
     code: str = "GATEWAY_CONNECTION_ERROR"
     http_status: int = 503  # Service Unavailable
     details: str = "Connection failed"
@@ -77,15 +75,15 @@ class GatewayConnectionError(ErrorWithTemplate, GatewayError):
 
 class GatewayTimeoutError(ErrorWithTemplate, GatewayError):
     """Error raised when gateway request times out.
-    
+
     Causes:
     - Service is overloaded
     - Network latency
     - Long-running operation
-    
+
     Retry Strategy: Limited retries with increased timeout
     """
-    
+
     _message_template: ClassVar[str] = (
         "Request to service '{service_name}' timed out after {timeout_seconds}s"
     )
@@ -96,15 +94,15 @@ class GatewayTimeoutError(ErrorWithTemplate, GatewayError):
 
 class GatewayUnavailableError(ErrorWithTemplate, GatewayError):
     """Error raised when target service is temporarily unavailable.
-    
+
     Causes:
     - Service is starting up
     - Service is in maintenance mode
     - Service returned 503
-    
+
     Retry Strategy: Wait and retry with backoff
     """
-    
+
     _message_template: ClassVar[str] = (
         "Service '{service_name}' is temporarily unavailable: {reason}"
     )
@@ -115,19 +113,17 @@ class GatewayUnavailableError(ErrorWithTemplate, GatewayError):
 
 class GatewayResponseError(ErrorWithTemplate, GatewayError):
     """Error raised when gateway receives invalid/unexpected response.
-    
+
     Causes:
     - Invalid JSON in response
     - Unexpected response format
     - Schema mismatch
     - Deserialization failed
-    
+
     Retry Strategy: Do not retry (likely a bug)
     """
-    
-    _message_template: ClassVar[str] = (
-        "Invalid response from service '{service_name}': {details}"
-    )
+
+    _message_template: ClassVar[str] = "Invalid response from service '{service_name}': {details}"
     code: str = "GATEWAY_RESPONSE_ERROR"
     http_status: int = 502  # Bad Gateway
     details: str
@@ -136,16 +132,16 @@ class GatewayResponseError(ErrorWithTemplate, GatewayError):
 
 class GatewayAuthenticationError(ErrorWithTemplate, GatewayError):
     """Error raised when gateway authentication fails.
-    
+
     Causes:
     - Invalid API key
     - Expired token
     - Missing credentials
     - Service-to-service auth failed
-    
+
     Retry Strategy: Do not retry without new credentials
     """
-    
+
     _message_template: ClassVar[str] = (
         "Authentication failed for service '{service_name}': {reason}"
     )
@@ -156,20 +152,19 @@ class GatewayAuthenticationError(ErrorWithTemplate, GatewayError):
 
 class GatewayCircuitOpenError(ErrorWithTemplate, GatewayError):
     """Error raised when circuit breaker is open.
-    
+
     Circuit breaker is open when too many recent failures occurred.
     Prevents cascade failures by failing fast.
-    
+
     Retry Strategy: Wait for circuit to close (half-open state)
-    
+
     Attributes:
         open_since: Timestamp when circuit opened
         retry_after_seconds: Suggested retry delay
     """
-    
+
     _message_template: ClassVar[str] = (
-        "Circuit breaker is open for service '{service_name}'. "
-        "Retry after {retry_after_seconds}s."
+        "Circuit breaker is open for service '{service_name}'. Retry after {retry_after_seconds}s."
     )
     code: str = "GATEWAY_CIRCUIT_OPEN"
     http_status: int = 503  # Service Unavailable
@@ -179,17 +174,16 @@ class GatewayCircuitOpenError(ErrorWithTemplate, GatewayError):
 
 class GatewayRateLimitError(ErrorWithTemplate, GatewayError):
     """Error raised when rate limit is exceeded.
-    
+
     Causes:
     - Too many requests to target service
     - Service returned 429
-    
+
     Retry Strategy: Wait for rate limit window to reset
     """
-    
+
     _message_template: ClassVar[str] = (
-        "Rate limit exceeded for service '{service_name}'. "
-        "Retry after {retry_after_seconds}s."
+        "Rate limit exceeded for service '{service_name}'. Retry after {retry_after_seconds}s."
     )
     code: str = "GATEWAY_RATE_LIMIT"
     http_status: int = 429  # Too Many Requests
@@ -198,15 +192,15 @@ class GatewayRateLimitError(ErrorWithTemplate, GatewayError):
 
 class GatewayServerError(ErrorWithTemplate, GatewayError):
     """Error raised when target service returns 5xx error.
-    
+
     Causes:
     - Internal server error in target service
     - Database issues
     - Unhandled exception
-    
+
     Retry Strategy: Limited retries with exponential backoff
     """
-    
+
     _message_template: ClassVar[str] = (
         "Service '{service_name}' returned error {status_code}: {details}"
     )
@@ -218,16 +212,16 @@ class GatewayServerError(ErrorWithTemplate, GatewayError):
 
 class GatewayClientError(ErrorWithTemplate, GatewayError):
     """Error raised when target service returns 4xx error (except 401, 429).
-    
+
     Causes:
     - Bad request (400)
     - Not found (404)
     - Conflict (409)
     - Validation error (422)
-    
+
     Retry Strategy: Do not retry (request is invalid)
     """
-    
+
     _message_template: ClassVar[str] = (
         "Service '{service_name}' rejected request with {status_code}: {details}"
     )
