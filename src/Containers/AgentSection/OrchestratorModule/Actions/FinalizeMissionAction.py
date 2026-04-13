@@ -93,9 +93,13 @@ class FinalizeMissionAction(Action[MissionExecutionResult, dict[str, Any], Orche
         return result.returncode == 0
 
     async def _create_pr(self, title: str, body: str, branch: str) -> dict[str, Any]:
+        repo_slug = await self._get_repo_slug()
+        if not repo_slug:
+            return {"error": "Could not detect GitHub repo"}
+
         result = await anyio.run_process(
             [
-                "gh", "api", "/repos/{owner}/{repo}/pulls",
+                "gh", "api", f"/repos/{repo_slug}/pulls",
                 "--method", "POST",
                 "-f", f"title={title}",
                 "-f", f"head={branch}",
@@ -114,6 +118,22 @@ class FinalizeMissionAction(Action[MissionExecutionResult, dict[str, Any], Orche
             return parsed
         except Exception:
             return {"url": result.stdout.decode().strip()}
+
+    async def _get_repo_slug(self) -> str:
+        """Detect owner/repo from git remote."""
+        result = await anyio.run_process(
+            ["git", "remote", "get-url", "origin"],
+            cwd=self._root, check=False,
+        )
+        if result.returncode != 0:
+            return ""
+        url = result.stdout.decode().strip()
+        url = url.rstrip(".git").rstrip("/")
+        if "github.com/" in url:
+            parts = url.split("github.com/")[-1].split("/")
+            if len(parts) >= 2:
+                return f"{parts[0]}/{parts[1]}"
+        return ""
 
     async def _enable_auto_merge(self, pr_number: int) -> None:
         await anyio.run_process(

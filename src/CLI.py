@@ -1,15 +1,13 @@
-"""CLI Replicator -- точка входа для всех команд.
+"""CLI Replicator -- точка входа.
 
-Регистрирует команды из Ship и Containers.
+Главная команда:
+    uv run python -m src.CLI replicator run <REPO_URL> <INTENT>
 
-Usage:
-    uv run python -m src.CLI --help
-    uv run python -m src.CLI replicator evolve "Добавить поддержку gRPC"
-    uv run python -m src.CLI replicator evolve --dry-run "Улучшить покрытие тестами"
-    uv run python -m src.CLI replicator spec:compile "Создать микросервис платежей"
-    uv run python -m src.CLI replicator cell:list
-    uv run python -m src.CLI replicator generate "REST API для блога"
-    uv run python -m src.CLI db migrate
+Примеры:
+    uv run python -m src.CLI replicator run https://github.com/owner/repo "Добавить фичу X"
+    uv run python -m src.CLI replicator run . "Улучшить покрытие тестами" --dry-run
+    uv run python -m src.CLI replicator spec:compile "Создать микросервис"
+    uv run python -m src.CLI replicator beads
 """
 
 from src.Ship.CLI.Decorators import configure_cli_providers
