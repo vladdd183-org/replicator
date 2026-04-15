@@ -63,6 +63,7 @@ _OPUS_SYSTEM_PROMPT = """Ты -- COMPASS Meta-Thinker, мозг системы R
 
 Используй bead-0, bead-1, ... как ID в parallel_groups.
 Пиши КОД, а не заглушки. Пиши РЕАЛЬНЫЙ рабочий код.
+ВАЖНО: каждый файл не более 150 строк. Если файл большой -- разбей на несколько beads.
 Отвечай ТОЛЬКО валидным JSON, без markdown."""
 
 
@@ -110,7 +111,7 @@ class PlanMissionAction(Action[MissionSpec, DetailedBeadGraph, CompassError]):
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
-            max_tokens=16000,
+            max_tokens=64000,
         )
 
         raw = response.choices[0].message.content.strip()
@@ -121,29 +122,56 @@ class PlanMissionAction(Action[MissionSpec, DetailedBeadGraph, CompassError]):
                 raw = raw[:-3]
             raw = raw.strip()
 
-        parsed = json.loads(raw)
+        parsed = self._parse_json_robust(raw)
         return self._build_graph(parsed)
+
+    @staticmethod
+    def _parse_json_robust(raw: str) -> dict[str, Any]:
+        """Парсинг JSON с recovery для обрезанных ответов."""
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+
+        for trim in ['"}]}', '"}],"parallel_groups":[]}', '"]},{"title":', '"}]}']:
+            try:
+                return json.loads(raw + trim)
+            except json.JSONDecodeError:
+                continue
+
+        last_brace = raw.rfind("}")
+        if last_brace > 0:
+            candidate = raw[:last_brace + 1]
+            bracket_count = candidate.count("[") - candidate.count("]")
+            brace_count = candidate.count("{") - candidate.count("}")
+            candidate += "]" * bracket_count + "}" * brace_count
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+
+        raise json.JSONDecodeError("Could not recover truncated JSON", raw, 0)
 
     def _scan_project_structure(self) -> str:
         """Scan project directory for context."""
         lines = []
-        src_path = os.path.join(self._root, "src")
-        if not os.path.exists(src_path):
-            return "src/ directory not found"
+        scan_root = self._root
+        skip_dirs = {"__pycache__", ".git", ".beads", "node_modules", ".venv", ".nix", ".obsidian"}
 
-        for root, dirs, files in os.walk(src_path):
-            dirs[:] = [d for d in dirs if d != "__pycache__" and not d.startswith(".")]
-            level = root.replace(src_path, "").count(os.sep)
+        for root, dirs, files in os.walk(scan_root):
+            dirs[:] = sorted(d for d in dirs if d not in skip_dirs and not d.startswith("."))
+            level = root.replace(scan_root, "").count(os.sep)
             indent = "  " * level
             dirname = os.path.basename(root)
             lines.append(f"{indent}{dirname}/")
 
             sub_indent = "  " * (level + 1)
-            py_files = [f for f in files if f.endswith(".py") and f != "__init__.py"]
-            for f in sorted(py_files)[:10]:
+            code_exts = {".py", ".ts", ".js", ".go", ".rs", ".nix", ".md", ".toml", ".yaml", ".yml"}
+            code_files = [f for f in sorted(files) if any(f.endswith(e) for e in code_exts)]
+            for f in code_files[:15]:
                 lines.append(f"{sub_indent}{f}")
 
-            if len(lines) > 200:
+            if len(lines) > 300:
                 lines.append("... (truncated)")
                 break
 

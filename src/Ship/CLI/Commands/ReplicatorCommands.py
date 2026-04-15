@@ -203,7 +203,10 @@ async def _run_full_pipeline(
         "Анализирует проект, формирует детальный план с готовым кодом",
     ))
     t0 = time.monotonic()
+    _info("Сканирование структуры проекта...")
     planner = PlanMissionAction(llm_client=llm, model=models["strategist"], project_root=project_root)
+    _info("Отправка запроса к Opus... (может занять 1-3 минуты)")
+
     plan_result = await planner.run(spec)
     if isinstance(plan_result, Failure):
         return {"error": f"Планирование: {plan_result.failure()}"}
